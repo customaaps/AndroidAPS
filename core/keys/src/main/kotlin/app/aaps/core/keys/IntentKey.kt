@@ -12,7 +12,7 @@ enum class IntentKey(
 ) : IntentPreferenceKey {
 
     ApsLinkToDocs(key = "link_to_docs"),
-    SmsOtpSetup(key = "smscommunicator_otp_setup", dependency = BooleanKey.SmsAllowRemoteCommands),
+    SmsOtpSetup(key = "smscommunicator_otp_setup", dependency = BooleanKey.SmsEnableOtp),
     OverviewQuickWizardSettings(key = "overview_quickwizard_settings"),
     XdripInfo(key = "xdrip_info"),
 }

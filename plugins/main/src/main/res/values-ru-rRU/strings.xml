@@ -28,6 +28,8 @@
     <string name="smscommunicator_otp_verification_ivalid_size">НЕВЕРНЫЙ РАЗМЕР!</string>
     <string name="smscommunicator_otp_verification_wrong_pin">НЕВЕРНЫЙ PIN-КОД</string>
     <string name="smscommunicator_otp_verification_wrong_otp">НЕВЕРНЫЙ РАЗОВЫЙ КОД</string>
+    <string name="smscommunicator_otp_enabled">Включить Аутентификатор</string>
+    <string name="smscommunicator_otp_enabled_summary">Авторизовывать команды используя одноразовые пароли из Google Authenticator или схожих приложений для 2FA.</string>
     <string name="sms_wrong_code">Неверный код. Команда отменена.</string>
     <string name="sms_timeout_while_waiting">Время ожидания окончания предыдущего соединения с помпой истекло</string>
     <string name="smscommunicator_allowednumbers">разрешенные телефонные номера</string>

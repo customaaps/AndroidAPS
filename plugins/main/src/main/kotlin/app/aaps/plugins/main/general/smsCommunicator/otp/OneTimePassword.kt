@@ -5,6 +5,7 @@ import app.aaps.core.data.configuration.Constants
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.Preferences
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.StringKey
 import com.eatthepath.otp.HmacOneTimePasswordGenerator
 import com.google.common.io.BaseEncoding
@@ -29,6 +30,10 @@ class OneTimePassword @Inject constructor(
 
     init {
         configure()
+    }
+
+    fun isEnabled(): Boolean {
+        return preferences.get(BooleanKey.SmsEnableOtp)
     }
 
     /**
