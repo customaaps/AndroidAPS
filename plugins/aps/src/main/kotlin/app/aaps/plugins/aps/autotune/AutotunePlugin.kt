@@ -84,7 +84,7 @@ class AutotunePlugin @Inject constructor(
         .pluginName(app.aaps.core.ui.R.string.autotune)
         .shortName(R.string.autotune_shortname)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
-        .showInList { config.isEngineeringMode() && config.isDev() }
+        .showInList { config.APS }
         .description(R.string.autotune_description),
     aapsLogger, resourceHelper
 ), Autotune {
@@ -465,7 +465,7 @@ class AutotunePlugin @Inject constructor(
         atLog("[Plugin] $message")
     }
 
-    override fun specialEnableCondition(): Boolean = config.isEngineeringMode() && config.isDev()
+    //override fun specialEnableCondition(): Boolean = config.isEngineeringMode() && config.isDev()
 
     override fun atLog(message: String) {
         autotuneFS.atLog(message)
