@@ -3,6 +3,9 @@ package app.aaps.plugins.source
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
+import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceManager
+import androidx.preference.PreferenceScreen
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import app.aaps.core.data.model.GV
@@ -15,6 +18,7 @@ import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
+import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.receivers.Intents
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -25,6 +29,7 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.core.utils.receivers.DataWorkerStorage
+import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,8 +39,9 @@ import kotlin.math.round
 @Singleton
 class XdripSourcePlugin @Inject constructor(
     rh: ResourceHelper,
-    aapsLogger: AAPSLogger
-) : AbstractBgSourceWithSensorInsertLogPlugin(
+    aapsLogger: AAPSLogger,
+    preferences: Preferences
+) : PluginBase(
     PluginDescription()
         .mainType(PluginType.BGSOURCE)
         .fragmentClass(BGSourceFragment::class.java.name)
@@ -52,7 +58,26 @@ class XdripSourcePlugin @Inject constructor(
 
     override fun advancedFilteringSupported(): Boolean = advancedFiltering
 
-    private fun detectSource(glucoseValue: GV) {
+    override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
+        if (requiredKey != null) return
+        val category = PreferenceCategory(context)
+        parent.addPreference(category)
+        category.apply {
+            key = "bg_source_with_sensor_upload_settings"
+            title = rh.gs(R.string.bgsource_upload)
+            initialExpandedChildrenCount = 0
+            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.BgSourceUploadToNs, title = app.aaps.core.ui.R.string.do_ns_upload_title))
+            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.BgSourceCreateSensorChange, summary = R.string.dexcom_log_ns_sensor_change_summary, title = R.string.dexcom_log_ns_sensor_change_title))
+            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.XdripAdvancedFilteringOverriden, summary = R.string.xdrip_dangerous_af_title, title = R.string.xdrip_dangerous_af_summary))
+        }
+    }
+
+    private fun detectSource(glucoseValue: GV, advancedFilteringOverriden: Boolean) {
+        if (advancedFilteringOverriden) {
+            advancedFiltering = true
+            return
+        }
+
         advancedFiltering = arrayOf(
             SourceSensor.DEXCOM_NATIVE_UNKNOWN,
             SourceSensor.DEXCOM_G5_NATIVE,
@@ -116,7 +141,7 @@ class XdripSourcePlugin @Inject constructor(
             persistenceLayer.insertCgmSourceData(Sources.Xdrip, glucoseValues, emptyList(), sensorStartTime)
                 .doOnError { ret = Result.failure(workDataOf("Error" to it.toString())) }
                 .blockingGet()
-                .also { savedValues -> savedValues.all().forEach { xdripSourcePlugin.detectSource(it) } }
+                .also { savedValues -> savedValues.all().forEach { xdripSourcePlugin.detectSource(it, preferences.get(BooleanKey.XdripAdvancedFilteringOverriden)) } }
             xdripSourcePlugin.sensorBatteryLevel = bundle.getInt(Intents.EXTRA_SENSOR_BATTERY, -1)
             return ret
         }

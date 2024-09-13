@@ -40,4 +40,7 @@
     <!-- Patched Syai Tag App -->
     <string name="syai_tag_app">Syai Tag</string>
     <string name="description_source_patched_syai_tag_app">Receive glucose data from Syai Tag App.</string>
+
+    <string name="xdrip_dangerous_af_title">Always promote advanced filtering</string>
+    <string name="xdrip_dangerous_af_summary">Allows SMBs being always enabled regardless of CGM whitelist</string>
 </resources>
