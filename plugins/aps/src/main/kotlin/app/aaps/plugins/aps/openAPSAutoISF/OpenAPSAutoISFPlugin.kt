@@ -112,7 +112,7 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
         .shortName(R.string.autoisf_shortname)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .preferencesVisibleInSimpleMode(false)
-        .showInList { config.isEngineeringMode() && config.isDev() }
+        .showInList { config.APS }
         .description(R.string.description_auto_isf),
     aapsLogger, rh
 ), APS, PluginConstraints {
@@ -195,13 +195,12 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
     }
 
     override fun specialEnableCondition(): Boolean {
-        return config.isEngineeringMode() && config.isDev() &&
-            try {
-                activePlugin.activePump.pumpDescription.isTempBasalCapable
-            } catch (_: Exception) {
-                // may fail during initialization
-                true
-            }
+        return try {
+            activePlugin.activePump.pumpDescription.isTempBasalCapable
+        } catch (_: Exception) {
+            // may fail during initialization
+            true
+        }
     }
 
     override fun specialShowInListCondition(): Boolean {
