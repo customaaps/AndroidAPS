@@ -34,6 +34,8 @@
     <string name="maxvalueinpreferences">максимальное значение в настройках</string>
     <string name="hardlimit">жесткий предел</string>
     <string name="treatmentssafety_title">Безопасность терапии</string>
+    <string name="always_promote_advanced_filtering_title">Всегда сообщать о продвинутой фильтрации</string>
+    <string name="always_promote_advanced_filtering_summary">[ОПАСНО] Отключить белый список НМГ, позволет SMB быть включенными всегда на всех НМГ</string>
     <!-- Objectives -->
     <string name="completed_well_done">Завершено, отлично!</string>
     <string name="not_completed_yet">Не завершено</string>

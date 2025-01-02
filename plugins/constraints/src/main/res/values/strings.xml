@@ -56,6 +56,8 @@
     <string name="maxvalueinpreferences">max value in preferences</string>
     <string name="hardlimit">hard limit</string>
     <string name="treatmentssafety_title">Treatments safety</string>
+    <string name="always_promote_advanced_filtering_title">Always promote advanced filtering</string>
+    <string name="always_promote_advanced_filtering_summary">[DANGEROUS] Disable CGM whitelist, allows SMBs being always enabled on all CGMs</string>
 
     <!-- Objectives -->
     <string name="completed_well_done">Completed, well done!</string>
