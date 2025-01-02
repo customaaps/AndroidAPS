@@ -211,7 +211,7 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
     override fun preprocessPreferences(preferenceFragment: PreferenceFragmentCompat) {
         super.preprocessPreferences(preferenceFragment)
         val smbAlwaysEnabled = preferences.get(BooleanKey.ApsUseSmbAlways)
-        val advancedFiltering = activePlugin.activeBgSource.advancedFilteringSupported()
+        val advancedFiltering = activePlugin.activeBgSource.advancedFilteringSupported() || preferences.get(BooleanKey.AlwaysPromoteAdvancedFiltering)
         preferenceFragment.findPreference<SwitchPreference>(BooleanKey.ApsUseSmbWithCob.key)?.isVisible = !smbAlwaysEnabled || !advancedFiltering
         preferenceFragment.findPreference<SwitchPreference>(BooleanKey.ApsUseSmbWithLowTt.key)?.isVisible = !smbAlwaysEnabled || !advancedFiltering
         preferenceFragment.findPreference<SwitchPreference>(BooleanKey.ApsUseSmbAfterCarbs.key)?.isVisible = !smbAlwaysEnabled || !advancedFiltering
