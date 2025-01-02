@@ -25,6 +25,7 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.workflow.CalculationWorkflow
 import app.aaps.core.keys.DoubleKey
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.core.utils.receivers.DataWorkerStorage
@@ -294,13 +295,14 @@ class IobCobOref1Worker(
 
                 // add an extra negative deviation if a high temp target is running and exercise mode is set
                 // TODO AS-FIX
-                // @Suppress("SimplifyBooleanWithConstants", "KotlinConstantConditions")
-                // if (false && sp.getBoolean(app.aaps.core.utils.R.string.key_high_temptarget_raises_sensitivity, SMBDefaults.high_temptarget_raises_sensitivity)) {
-                //     val tempTarget = persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now())
-                //     if (tempTarget != null && tempTarget.target() >= 100) {
-                //         autosensData.extraDeviation.add(-(tempTarget.target() - 100) / 20)
-                //     }
-                // }
+                @Suppress("SimplifyBooleanWithConstants", "KotlinConstantConditions")
+                if (preferences.get(BooleanKey.ApsAutoIsfHighTtRaisesSens)) {
+                    val tempTarget = persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now())
+                    if (tempTarget != null && tempTarget.lowTarget >= 100) {
+                        val avgTarget = (tempTarget.lowTarget + tempTarget.highTarget) / 2
+                        autosensData.extraDeviation.add(-(avgTarget - 100) / 20)
+                    }
+                }
 
                 // add one neutral deviation every 2 hours to help decay over long exclusion periods
                 val calendar = GregorianCalendar()
