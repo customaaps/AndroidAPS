@@ -12,6 +12,7 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.versionChecker.VersionCheckerUtils
+import app.aaps.core.keys.BooleanKey
 import app.aaps.plugins.constraints.R
 import dagger.Lazy
 import dagger.Reusable
@@ -32,6 +33,8 @@ class VersionCheckerUtilsImpl @Inject constructor(
 ) : VersionCheckerUtils {
 
     override fun triggerCheckVersion() {
+        // Do not check new updates at all if user wishes so
+        if (sp.getBoolean(app.aaps.core.utils.R.string.key_skip_updates_check, false)) return
 
         if (!sp.contains(R.string.key_last_successful_version_check_timestamp)) {
             // On a new installation, set it as 30 days old in order to warn that there is a new version.

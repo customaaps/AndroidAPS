@@ -114,5 +114,6 @@ enum class BooleanKey(
     WearNotifyOnSmb(key = "wear_notifySMB", defaultValue = true),
     WearBroadcastData(key = "wear_broadcast_data", defaultValue = false),
 
-    AlwaysPromoteAdvancedFiltering(key = "always_promote_advanced_filtering", defaultValue = false)
+    AlwaysPromoteAdvancedFiltering(key = "always_promote_advanced_filtering", defaultValue = false),
+    DisableUpdatesChecker(key = "skip_updates_check", defaultValue = false)
 }

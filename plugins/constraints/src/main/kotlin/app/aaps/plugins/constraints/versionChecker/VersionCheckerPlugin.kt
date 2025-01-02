@@ -59,6 +59,7 @@ class VersionCheckerPlugin @Inject constructor(
     }
 
     override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
+        if (sp.getBoolean(app.aaps.core.utils.R.string.key_skip_updates_check, false)) return value
         checkWarning()
         versionCheckerUtils.triggerCheckVersion()
         if (lastCheckOlderThan(gracePeriod.veryOld.daysToMillis()))
@@ -70,7 +71,7 @@ class VersionCheckerPlugin @Inject constructor(
     }
 
     override fun applyMaxIOBConstraints(maxIob: Constraint<Double>): Constraint<Double> =
-        if (lastCheckOlderThan(gracePeriod.old.daysToMillis()))
+        if (lastCheckOlderThan(gracePeriod.old.daysToMillis()) && !sp.getBoolean(app.aaps.core.utils.R.string.key_skip_updates_check, false))
             maxIob.set(0.0, rh.gs(R.string.old_version), this)
         else
             maxIob

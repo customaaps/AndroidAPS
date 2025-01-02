@@ -407,6 +407,7 @@ class MyPreferenceFragment : PreferenceFragmentCompat(), OnSharedPreferenceChang
                     summary = app.aaps.plugins.main.R.string.theme_switcher_summary
                 )
             )
+            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.DisableUpdatesChecker, title = R.string.disable_updates_checker))
         }
     }
 
