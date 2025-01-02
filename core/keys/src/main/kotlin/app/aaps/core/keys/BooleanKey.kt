@@ -116,5 +116,6 @@ enum class BooleanKey(
     WearBroadcastData(key = "wear_broadcast_data", defaultValue = false),
 
     AlwaysPromoteAdvancedFiltering(key = "always_promote_advanced_filtering", defaultValue = false),
-    DisableUpdatesChecker(key = "skip_updates_check", defaultValue = false)
+    DisableUpdatesChecker(key = "skip_updates_check", defaultValue = false),
+    EngineeringMode("force_engineering_mode", false)
 }

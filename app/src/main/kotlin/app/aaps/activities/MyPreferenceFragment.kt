@@ -408,6 +408,7 @@ class MyPreferenceFragment : PreferenceFragmentCompat(), OnSharedPreferenceChang
                 )
             )
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.DisableUpdatesChecker, title = R.string.disable_updates_checker))
+            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.EngineeringMode, title = R.string.enable_engineering_mode))
         }
     }
 

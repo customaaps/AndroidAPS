@@ -5,15 +5,17 @@ import app.aaps.BuildConfig
 import app.aaps.R
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.maintenance.FileListProvider
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.BooleanKey
 import dagger.Reusable
 import javax.inject.Inject
 
 @Suppress("KotlinConstantConditions")
 @Reusable
 class ConfigImpl @Inject constructor(
-    private val fileListProvider: FileListProvider
+    private val fileListProvider: FileListProvider,
+    private val sp: SP
 ) : Config {
-
     override val SUPPORTED_NS_VERSION = 150000 // 15.0.0
     override val APS = BuildConfig.FLAVOR == "full"
     override val NSCLIENT = BuildConfig.FLAVOR == "aapsclient" || BuildConfig.FLAVOR == "aapsclient2"
@@ -42,7 +44,7 @@ class ConfigImpl @Inject constructor(
     private var doNotSendSmsOnProfileChange: Boolean? = null
 
     override fun isEngineeringModeOrRelease(): Boolean = if (!APS) true else isEngineeringMode() || !isDev()
-    override fun isEngineeringMode(): Boolean = isEngineeringMode ?: (fileListProvider.ensureExtraDirExists()?.findFile("engineering_mode") != null).also { isEngineeringMode = it }
+    override fun isEngineeringMode(): Boolean = isEngineeringMode ?: (fileListProvider.ensureExtraDirExists()?.findFile("engineering_mode") != null || sp.getBoolean(BooleanKey.EngineeringMode.key, BooleanKey.EngineeringMode.defaultValue)).also { isEngineeringMode = it }
     override fun isUnfinishedMode(): Boolean = isUnfinishedMode ?: (fileListProvider.ensureExtraDirExists()?.findFile("unfinished_mode") != null).also { isUnfinishedMode = it }
     override fun isDev(): Boolean = (VERSION.contains("-") || VERSION.matches(Regex(".*[a-zA-Z]+.*"))) && !VERSION.contains("-beta") && !VERSION.contains("-rc")
     override fun showUserActionsOnWatchOnly(): Boolean = showUserActionsOnWatchOnly ?: (fileListProvider.ensureExtraDirExists()?.findFile("show_user_actions_on_watch_only") != null).also { showUserActionsOnWatchOnly = it }

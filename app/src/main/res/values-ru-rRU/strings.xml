@@ -23,6 +23,7 @@
     <string name="cannula">Катетер помпы</string>
     <string name="identification_not_set">Идентификация не задана в режиме разработчика</string>
     <string name="disable_updates_checker">Не проверять наличие обновлений</string>
+    <string name="enable_engineering_mode">Включить инженерный режим</string>
     <!-- WEAR OS-->
     <string name="remove_selected_items">Удалить выбранные элементы</string>
     <string name="count_selected">%1$d выбрано</string>
