@@ -369,8 +369,8 @@ class HistoryBrowseActivity : TranslatedDaggerAppCompatActivity() {
             if (menuChartSettings[g + 1][OverviewMenus.CharType.SEN.ordinal]) secondGraphData.addRatio(useRatioForScale, if (useRatioForScale) 1.0 else 0.8)
             if (menuChartSettings[g + 1][OverviewMenus.CharType.VAR_SEN.ordinal]) secondGraphData.addVarSens(useVarSensForScale, if (useVarSensForScale) 1.0 else 0.8)
             if (menuChartSettings[g + 1][OverviewMenus.CharType.DEVSLOPE.ordinal] && config.isDev()) secondGraphData.addDeviationSlope(useDSForScale, 1.0)
-            if (menuChartSettings[g + 1][OverviewMenus.CharType.HR.ordinal] && config.isDev()) secondGraphData.addHeartRate(useHRForScale, 1.0)
-            if (menuChartSettings[g + 1][OverviewMenus.CharType.STEPS.ordinal] && config.isDev()) secondGraphData.addSteps(useSTEPSForScale, 1.0)
+            if (menuChartSettings[g + 1][OverviewMenus.CharType.HR.ordinal]) secondGraphData.addHeartRate(useHRForScale, 1.0)
+            if (menuChartSettings[g + 1][OverviewMenus.CharType.STEPS.ordinal]) secondGraphData.addSteps(useSTEPSForScale, 1.0)
             // set manual x bounds to have nice steps
             secondGraphData.formatAxis(historyBrowserData.overviewData.fromTime, historyBrowserData.overviewData.endTime)
             secondGraphData.addNowLine(now)
