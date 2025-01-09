@@ -38,6 +38,7 @@ import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.nsclient.NSSettingsStatus
 import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
@@ -424,8 +425,8 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 }
 
                 R.id.cgm_button          -> {
-                    if (xDripSource.isEnabled())
-                        openCgmApp("com.eveningoutpost.dexdrip", "Home")
+                    if (xDripSource.isEnabled()) openCgmApp("com.eveningoutpost.dexdrip")
+                    else if (dexcomBoyda.isEnabled()) dexcomBoyda.dexcomPackages().forEach { openCgmApp(it) }
                 }
 
                 R.id.calibration_button  -> {
@@ -468,12 +469,16 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         }
     }
 
-    @Suppress("SameParameterValue")
-    private fun openCgmApp(packageName: String, launchActivity: String) {
-        try {
-            requireContext().startActivity(Intent(Intent.ACTION_MAIN).setClassName(packageName, "$packageName.$launchActivity"))
-        } catch (_: ActivityNotFoundException) {
-            OKDialog.show(requireContext(), "", rh.gs(R.string.error_starting_cgm))
+    private fun openCgmApp(packageName: String) {
+        context?.let {
+            val packageManager = it.packageManager
+            try {
+                val intent = packageManager.getLaunchIntentForPackage(packageName) ?: throw ActivityNotFoundException()
+                intent.addCategory(Intent.CATEGORY_LAUNCHER)
+                it.startActivity(intent)
+            } catch (_: ActivityNotFoundException) {
+                aapsLogger.debug(LTag.CORE, "Error opening CGM app")
+            }
         }
     }
 
@@ -594,8 +599,16 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
 
             // **** Calibration & CGM buttons ****
             val xDripIsBgSource = xDripSource.isEnabled()
+            val dexcomIsSource = dexcomBoyda.isEnabled()
             binding.buttonsLayout.calibrationButton.visibility = (xDripIsBgSource && actualBG != null && preferences.get(BooleanKey.OverviewShowCalibrationButton)).toVisibility()
-            if (xDripIsBgSource) {
+            if (dexcomIsSource) {
+                binding.buttonsLayout.cgmButton.setCompoundDrawablesWithIntrinsicBounds(null, rh.gd(R.drawable.ic_byoda), null, null)
+                for (drawable in binding.buttonsLayout.cgmButton.compoundDrawables) {
+                    drawable?.mutate()
+                    drawable?.colorFilter = PorterDuffColorFilter(rh.gac(context, app.aaps.core.ui.R.attr.cgmDexColor), PorterDuff.Mode.SRC_IN)
+                }
+                binding.buttonsLayout.cgmButton.setTextColor(rh.gac(context, app.aaps.core.ui.R.attr.cgmDexColor))
+            } else if (xDripIsBgSource) {
                 binding.buttonsLayout.cgmButton.setCompoundDrawablesWithIntrinsicBounds(null, rh.gd(app.aaps.core.objects.R.drawable.ic_xdrip), null, null)
                 for (drawable in binding.buttonsLayout.cgmButton.compoundDrawables) {
                     drawable?.mutate()
@@ -603,7 +616,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 }
                 binding.buttonsLayout.cgmButton.setTextColor(rh.gac(context, app.aaps.core.ui.R.attr.cgmXdripColor))
             }
-            binding.buttonsLayout.cgmButton.visibility = (preferences.get(BooleanKey.OverviewShowCgmButton) && xDripIsBgSource).toVisibility()
+            binding.buttonsLayout.cgmButton.visibility = (preferences.get(BooleanKey.OverviewShowCgmButton) && (xDripIsBgSource || dexcomIsSource)).toVisibility()
 
             // Automation buttons
             binding.buttonsLayout.userButtonsLayout.removeAllViews()
