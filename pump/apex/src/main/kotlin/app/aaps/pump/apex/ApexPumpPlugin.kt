@@ -229,6 +229,7 @@ class ApexPumpPlugin @Inject constructor(
         pumpDescription.basalMaximumRate = pump.maxBasal
     }
 
+    @Synchronized
     override fun loadTDDs(): PumpEnactResult {
         val ret = instantiator.providePumpEnactResult()
         if (!isInitialized()) {
@@ -246,12 +247,14 @@ class ApexPumpPlugin @Inject constructor(
         }
     }
 
+    @Synchronized
     override fun getPumpStatus(reason: String) {
         if (!isInitialized()) return
         aapsLogger.debug(LTag.PUMP, "Requested pump status cause of $reason")
         if (!service!!.getStatus("ApexPumpPlugin-getPumpStatus")) return
     }
 
+    @Synchronized
     override fun setNewBasalProfile(profile: Profile): PumpEnactResult {
         val ret = instantiator.providePumpEnactResult()
         if (!isInitialized()) {
@@ -286,6 +289,7 @@ class ApexPumpPlugin @Inject constructor(
         }
     }
 
+    @Synchronized
     override fun isThisProfileSet(profile: Profile): Boolean {
         if (!isInitialized()) return false
         val pumpBasalProfiles = service!!.getBasalProfiles("ApexPumpPlugin-isThisProfileSet") ?: return false
@@ -307,6 +311,7 @@ class ApexPumpPlugin @Inject constructor(
         return service!!.lastConnected
     }
 
+    @Synchronized
     override fun deliverTreatment(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         // Insulin value must be greater than 0
         require(detailedBolusInfo.carbs == 0.0) { detailedBolusInfo.toString() }
@@ -358,11 +363,13 @@ class ApexPumpPlugin @Inject constructor(
         }
     }
 
+    @Synchronized
     override fun stopBolusDelivering() {
         if (!isInitialized()) return
         service!!.cancelBolus("ApexPumpPlugin-stopBolusDelivering")
     }
 
+    @Synchronized
     override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, profile: Profile, enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType): PumpEnactResult {
         val pumpEnactResult = instantiator.providePumpEnactResult()
         val rate = constraintsChecker
@@ -413,6 +420,7 @@ class ApexPumpPlugin @Inject constructor(
         }
     }
 
+    @Synchronized
     override fun setTempBasalPercent(percent: Int, durationInMinutes: Int, profile: Profile, enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType): PumpEnactResult {
         return instantiator.providePumpEnactResult().apply {
             success = false
@@ -421,6 +429,7 @@ class ApexPumpPlugin @Inject constructor(
         }
     }
 
+    @Synchronized
     override fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult {
         val pumpEnactResult = instantiator.providePumpEnactResult()
         if (!isInitialized()) {
@@ -454,6 +463,7 @@ class ApexPumpPlugin @Inject constructor(
         }
     }
 
+    @Synchronized
     override fun setExtendedBolus(insulin: Double, durationInMinutes: Int): PumpEnactResult {
         // Not yet supported
         return instantiator.providePumpEnactResult().apply {
@@ -463,6 +473,7 @@ class ApexPumpPlugin @Inject constructor(
         }
     }
 
+    @Synchronized
     override fun cancelExtendedBolus(): PumpEnactResult {
         // Not yet supported
         return instantiator.providePumpEnactResult().apply {
@@ -472,6 +483,7 @@ class ApexPumpPlugin @Inject constructor(
         }
     }
 
+    @Synchronized
     override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
         if (!isInitialized()) return
         service!!.syncDateTime("ApexService-timezoneOrDSTChanged")
