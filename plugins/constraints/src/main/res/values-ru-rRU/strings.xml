@@ -29,13 +29,15 @@
     <string name="closedmodedisabledinpreferences">Режим замкнутого цикла отключен в настройках</string>
     <string name="closed_loop_disabled_on_dev_branch">Работает версия разработчика. Замкнутый цикл отключен.</string>
     <string name="closed_loop_disabled_with_eb">Замкнутый цикл отключен из-за работы Пролонгированного Болюса</string>
-    <string name="smbalwaysdisabled">Опция супер микро болюс всегда и после углеводов отключена т. к. активный источник ГК не поддерживает комплексное фильтрование</string>
-    <string name="smbnotallowedinopenloopmode">Микроболюсы SMB не работают в режиме открытого цикла</string>
+    <string name="smbalwaysdisabled">Опция SMB всегда и после углеводов отключена т. к. активный источник ГК не поддерживает комплексное фильтрование</string>
+    <string name="smbnotallowedinopenloopmode">SMB не работают в режиме открытого цикла</string>
     <string name="maxvalueinpreferences">максимальное значение в настройках</string>
     <string name="hardlimit">жесткий предел</string>
     <string name="treatmentssafety_title">Безопасность терапии</string>
     <string name="always_promote_advanced_filtering_title">Всегда сообщать о продвинутой фильтрации</string>
     <string name="always_promote_advanced_filtering_summary">[ОПАСНО] Отключить белый список НМГ, позволет SMB быть включенными всегда на всех НМГ</string>
+    <string name="allow_recalculated_bgs_title">Разрешить пересчитанный ГК</string>
+    <string name="allow_recalculated_bgs_summary">[ОПАСНО] Разрешить расчет дельт и ускорения на пересчитанных значениях ГК</string>
     <!-- Objectives -->
     <string name="completed_well_done">Завершено, отлично!</string>
     <string name="not_completed_yet">Не завершено</string>

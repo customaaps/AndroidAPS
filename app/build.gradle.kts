@@ -53,7 +53,7 @@ fun generateGitRemote(): String {
 fun generateDate(): String {
     val stringBuilder: StringBuilder = StringBuilder()
     // showing only date prevents app to rebuild everytime
-    stringBuilder.append(SimpleDateFormat("yyyy.MM.dd").format(Date()))
+    stringBuilder.append(SimpleDateFormat("yyyy.MM.dd-HH.mm").format(Date()))
     return stringBuilder.toString()
 }
 
@@ -121,6 +121,14 @@ android {
             applicationId = "info.nightscout.androidaps"
             dimension = "standard"
             resValue("string", "app_name", "AAPS")
+            versionName = Versions.appVersion
+            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
+            manifestPlaceholders["appIconRound"] = "@mipmap/ic_launcher_round"
+        }
+        create("advanced") {
+            applicationId = "info.nightscout.androidaps"
+            dimension = "standard"
+            resValue("string", "app_name", "AAPS+")
             versionName = Versions.appVersion
             manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
             manifestPlaceholders["appIconRound"] = "@mipmap/ic_launcher_round"

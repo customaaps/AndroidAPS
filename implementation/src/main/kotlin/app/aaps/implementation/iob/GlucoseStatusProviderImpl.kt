@@ -1,5 +1,6 @@
 package app.aaps.implementation.iob
 
+import app.aaps.core.data.iob.InMemoryGlucoseValue
 import app.aaps.core.interfaces.aps.GlucoseStatus
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
@@ -7,6 +8,8 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.Preferences
 import app.aaps.implementation.extensions.asRounded
 import app.aaps.implementation.extensions.log
 import dagger.Reusable
@@ -20,11 +23,20 @@ class GlucoseStatusProviderImpl @Inject constructor(
     private val aapsLogger: AAPSLogger,
     private val iobCobCalculator: IobCobCalculator,
     private val dateUtil: DateUtil,
-    private val decimalFormatter: DecimalFormatter
+    private val decimalFormatter: DecimalFormatter,
+    private val preferences: Preferences,
 ) : GlucoseStatusProvider {
 
     override val glucoseStatusData: GlucoseStatus?
         get() = getGlucoseStatusData()
+
+    private fun isGood(value: InMemoryGlucoseValue): Boolean {
+        if (preferences.get(BooleanKey.AllowRecalculatedBGs)) {
+            return value.recalculated > 38
+        } else {
+            return value.value > 39 && !value.filledGap
+        }
+    }
 
     override fun getGlucoseStatusData(allowOldData: Boolean): GlucoseStatus? {
         val data = iobCobCalculator.ads.getBucketedDataTableCopy() ?: return null
@@ -68,7 +80,7 @@ class GlucoseStatusProviderImpl @Inject constructor(
 
         // Use the latest sgv value in the now calculations
         for (i in 1 until sizeRecords) {
-            if (data[i].value > 39 && !data[i].filledGap) {   // if (data[i].recalculated > 38) {
+            if (isGood(data[i])) {   // if (data[i].recalculated > 38) {
                 val then = data[i]
                 val thenDate = then.timestamp
 
@@ -114,7 +126,7 @@ class GlucoseStatusProviderImpl @Inject constructor(
         var minutesdur = 0L
         var n = 1
         for (i in 1 until sizeRecords) {
-            if (data[i].value > 39 && !data[i].filledGap) {
+            if (isGood(data[i])) {
                 n += 1
                 val then = data[i]
                 val thenDate: Long = then.timestamp
@@ -165,8 +177,7 @@ class GlucoseStatusProviderImpl @Inject constructor(
             // if (data[i].recalculated > 38) {  } // not checked in past 1.5 years
             n = 0
             for (i in 0 until sizeRecords) {
-                val noGap = !data[i].filledGap
-                if (data[i].recalculated > 39 && noGap) {
+                if (isGood(data[i])) {
                     n += 1
                     val thenDate: Long
                     var bg: Double

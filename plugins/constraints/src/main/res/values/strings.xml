@@ -58,6 +58,8 @@
     <string name="treatmentssafety_title">Treatments safety</string>
     <string name="always_promote_advanced_filtering_title">Always promote advanced filtering</string>
     <string name="always_promote_advanced_filtering_summary">[DANGEROUS] Disable CGM whitelist, allows SMBs being always enabled on all CGMs</string>
+    <string name="allow_recalculated_bgs_title">Allow recalculated BG</string>
+    <string name="allow_recalculated_bgs_summary">[DANGEROUS] Allow delta and acceleration calculation using recalculated values</string>
 
     <!-- Objectives -->
     <string name="completed_well_done">Completed, well done!</string>

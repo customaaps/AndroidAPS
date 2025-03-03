@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.os.Environment
 import android.provider.DocumentsContract
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.logging.LoggerUtils
 import app.aaps.core.interfaces.maintenance.FileListProvider
 import ch.qos.logback.classic.Level
@@ -14,6 +15,7 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy
+import ch.qos.logback.core.rolling.helper.CompressionMode
 import ch.qos.logback.core.util.FileSize
 import ch.qos.logback.core.util.StatusPrinter
 import dagger.Reusable
@@ -25,7 +27,8 @@ import javax.inject.Inject
  */
 @Reusable
 class LoggerUtilsImpl @Inject constructor(
-    private val fileListProvider: FileListProvider
+    private val fileListProvider: FileListProvider,
+    private val config: Config
 ) : LoggerUtils {
 
     private lateinit var contentResolver: ContentResolver
@@ -70,8 +73,16 @@ class LoggerUtilsImpl @Inject constructor(
         }
         val rollingPolicy = SizeAndTimeBasedRollingPolicy<ILoggingEvent>().also {
             it.context = context
-            it.fileNamePattern = "$rootPath/AndroidAPS._%d{yyyy-MM-dd}_%d{HH-mm-ss, aux}_.%i.log.zip"
-            it.setMaxFileSize(FileSize(FileSize.MB_COEFFICIENT * 5))
+            it.fileNamePattern = "$rootPath/AndroidAPS.%d{yyyy-MM-dd}.%i.log.zip"
+            if (config.isEngineeringMode()) {
+                it.maxHistory = 1000
+                it.setMaxFileSize(FileSize(FileSize.MB_COEFFICIENT * 25))
+                it.setTotalSizeCap(FileSize(FileSize.GB_COEFFICIENT * 10))
+            } else {
+                it.maxHistory = 300
+                it.setMaxFileSize(FileSize(FileSize.MB_COEFFICIENT * 25))
+                it.setTotalSizeCap(FileSize(FileSize.GB_COEFFICIENT * 2))
+            }
             it.setParent(appender)
         }
         rollingPolicy.start()

@@ -55,7 +55,7 @@ enum class IntKey(
     ApsDynIsfAdjustmentFactor("DynISFAdjust", 50, 1, 200, dependency = BooleanKey.ApsUseDynamicSensitivity, negativeDependency = BooleanKey.ApsDynIsfUseProfileSens),
     ApsDynIsfVelocity("DynISFVelocity", 80, 1, 200, dependency = BooleanKey.ApsUseDynamicSensitivity),
     AutosensPeriod("openapsama_autosens_period", 24, 4, 24, calculatedDefaultValue = true),
-    MaintenanceLogsAmount("maintenance_logs_amount", 2, 1, 10, defaultedBySM = true),
+    MaintenanceLogsAmount("maintenance_logs_amount", 10, 1, 1000, defaultedBySM = true),
     AlertsStaleDataThreshold("missed_bg_readings_threshold", 30, 15, 10000, defaultedBySM = true, dependency = BooleanKey.AlertMissedBgReading),
     AlertsPumpUnreachableThreshold("pump_unreachable_threshold", 30, 30, 300, defaultedBySM = true, dependency = BooleanKey.AlertPumpUnreachable),
     InsulinOrefPeak("insulin_oref_peak", 75, 35, 120, hideParentScreenIfHidden = true),

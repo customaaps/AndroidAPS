@@ -4,6 +4,7 @@ package app.aaps.core.interfaces.configuration
 interface Config {
 
     val SUPPORTED_NS_VERSION: Int
+    val ADVANCED: Boolean
     val APS: Boolean
     val AAPSCLIENT: Boolean // aapsclient || aapsclient2
     val AAPSCLIENT1: Boolean // aapsclient

@@ -62,6 +62,7 @@ enum class BooleanKey(
     ApsAutoIsfLowTtLowersSens("low_temptarget_lowers_sensitivity", false, defaultedBySM = true),
     ApsUseAutoIsfWeights("openapsama_enable_autoISF", false, defaultedBySM = true),
     ApsAutoIsfSmbOnEvenTarget("Enable alternative activation of SMB always", false, defaultedBySM = true),   // profile target
+    ApsAutoIsfExerciseMode("aisf_exercise_mode", false),
 
     MaintenanceEnableFabric("enable_fabric2", true, defaultedBySM = true, hideParentScreenIfHidden = true),
 
@@ -126,5 +127,7 @@ enum class BooleanKey(
     EngineeringMode("force_engineering_mode", false, defaultedBySM = false),
     NightMode("night_mode", false),
     NightModeWithCOB("night_mode_cob", true, dependency = NightMode),
-    NightModeLowTT("night_mode_low_tt", true, dependency = NightMode)
+    NightModeLowTT("night_mode_low_tt", true, dependency = NightMode),
+    AllowRecalculatedBGs("allow_recalc_bgs", false),
+    LyumjevU200("lyumjev_u200", false),
 }

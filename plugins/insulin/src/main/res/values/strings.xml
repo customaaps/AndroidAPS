@@ -16,5 +16,6 @@
     <string name="fast_acting_insulin_comment">Novorapid, Novolog, Humalog</string>
     <string name="ultra_fast_acting_insulin_comment">Fiasp</string>
 
+    <string name="insulin_u200">Is U200</string>
 
 </resources>

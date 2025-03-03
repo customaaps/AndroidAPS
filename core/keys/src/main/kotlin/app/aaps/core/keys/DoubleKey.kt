@@ -47,4 +47,5 @@ enum class DoubleKey(
     ApsAutoIsfSmbDeliveryRatioMax("openapsama_smb_delivery_ratio_max", 0.5, 0.1, 1.0, defaultedBySM = true),
     //ApsAutoIsfSmbMaxRangeExtension("openapsama_smb_max_range_extension", 1.0, 1.0, 5.0, defaultedBySM = true),
 
+    NightModeBgOffset("night_mode_glucose_offset", 0.0, 0.0, 90.0, dependency = BooleanKey.NightMode)
 }

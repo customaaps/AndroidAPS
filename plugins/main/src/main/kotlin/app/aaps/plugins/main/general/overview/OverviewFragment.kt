@@ -18,6 +18,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnLongClickListener
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
@@ -28,6 +29,7 @@ import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
+import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.automation.Automation
@@ -238,6 +240,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
 
         binding.activeProfile.setOnClickListener(this)
         binding.activeProfile.setOnLongClickListener(this)
+        binding.exerciseMode.setOnClickListener(this)
         binding.tempTarget.setOnClickListener(this)
         binding.tempTarget.setOnLongClickListener(this)
         binding.buttonsLayout.acceptTempButton.setOnClickListener(this)
@@ -376,6 +379,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         processAps()
         updateProfile()
         updateTemporaryTarget()
+        updateExerciseMode()
     }
 
     @Synchronized
@@ -415,6 +419,15 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                     activity,
                     ProtectionCheck.Protection.BOLUS,
                     UIRunnable { if (isAdded) uiInteraction.runTempTargetDialog(childFragmentManager) })
+
+                R.id.exercise_mode         -> protectionCheck.queryProtection(
+                    activity,
+                    ProtectionCheck.Protection.BOLUS,
+                    UIRunnable { if (isAdded) {
+                        val state = !preferences.get(BooleanKey.ApsAutoIsfExerciseMode)
+                        preferences.put(BooleanKey.ApsAutoIsfExerciseMode, state)
+                        updateExerciseMode()
+                    } })
 
                 R.id.active_profile      -> {
                     uiInteraction.runProfileViewerDialog(
@@ -653,6 +666,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                         list += event.hashCode()
                     }
             binding.buttonsLayout.userButtonsLayout.visibility = events.isNotEmpty().toVisibility()
+            binding.exerciseModeCard.visibility = (activePlugin.activeAPS.algorithm == APSResult.Algorithm.AUTO_ISF).toVisibility()
         }
         if (list != lastUserAction) {
             // Synchronize Watch Tiles with overview
@@ -818,6 +832,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         val trendDescription = trendCalculator.getTrendDescription(iobCobCalculator.ads)
         val trendArrow = trendCalculator.getTrendArrow(iobCobCalculator.ads)
         val lastBgDescription = lastBgData.lastBgDescription()
+        val isAutoISF = activePlugin.activeAPS.algorithm == APSResult.Algorithm.AUTO_ISF
         runOnUiThread {
             _binding ?: return@runOnUiThread
             binding.infoLayout.bg.text = profileUtil.fromMgdlToStringInUnits(lastBg?.recalculated)
@@ -833,12 +848,16 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 binding.infoLayout.delta.text = profileUtil.fromMgdlToSignedStringInUnits(glucoseStatus.delta)
                 binding.infoLayout.avgDelta.text = profileUtil.fromMgdlToSignedStringInUnits(glucoseStatus.shortAvgDelta)
                 binding.infoLayout.longAvgDelta.text = profileUtil.fromMgdlToSignedStringInUnits(glucoseStatus.longAvgDelta)
+                binding.infoLayout.bgAccel.text = String.format(Locale.ENGLISH, "%.1f", glucoseStatus.bgAcceleration)
             } else {
                 binding.infoLayout.deltaLarge.text = ""
                 binding.infoLayout.delta.text = "Δ " + rh.gs(app.aaps.core.ui.R.string.value_unavailable_short)
                 binding.infoLayout.avgDelta.text = ""
                 binding.infoLayout.longAvgDelta.text = ""
+                binding.infoLayout.bgAccel.text = ""
             }
+
+            binding.infoLayout.bgAccelRow.visibility = isAutoISF.toVisibility()
 
             // strike through if BG is old
             binding.infoLayout.bg.paintFlags =
@@ -1170,5 +1189,18 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     private fun updateNotification() {
         _binding ?: return
         binding.notifications.let { notificationStore.updateNotifications(it) }
+    }
+
+    private fun updateExerciseMode() {
+        _binding ?: return
+        val enabled = preferences.get(BooleanKey.ApsAutoIsfExerciseMode)
+        with (binding.exerciseMode) {
+            setColorFilter(rh.gac(
+                if (enabled) app.aaps.core.ui.R.attr.ribbonTextWarningColor
+                else app.aaps.core.ui.R.attr.ribbonTextDefaultColor))
+            setBackgroundColor(rh.gac(
+                if (enabled) app.aaps.core.ui.R.attr.ribbonWarningColor
+                else app.aaps.core.ui.R.attr.ribbonDefaultColor))
+        }
     }
 }

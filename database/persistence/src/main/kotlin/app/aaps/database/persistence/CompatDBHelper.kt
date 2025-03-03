@@ -51,6 +51,13 @@ class CompatDBHelper @Inject constructor(
             uiInteraction.updateWidget(context, "OnStart")
         }
         .subscribe {
+            it.forEach { e ->
+                aapsLogger.debug(LTag.DATABASE, "Got ${e.javaClass.name}")
+            }
+            it.filterIsInstance<Bolus>().forEach { b ->
+                aapsLogger.debug(LTag.DATABASE, "Got bolus(${b.id}) on ${b.timestamp} of ${b.amount}U")
+            }
+
             /**
              * GlucoseValues can come in batch
              * oldest one should be used for invalidation, newest one for for triggering Loop.

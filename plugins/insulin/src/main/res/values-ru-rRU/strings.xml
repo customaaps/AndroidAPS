@@ -7,7 +7,7 @@
     <string name="description_insulin_lyumjev">Предустановки для Lyumjev</string>
     <string name="description_insulin_free_peak">Позволяет самостоятельно задавать пик активности инсулина - только для опытных пользователей</string>
     <string name="insulin_shortname">ИНС</string>
-    <string name="insulin_oref_peak">Время пика активного инс IOB</string>
+    <string name="insulin_oref_peak">Время пика IOB</string>
     <string name="insulin_peak_time">Время пика [min]</string>
     <string name="free_peak_oref">Свободный от пиков Oref</string>
     <string name="rapid_acting_oref">Быстро действующий Oref</string>
