@@ -54,4 +54,5 @@ enum class StringKey(
 
     NightModeBegin("night_mode_begin", "22:00", dependency = BooleanKey.NightMode),
     NightModeEnd("night_mode_end", "06:00", dependency = BooleanKey.NightMode),
+    GarminRequestKey(key = "garmin_aaps_key", defaultValue = ""),
 }

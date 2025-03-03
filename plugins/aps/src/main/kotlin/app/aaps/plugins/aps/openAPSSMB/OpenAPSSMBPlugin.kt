@@ -378,7 +378,10 @@ open class OpenAPSSMBPlugin @Inject constructor(
         val fixedRatio = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatio)
         val mappedRatioMin = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMin)
         val mappedRatioMax = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMax)
-        var mappedRatioBG = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange))
+        var mappedRatioBG = if (preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange) < 10.0)
+            preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange) * GlucoseUnit.MMOLL_TO_MGDL
+        else
+            preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange)
 
         val glucoseStatus = glucoseStatusProvider.glucoseStatusData
         if (glucoseStatus == null || mappedRatioBG == 0.0) return fixedRatio
@@ -739,14 +742,7 @@ open class OpenAPSSMBPlugin @Inject constructor(
                 addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsAutoIsfSmbDeliveryRatio, dialogMessage = R.string.openapsama_smb_delivery_ratio_summary, title = R.string.openapsama_smb_delivery_ratio))
                 addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsAutoIsfSmbDeliveryRatioMin, dialogMessage = R.string.openapsama_smb_delivery_ratio_min_summary, title = R.string.openapsama_smb_delivery_ratio_min))
                 addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsAutoIsfSmbDeliveryRatioMax, dialogMessage = R.string.openapsama_smb_delivery_ratio_max_summary, title = R.string.openapsama_smb_delivery_ratio_max))
-                addPreference(
-                    AdaptiveUnitPreference(
-                        ctx = context,
-                        unitKey = UnitDoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange,
-                        dialogMessage = R.string.openapsama_smb_delivery_ratio_bg_range_summary,
-                        title = R.string.openapsama_smb_delivery_ratio_bg_range
-                    )
-                )
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange, dialogMessage = R.string.openapsama_smb_delivery_ratio_bg_range_summary, title = R.string.openapsama_smb_delivery_ratio_bg_range))
             })
         }
     }
