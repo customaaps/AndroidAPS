@@ -122,7 +122,7 @@ org-mockito-android = { group = "org.mockito", name = "mockito-android", version
 org-mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 org-mockito-junit-jupiter = { group = "org.mockito", name = "mockito-junit-jupiter", version.ref = "mockito" }
 org-mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version = "5.4.0" }
-org-slf4j-api = { group = "org.slf4j", name = "slf4j-api", version = "2.0.16" }
+org-slf4j-api = { group = "org.slf4j", name = "slf4j-api", version = "2.0.17" }
 com-github-tony19-logback-android = { group = "com.github.tony19", name = "logback-android", version = "3.0.0" }
 
 org-junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
