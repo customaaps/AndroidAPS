@@ -33,6 +33,7 @@ import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.core.ui.locale.LocaleHelper
+import app.aaps.core.utils.JsonHelper
 import app.aaps.database.persistence.CompatDBHelper
 import app.aaps.di.DaggerAppComponent
 import app.aaps.implementation.lifecycle.ProcessLifecycleListener
@@ -60,10 +61,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import rxdogtag2.RxDogTag
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Provider
+import kotlin.reflect.KMutableProperty
+import kotlin.reflect.full.declaredMemberProperties
 
 class MainApp : DaggerApplication() {
 
@@ -267,8 +271,15 @@ class MainApp : DaggerApplication() {
             firebaseRemoteConfig
                 .fetchAndActivate()
                 .addOnCompleteListener { task ->
-                    if (task.isSuccessful) aapsLogger.debug("RemoteConfig received successfully")
-                    else aapsLogger.error("RemoteConfig fetch failed")
+                    if (task.isSuccessful) {
+                        aapsLogger.debug("RemoteConfig received successfully")
+                        @Suppress("UNCHECKED_CAST")
+                        (versionCheckersUtils::class.declaredMemberProperties.find { it.name == "definition" } as KMutableProperty<Any>?)
+                            ?.let {
+                                val merged = JsonHelper.merge(it.getter.call(versionCheckersUtils) as JSONObject, JSONObject(firebaseRemoteConfig.getString("defs")))
+                                it.setter.call(versionCheckersUtils, merged)
+                            }
+                    } else aapsLogger.error("RemoteConfig fetch failed")
                 }
         }
     }
