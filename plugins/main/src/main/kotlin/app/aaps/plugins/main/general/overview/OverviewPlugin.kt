@@ -208,7 +208,11 @@ class OverviewPlugin @Inject constructor(
     @SuppressLint("SetTextI18n")
     override fun setVersionView(view: TextView) {
         if (config.APS || config.PUMPCONTROL) {
-            view.text = "${config.VERSION_NAME} (${config.HEAD.substring(0, 4)})"
+            if (config.isDev()) {
+                view.text = "${config.VERSION_NAME}+-${config.HEAD.substring(0, 4)}"
+            } else {
+                view.text = config.DISPLAY_VERSION_NAME
+            }
             if (config.COMMITTED) {
                 view.setTextColor(rh.gac(context, app.aaps.core.ui.R.attr.defaultTextColor))
                 view.alpha = 0.4f

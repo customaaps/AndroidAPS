@@ -7,6 +7,8 @@ object Versions {
     const val appVersion = "3.3.2.0-dev"
     const val versionCode = 1500
 
+    const val customPatchVersion = "beta"
+
     const val ndkVersion = "21.1.6352462"
 
     const val compileSdk = 35

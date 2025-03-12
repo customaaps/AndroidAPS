@@ -13,6 +13,8 @@ interface Config {
     val PUMPDRIVERS: Boolean
     val FLAVOR: String
     val VERSION_NAME: String
+    val CUSTOM_PATCH_VERSION: String
+    val DISPLAY_VERSION_NAME: String
     val HEAD: String
     val COMMITTED: Boolean
     val BUILD_VERSION: String

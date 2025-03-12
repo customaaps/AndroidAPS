@@ -97,8 +97,12 @@
                 <action android:name="com.microtechmd.cgms.aidex.action.BgEstimate" />
                 <!-- Receiver from patched Ottai app -->
                 <action android:name="info.nightscout.androidaps.action.OTTAI_APP" />
+                <action android:name="cn.diyaps.sharing.OT_APP" />
                 <!-- Receiver from patched Syai Tag app -->
                 <action android:name="info.nightscout.androidaps.action.SYAI_TAG_APP" />
+                <action android:name="cn.diyaps.sharing.SI_APP" />
+                <!-- Receiver from patched Sinocare app -->
+                <action android:name="cn.diyaps.sharing.SINO_APP" />
             </intent-filter>
         </receiver>
 

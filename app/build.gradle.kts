@@ -90,6 +90,7 @@ android {
         minSdk = Versions.minSdk
         targetSdk = Versions.targetSdk
 
+        buildConfigField("String", "CUSTOM_PATCH_VERSION", "\"${Versions.customPatchVersion}\"")
         buildConfigField("String", "VERSION", "\"$version\"")
         buildConfigField("String", "BUILDVERSION", "\"${generateGitBuild()}-${generateDate()}\"")
         buildConfigField("String", "REMOTE", "\"${generateGitRemote()}\"")

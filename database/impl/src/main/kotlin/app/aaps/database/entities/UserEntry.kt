@@ -187,6 +187,7 @@ data class UserEntry(
         Overview,           //From OverViewPlugin
         Ottai,              //From Ottai plugin
         SyaiTag,            //From Syai Tag plugin
+        Sinocare,
         Stats,              //From Stat Activity
         Aaps,               // MainApp
         BgFragment,

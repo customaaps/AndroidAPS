@@ -432,10 +432,12 @@ open class OpenAPSSMBPlugin @Inject constructor(
         if (!hardLimits.checkHardLimits(pump.baseBasalRate, app.aaps.core.ui.R.string.current_basal_value, 0.01, hardLimits.maxBasal())) return
 
         // End of check, start gathering data
+        val dynIsfResult = calculateRawDynIsf(profile)
         val dynIsfMode =
             preferences.get(BooleanKey.ApsUseDynamicSensitivity) &&
                 hardLimits.checkHardLimits(preferences.get(IntKey.ApsDynIsfAdjustmentFactor).toDouble(), R.string.dyn_isf_adjust_title, IntKey.ApsDynIsfAdjustmentFactor.min.toDouble(), IntKey.ApsDynIsfAdjustmentFactor.max.toDouble()) &&
-                hardLimits.checkHardLimits(preferences.get(IntKey.ApsDynIsfVelocity).toDouble(), R.string.dynisf_velocity, IntKey.ApsDynIsfVelocity.min.toDouble(), IntKey.ApsDynIsfVelocity.max.toDouble())
+                hardLimits.checkHardLimits(preferences.get(IntKey.ApsDynIsfVelocity).toDouble(), R.string.dynisf_velocity, IntKey.ApsDynIsfVelocity.min.toDouble(), IntKey.ApsDynIsfVelocity.max.toDouble()) &&
+                hardLimits.checkHardLimits(dynIsfResult.variableSensitivity ?: 0.0, R.string.dynisf_settings_title, HardLimits.MIN_ISF, HardLimits.MAX_ISF)
         val smbEnabled = preferences.get(BooleanKey.ApsUseSmb)
         val advancedFiltering = constraintsChecker.isAdvancedFilteringEnabled().also { inputConstraints.copyReasons(it) }.value()
 
@@ -458,7 +460,6 @@ open class OpenAPSSMBPlugin @Inject constructor(
         }
 
         var autosensResult = AutosensResult()
-        val dynIsfResult = calculateRawDynIsf(profile)
 
         if (dynIsfMode && !dynIsfResult.tddPartsCalculated() && !preferences.get(BooleanKey.ApsDynIsfUseProfileSens)) {
             uiInteraction.addNotificationValidTo(

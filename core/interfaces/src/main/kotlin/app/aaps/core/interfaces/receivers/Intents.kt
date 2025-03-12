@@ -46,7 +46,11 @@ interface Intents {
         const val AAPS_BROADCAST = "info.nightscout.androidaps.status"
         // Patched Ottai App -> AAPS
         const val OTTAI_APP = "info.nightscout.androidaps.action.OTTAI_APP"
+        const val CN_OTTAI_APP = "cn.diyaps.sharing.OT_APP"
         // Patched Syai Tag App -> AAPS
         const val SYAI_TAG_APP = "info.nightscout.androidaps.action.SYAI_TAG_APP"
+        const val CN_SYAI_TAG_APP = "cn.diyaps.sharing.SI_APP"
+        // Patched Sinocare App -> AAPS
+        const val SINOCARE_APP = "cn.diyaps.sharing.SINO_APP"
     }
 }

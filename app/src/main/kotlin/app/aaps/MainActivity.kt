@@ -208,7 +208,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
                         val messageSpanned = SpannableString(message)
                         Linkify.addLinks(messageSpanned, Linkify.WEB_URLS)
                         MaterialAlertDialogBuilder(this@MainActivity, app.aaps.core.ui.R.style.DialogTheme)
-                            .setTitle(rh.gs(R.string.app_name) + " " + config.VERSION)
+                            .setTitle(rh.gs(R.string.app_name) + " " + config.DISPLAY_VERSION_NAME)
                             .setIcon(iconsProvider.getIcon())
                             .setMessage(messageSpanned)
                             .setPositiveButton(rh.gs(app.aaps.core.ui.R.string.ok), null)
@@ -351,8 +351,8 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         if (!isProtectionCheckActive) {
             isProtectionCheckActive = true
             protectionCheck.queryProtection(this, ProtectionCheck.Protection.APPLICATION, UIRunnable { isProtectionCheckActive = false },
-                                            UIRunnable { OKDialog.show(this, "", rh.gs(R.string.authorizationfailed)) { isProtectionCheckActive = false; finish() } },
-                                            UIRunnable { OKDialog.show(this, "", rh.gs(R.string.authorizationfailed)) { isProtectionCheckActive = false; finish() } }
+                                            UIRunnable { OKDialog.show(this, "", rh.gs(R.string.authorizationfailed), true) { isProtectionCheckActive = false; finish() } },
+                                            UIRunnable { OKDialog.show(this, "", rh.gs(R.string.authorizationfailed), true) { isProtectionCheckActive = false; finish() } }
             )
         }
     }
@@ -481,9 +481,9 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
             .replace(".com/", ":")
             .replace(".org/", ":")
             .replace(".net/", ":")
-        fabricPrivacy.setUserProperty("Mode", config.APPLICATION_ID + "-" + closedLoopEnabled)
+        fabricPrivacy.setUserProperty("Mode", config.BUILD_TYPE + "-" + closedLoopEnabled)
         fabricPrivacy.setUserProperty("Language", preferences.getIfExists(StringKey.GeneralLanguage) ?: Locale.getDefault().language)
-        fabricPrivacy.setUserProperty("Version", config.VERSION_NAME)
+        fabricPrivacy.setUserProperty("Version", config.VERSION_NAME + "-" + config.CUSTOM_PATCH_VERSION)
         fabricPrivacy.setUserProperty("HEAD", BuildConfig.HEAD)
         fabricPrivacy.setUserProperty("Remote", remote)
         val hashes: List<String> = signatureVerifierPlugin.shortHashes()
@@ -497,7 +497,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         activePlugin.activeInsulin.let { fabricPrivacy.setUserProperty("Insulin", it::class.java.simpleName) }
         // Add to crash log too
         FirebaseCrashlytics.getInstance().setCustomKey("HEAD", BuildConfig.HEAD)
-        FirebaseCrashlytics.getInstance().setCustomKey("Version", config.VERSION_NAME)
+        FirebaseCrashlytics.getInstance().setCustomKey("Version", config.DISPLAY_VERSION_NAME)
         FirebaseCrashlytics.getInstance().setCustomKey("BuildType", config.BUILD_TYPE)
         FirebaseCrashlytics.getInstance().setCustomKey("BuildFlavor", config.FLAVOR)
         FirebaseCrashlytics.getInstance().setCustomKey("Remote", remote)

@@ -1,5 +1,6 @@
 package app.aaps.implementation.plugin
 
+import android.os.SystemClock
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.aps.Sensitivity
@@ -27,7 +28,17 @@ class PluginStore @Inject constructor(
     private val aapsLogger: AAPSLogger
 ) : ActivePlugin {
 
-    lateinit var plugins: List<@JvmSuppressWildcards PluginBase>
+    private var _plugins: List<@JvmSuppressWildcards PluginBase>? = null
+    var plugins: List<@JvmSuppressWildcards PluginBase>
+        get() {
+            while (!initialized) SystemClock.sleep(10)
+            return _plugins!!
+        }
+        set(value) {
+            _plugins = value
+            initialized = true
+        }
+    private var initialized: Boolean = false
 
     private var activeBgSourceStore: BgSource? = null
     private var activePumpStore: Pump? = null
@@ -170,10 +181,10 @@ class PluginStore @Inject constructor(
     // ***** Interface *****
 
     override val activeBgSource: BgSource
-        get() = activeBgSourceStore ?: checkNotNull(activeBgSourceStore) { "No bg source selected" }
+        get() = activeBgSourceStore ?: wait() ?: activeBgSourceStore ?: wait(5000) ?: activeBgSourceStore ?: checkNotNull(activeBgSourceStore) { "No BG source selected" }
 
     override val activeProfileSource: ProfileSource
-        get() = activeProfile ?: wait() ?: activeProfile ?: checkNotNull(activeProfile) { "No profile selected" }
+        get() = activeProfile ?: wait() ?: activeProfile ?: wait(5000) ?: activeProfile ?: checkNotNull(activeProfile) { "No profile selected" }
 
     override val activeInsulin: Insulin
         get() = activeInsulinStore ?: getDefaultPlugin(PluginType.INSULIN) as Insulin
@@ -191,15 +202,15 @@ class PluginStore @Inject constructor(
         get() = activePumpStore
         // Following line can be used only during initialization
             ?: getTheOneEnabledInArray(getSpecificPluginsList(PluginType.PUMP), PluginType.PUMP) as Pump?
-            ?: checkNotNull(activePumpStore) { "No pump selected" }
+            ?: wait() ?: activePumpStore ?: wait(5000) ?: activePumpStore ?: checkNotNull(activePumpStore) { "No pump selected" }
 
     override val activeSensitivity: Sensitivity
         get() = activeSensitivityStore
-            ?: checkNotNull(activeSensitivityStore) { "No sensitivity selected" }
+            ?: wait() ?: activeSensitivityStore ?: wait(5000) ?: activeSensitivityStore ?: checkNotNull(activeSensitivityStore) { "No sensitivity selected" }
 
     override val activeSmoothing: Smoothing
         get() = activeSmoothingStore
-            ?: checkNotNull(activeSmoothingStore) { "No smoothing selected" }
+            ?: wait() ?: activeSmoothingStore ?: wait(5000) ?: activeSmoothingStore ?: checkNotNull(activeSmoothingStore) { "No smoothing selected" }
 
     override val activeOverview: Overview
         get() = getSpecificPluginsListByInterface(Overview::class.java).first() as Overview
@@ -223,5 +234,4 @@ class PluginStore @Inject constructor(
         get() = getSpecificPluginsList(PluginType.SYNC) as ArrayList<Sync>
 
     override fun getPluginsList(): ArrayList<PluginBase> = ArrayList(plugins)
-
 }

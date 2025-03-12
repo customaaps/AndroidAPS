@@ -10,6 +10,7 @@ import app.aaps.plugins.source.MM640gPlugin
 import app.aaps.plugins.source.NSClientSourcePlugin
 import app.aaps.plugins.source.OttaiPlugin
 import app.aaps.plugins.source.PoctechPlugin
+import app.aaps.plugins.source.SinocarePlugin
 import app.aaps.plugins.source.SyaiTagPlugin
 import app.aaps.plugins.source.TomatoPlugin
 import app.aaps.plugins.source.XdripSourcePlugin
@@ -37,6 +38,7 @@ abstract class SourceModule {
     @ContributesAndroidInjector abstract fun contributesTomatoWorker(): TomatoPlugin.TomatoWorker
     @ContributesAndroidInjector abstract fun contributesOttaiWorker(): OttaiPlugin.OttaiWorker
     @ContributesAndroidInjector abstract fun contributesOTAppWorker(): SyaiTagPlugin.SyaiTagWorker
+    @ContributesAndroidInjector abstract fun contributesSinocareWorker(): SinocarePlugin.SinocareWorker
 
     @ContributesAndroidInjector abstract fun contributesRequestDexcomPermissionActivity(): RequestDexcomPermissionActivity
 

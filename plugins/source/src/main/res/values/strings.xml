@@ -40,4 +40,7 @@
     <!-- Patched Syai Tag App -->
     <string name="syai_tag_app">Syai Tag</string>
     <string name="description_source_patched_syai_tag_app">Receive glucose data from Syai Tag App.</string>
+    <!-- Patched Sinocare App -->
+    <string name="sino_app">Sinocare</string>
+    <string name="description_source_patched_sino_app">Receive glucose data from Sinocare App.</string>
 </resources>

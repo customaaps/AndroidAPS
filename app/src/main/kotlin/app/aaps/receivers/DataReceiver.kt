@@ -20,6 +20,7 @@ import app.aaps.plugins.source.GlimpPlugin
 import app.aaps.plugins.source.MM640gPlugin
 import app.aaps.plugins.source.OttaiPlugin
 import app.aaps.plugins.source.PoctechPlugin
+import app.aaps.plugins.source.SinocarePlugin
 import app.aaps.plugins.source.SyaiTagPlugin
 import app.aaps.plugins.source.TomatoPlugin
 import app.aaps.plugins.source.XdripSourcePlugin
@@ -71,14 +72,21 @@ open class DataReceiver : DaggerBroadcastReceiver() {
                         it.copyString("data", bundle)
                     }.build()).build()
 
-            Intents.OTTAI_APP                       ->
+            Intents.OTTAI_APP, Intents.CN_OTTAI_APP    ->
                 OneTimeWorkRequest.Builder(OttaiPlugin.OttaiWorker::class.java)
                     .setInputData(Data.Builder().also {
                         it.copyString("collection", bundle)
                         it.copyString("data", bundle)
                     }.build()).build()
 
-            Intents.SYAI_TAG_APP                       ->
+            Intents.SINOCARE_APP                             ->
+                OneTimeWorkRequest.Builder(SinocarePlugin.SinocareWorker::class.java)
+                    .setInputData(Data.Builder().also {
+                        it.copyString("collection", bundle)
+                        it.copyString("data", bundle)
+                    }.build()).build()
+
+            Intents.SYAI_TAG_APP, Intents.CN_SYAI_TAG_APP    ->
                 OneTimeWorkRequest.Builder(SyaiTagPlugin.SyaiTagWorker::class.java)
                     .setInputData(Data.Builder().also {
                         it.copyString("collection", bundle)

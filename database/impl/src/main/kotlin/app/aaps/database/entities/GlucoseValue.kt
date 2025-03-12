@@ -108,6 +108,7 @@ data class GlucoseValue(
         UNKNOWN,
         OTTAI,
         SYAI_TAG,
+        SINOCARE,
 
         IOB_PREDICTION,
         A_COB_PREDICTION,
