@@ -2,23 +2,18 @@ package app.aaps.pump.apex.connectivity.commands.pump
 
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.apex.R
+import app.aaps.pump.apex.interfaces.ApexDeviceInfo
+import app.aaps.pump.apex.utils.getDateTime
 import app.aaps.pump.apex.utils.getUnsignedShort
 import app.aaps.pump.apex.utils.hexAsDecToDec
 import org.joda.time.DateTime
 
-class BolusEntry(command: PumpCommand): PumpObjectModel() {
+class BolusEntry(command: PumpCommand, info: ApexDeviceInfo): PumpObjectModel() {
     /** Bolus entry index */
     val index = command.objectData[1].toUByte().toInt()
 
     /** Bolus date */
-    val dateTime = DateTime(
-        command.objectData[2].hexAsDecToDec() + 2000, // year
-        command.objectData[3].hexAsDecToDec(), // day
-        command.objectData[4].hexAsDecToDec(), // month
-        command.objectData[5].hexAsDecToDec(), // hour
-        command.objectData[6].hexAsDecToDec(), // minute
-        command.objectData[7].hexAsDecToDec(), // second
-    )
+    val dateTime = getDateTime(command.objectData, 2, info)
 
     /** Standard bolus requested dose */
     val standardDose = getUnsignedShort(command.objectData, 8)

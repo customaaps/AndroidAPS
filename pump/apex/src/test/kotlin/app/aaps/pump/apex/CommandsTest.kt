@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 class CommandsTest : TestBase() {
     private val info = object : ApexDeviceInfo {
         override var serialNumber = "12345678"
+        override val version = Version(deserialiseHead(PumpObject.FirmwareEntry, ubyteArrayOf(0xaau, 0x10u, 0x00u, 0xa3u, 0x31u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x06u, 0x19u, 0x04u, 0x0au, 0x30u, 0xcfu).toByteArray()))
     }
 
     private fun deserialiseHead(expectedType: PumpObject, data: ByteArray): PumpCommand {
@@ -44,7 +45,7 @@ class CommandsTest : TestBase() {
     @Test
     fun pump_bolusEntry() {
         val command = deserialiseHead(PumpObject.BolusEntry, ubyteArrayOf(0xaau, 0x16u, 0x80u, 0xa3u, 0x21u, 0x00u, 0x25u, 0x01u, 0x25u, 0x17u, 0x52u, 0x59u, 0x09u, 0x00u, 0x09u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x78u).toByteArray())
-        val data = BolusEntry(command)
+        val data = BolusEntry(command, info)
         assert(data.dateTime == DateTime(2025, 1, 25, 17, 52, 59))
         assert(data.extendedDose == 0)
         assert(data.standardDose == 9)

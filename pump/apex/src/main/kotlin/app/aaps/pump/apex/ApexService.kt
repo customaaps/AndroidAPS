@@ -1102,7 +1102,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             PumpObject.StatusV1        -> onStatusV1(StatusV1(command))
             PumpObject.StatusV2        -> onStatusV2(StatusV2(command))
             PumpObject.Heartbeat       -> onHeartbeat()
-            PumpObject.BolusEntry      -> onBolusEntry(BolusEntry(command))
+            PumpObject.BolusEntry      -> onBolusEntry(BolusEntry(command, apexDeviceInfo))
             PumpObject.TDDEntry        -> onTDDEntry(TDDEntry(command))
             else -> {}
         }
@@ -1140,7 +1140,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
                 PumpObject.BasalProfile    -> BasalProfile(command)
                 PumpObject.AlarmEntry      -> AlarmObject(command)
                 PumpObject.TDDEntry        -> TDDEntry(command)
-                PumpObject.BolusEntry      -> BolusEntry(command)
+                PumpObject.BolusEntry      -> BolusEntry(command, apexDeviceInfo)
                 PumpObject.FirmwareEntry   -> Version(command)
                 else                       -> return
             }
