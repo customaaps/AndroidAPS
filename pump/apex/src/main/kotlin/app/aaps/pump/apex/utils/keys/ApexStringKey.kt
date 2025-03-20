@@ -22,5 +22,5 @@ enum class ApexStringKey(
     LastConnectedSerialNumber("apex_last_connected_serial_number", ""),
     BluetoothAddress("apex_bt_address", ""),
     AlarmSoundLength("apex_alarm_length", AlarmLength.Short.name),
-    CalcBatteryType("apex_battery_type", BatteryType.Custom.name, dependency = ApexBooleanKey.CalculateBatteryPercentage),
+    CalcBatteryType("apex_battery_type", BatteryType.Custom.name),
 }

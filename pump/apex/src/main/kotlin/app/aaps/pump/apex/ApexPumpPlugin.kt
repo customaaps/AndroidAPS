@@ -9,6 +9,7 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
+import androidx.preference.SwitchPreference
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.DoseStepSize
 import app.aaps.core.data.pump.defs.ManufacturerType
@@ -495,13 +496,14 @@ class ApexPumpPlugin @Inject constructor(
 
     override fun preprocessPreferences(preferenceFragment: PreferenceFragmentCompat) {
         super.preprocessPreferences(preferenceFragment)
+
         val is411 = pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) ?: false
         val manualVoltage = is411 && preferences.get(ApexStringKey.CalcBatteryType) == BatteryType.Custom.name
 
         preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexBooleanKey.CalculateBatteryPercentage.key)?.isVisible = is411
-        preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexStringKey.CalcBatteryType.key)?.isVisible = is411
-        preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexDoubleKey.BatteryLowVoltage.key)?.isVisible = manualVoltage
-        preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexDoubleKey.BatteryHighVoltage.key)?.isVisible = manualVoltage
+        preferenceFragment.findPreference<AdaptiveListPreference>(ApexStringKey.CalcBatteryType.key)?.isVisible = is411 && preferences.get(ApexBooleanKey.CalculateBatteryPercentage)
+        preferenceFragment.findPreference<AdaptiveDoublePreference>(ApexDoubleKey.BatteryLowVoltage.key)?.isVisible = manualVoltage
+        preferenceFragment.findPreference<AdaptiveDoublePreference>(ApexDoubleKey.BatteryHighVoltage.key)?.isVisible = manualVoltage
     }
 
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {

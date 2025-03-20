@@ -49,8 +49,6 @@ class UpdateSettingsV1(
     override val valueId = 0x32
     override val isWrite = true
 
-    override val maxProto = ProtocolVersion.PROTO_4_10
-
     override val additionalData: ByteArray
         get() {
             var functionFlags = 0

@@ -1,5 +1,6 @@
 package app.aaps.pump.apex.connectivity.commands.device
 
+import app.aaps.pump.apex.ApexService
 import app.aaps.pump.apex.connectivity.commands.CommandId
 import app.aaps.pump.apex.connectivity.ProtocolVersion
 import app.aaps.pump.apex.utils.ApexCrypto
@@ -10,10 +11,10 @@ abstract class DeviceCommand(val info: ApexDeviceInfo) {
     open val type = 0x35
 
     /** Minimum protocol version supporting this command */
-    open val minProto = ProtocolVersion.PROTO_4_10
+    open val minProto = ApexService.FIRST_SUPPORTED_PROTO
 
     /** Maximum protocol version supporting this command */
-    open val maxProto = ProtocolVersion.PROTO_4_11
+    open val maxProto = ApexService.LAST_SUPPORTED_PROTO
 
     /** Command ID */
     abstract val id: CommandId
