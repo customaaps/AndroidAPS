@@ -11,6 +11,7 @@
     <string name="setting_max_bolus">Максимальный болюс [Ед]</string>
     <string name="setting_max_basal">Максимальный базал [Ед/ч]</string>
     <string name="setting_serial_number">Серийный номер помпы</string>
+    <string name="setting_calc_battery_high_vtg">Высокое напряжение батареи [В]</string>
     <string name="overview_connection_status_disconnected">Отключено</string>
     <string name="overview_connection_status_connecting">Подключение</string>
     <string name="overview_connection_status_connected">Подключено</string>
@@ -74,4 +75,15 @@
     <string name="getting_pump_status">ПОЛУЧ СТАТУС</string>
     <string name="getting_boluses">ПОЛУЧ БОЛЮС</string>
     <string name="suspend">Приостановить</string>
+    <string name="setting_log_battery_change">Записывать смену батареи</string>
+    <string name="setting_calc_battery_title">Рассчитывать процент заряда</string>
+    <string name="setting_calc_battery_summary">Рассчитывать процент по напряжению батареи</string>
+    <string name="setting_calc_battery_type_title">Тип батареи</string>
+    <string name="setting_calc_battery_type_custom">Пользовательская</string>
+    <string name="setting_calc_battery_low_vtg">Низкое напряжение батареи [В]</string>
+    <string name="setting_calc_battery_type_alkaline">Щелочная</string>
+    <string name="setting_calc_battery_type_lithium">Литиевая</string>
+    <string name="setting_calc_battery_type_ni_mh">NiMh</string>
+    <string name="setting_calc_battery_type_ni_zn">NiZn</string>
+    <string name="setting_log_insulin_change">Записывать смену инсулина</string>
 </resources>
