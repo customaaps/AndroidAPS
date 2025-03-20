@@ -3,11 +3,16 @@ package app.aaps.pump.apex
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
+import app.aaps.core.keys.Preferences
 import app.aaps.pump.apex.connectivity.commands.pump.Alarm
 import app.aaps.pump.apex.connectivity.commands.pump.BolusEntry
 import app.aaps.pump.apex.connectivity.commands.pump.StatusV1
 import app.aaps.pump.apex.connectivity.commands.pump.StatusV2
 import app.aaps.pump.apex.connectivity.commands.pump.Version
+import app.aaps.pump.apex.misc.BatteryType
+import app.aaps.pump.apex.utils.keys.ApexBooleanKey
+import app.aaps.pump.apex.utils.keys.ApexDoubleKey
+import app.aaps.pump.apex.utils.keys.ApexStringKey
 import org.joda.time.DateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,7 +22,9 @@ import kotlin.math.roundToInt
  * @author Roman Rikhter (teledurak@gmail.com)
  */
 @Singleton
-class ApexPump @Inject constructor() {
+class ApexPump @Inject constructor(
+    val preferences: Preferences
+) {
     private var _status: PumpStatus? = null
     val status: PumpStatus?
         get() = _status
@@ -121,9 +128,35 @@ class ApexPump @Inject constructor() {
         return ret
     }
 
+    private fun calcFromVoltage(voltage: Double): Int {
+        val batteryType = BatteryType.valueOf(preferences.get(ApexStringKey.CalcBatteryType))
+        val lowVoltage = when (batteryType) {
+            BatteryType.Custom -> preferences.get(ApexDoubleKey.BatteryLowVoltage)
+            else -> batteryType.lowVoltage
+        }
+        val highVoltage = when (batteryType) {
+            BatteryType.Custom -> preferences.get(ApexDoubleKey.BatteryHighVoltage)
+            else -> batteryType.highVoltage
+        }
+
+        // Credits: Medtronic pump driver
+        val percent = (voltage - lowVoltage) / (highVoltage - lowVoltage)
+        var percentInt = (percent * 100.0).toInt()
+        if (percentInt < 0) percentInt = 1
+        if (percentInt > 100) percentInt = 100
+
+        if (batteryLevel.percentage == 0) return 0
+        return percentInt
+    }
+
     fun updateFromV2(obj: StatusV2): StatusUpdate {
+        val percentage = if (preferences.get(ApexBooleanKey.CalculateBatteryPercentage))
+            calcFromVoltage(obj.batteryVoltage)
+        else
+            batteryLevel.percentage
+
         val new = PumpStatus(
-            batteryLevel = BatteryLevel(batteryLevel.percentage, obj.batteryVoltage, batteryLevel.approximate),
+            batteryLevel = BatteryLevel(percentage, obj.batteryVoltage, false),
             dateTime = dateTime,
             reservoirLevel = reservoirLevel,
             tbr = tbr,
@@ -215,10 +248,10 @@ class ApexPump @Inject constructor() {
             else -> rh.gs(R.string.overview_pump_status_normal)
         }
 
-        fun getBatteryLevel(rh: ResourceHelper): String = if (batteryLevel.voltage == null)
+        fun getBatteryLevel(rh: ResourceHelper): String = if (batteryLevel.approximate)
             rh.gs(R.string.overview_pump_battery_approximate, batteryLevel.percentage)
         else
-            rh.gs(R.string.overview_pump_battery_exact, batteryLevel.percentage, (batteryLevel.voltage * 1000).roundToInt())
+            rh.gs(R.string.overview_pump_battery_exact, batteryLevel.percentage, ((batteryLevel.voltage ?: 0.0) * 1000).roundToInt())
 
         fun getReservoirLevel(rh: ResourceHelper): String = rh.gs(R.string.overview_pump_reservoir, reservoirLevel)
 

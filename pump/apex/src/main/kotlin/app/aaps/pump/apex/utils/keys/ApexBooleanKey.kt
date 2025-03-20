@@ -17,4 +17,5 @@ enum class ApexBooleanKey(
 ) : BooleanPreferenceKey {
     LogInsulinChange("apex_log_insulin_change", true),
     LogBatteryChange("apex_log_battery_change", true),
+    CalculateBatteryPercentage("apex_calc_battery_percentage", false),
 }

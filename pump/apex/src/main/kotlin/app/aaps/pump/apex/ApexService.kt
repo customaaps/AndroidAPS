@@ -831,11 +831,6 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         // }
     }
 
-    private fun onConstraintsChanged(update: ApexPump.StatusUpdate) {
-        preferences.put(ApexDoubleKey.MaxBasal, update.current.maxBasal)
-        preferences.put(ApexDoubleKey.MaxBolus, update.current.maxBolus)
-    }
-
     private fun onStatusV1(status: StatusV1) {
         val update = pump.updateFromV1(status)
         aapsLogger.debug(LTag.PUMPCOMM, "Got V1 | Status updates: ${update.changes.joinToString(", ") { it.name }}")
@@ -846,17 +841,24 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
         onAlarmsChanged(update)
         onBasalChanged(update)
-        onSettingsChanged(update)
         onBatteryChanged(update)
         onReservoirChanged(update)
         onTBRChanged(update)
-        onConstraintsChanged(update)
+
+        // We may retrieve the forgotten in V1 alarm length from V2.
+        if (pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) == false)
+            onSettingsChanged(update)
+
         rxBus.send(EventApexPumpDataChanged())
     }
 
     private fun onStatusV2(status: StatusV2) {
         val update = pump.updateFromV2(status)
         aapsLogger.debug(LTag.PUMPCOMM, "Got V2 | Status updates: ${update.changes.joinToString(", ") { it.name }}")
+
+        preferences.put(ApexStringKey.AlarmSoundLength, status.alarmLength!!.name)
+
+        onSettingsChanged(update)
 
         //onBatteryChanged(update)
         rxBus.send(EventApexPumpDataChanged())

@@ -20,4 +20,6 @@ enum class ApexDoubleKey(
     // 0 == uninitialized
     MaxBasal("apex_max_basal", 0.0, 0.0, 25.0),
     MaxBolus("apex_max_bolus", 0.0, 0.0, 25.0),
+    BatteryLowVoltage("apex_low_batt_vtg", 1.2, 1.0, 1.8),
+    BatteryHighVoltage("apex_high_batt_vtg", 1.5, 1.0, 1.8),
 }

@@ -15,6 +15,20 @@
 
     <string name="setting_serial_number">Pump serial number</string>
 
+    <string name="setting_log_insulin_change">Log insulin change</string>
+    <string name="setting_log_battery_change">Log battery change</string>
+
+    <string name="setting_calc_battery_title">Calculate battery percentage</string>
+    <string name="setting_calc_battery_summary">Calculate percentage from the battery voltage</string>
+    <string name="setting_calc_battery_type_title">Battery type</string>
+    <string name="setting_calc_battery_type_alkaline">Alkaline</string>
+    <string name="setting_calc_battery_type_lithium">Lithium</string>
+    <string name="setting_calc_battery_type_ni_mh">NiMh</string>
+    <string name="setting_calc_battery_type_ni_zn">NiZn</string>
+    <string name="setting_calc_battery_type_custom">Custom</string>
+    <string name="setting_calc_battery_low_vtg">Battery low voltage [V]</string>
+    <string name="setting_calc_battery_high_vtg">Battery high voltage [V]</string>
+
     <string name="overview_connection_status_disconnected">Disconnected</string>
     <string name="overview_connection_status_connecting">Connecting</string>
     <string name="overview_connection_status_connected">Connected</string>

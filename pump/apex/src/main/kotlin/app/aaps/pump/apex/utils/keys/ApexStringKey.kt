@@ -3,6 +3,7 @@ package app.aaps.pump.apex.utils.keys
 import app.aaps.core.keys.BooleanPreferenceKey
 import app.aaps.core.keys.StringPreferenceKey
 import app.aaps.pump.apex.connectivity.commands.pump.AlarmLength
+import app.aaps.pump.apex.misc.BatteryType
 
 enum class ApexStringKey(
     override val key: String,
@@ -20,5 +21,6 @@ enum class ApexStringKey(
     SerialNumber("apex_serial_number", ""),
     LastConnectedSerialNumber("apex_last_connected_serial_number", ""),
     BluetoothAddress("apex_bt_address", ""),
-    AlarmSoundLength("apex_alarm_length", AlarmLength.Short.name)
+    AlarmSoundLength("apex_alarm_length", AlarmLength.Short.name),
+    CalcBatteryType("apex_battery_type", BatteryType.Custom.name, dependency = ApexBooleanKey.CalculateBatteryPercentage),
 }

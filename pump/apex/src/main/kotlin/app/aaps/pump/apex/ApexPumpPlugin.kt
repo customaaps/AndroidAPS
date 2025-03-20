@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import app.aaps.core.data.plugin.PluginType
@@ -40,8 +41,11 @@ import app.aaps.core.utils.wait
 import app.aaps.core.validators.preferences.AdaptiveDoublePreference
 import app.aaps.core.validators.preferences.AdaptiveListPreference
 import app.aaps.core.validators.preferences.AdaptiveStringPreference
+import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import app.aaps.pump.apex.connectivity.ApexBluetooth
+import app.aaps.pump.apex.connectivity.ProtocolVersion
 import app.aaps.pump.apex.connectivity.commands.pump.AlarmLength
+import app.aaps.pump.apex.misc.BatteryType
 import app.aaps.pump.apex.ui.ApexFragment
 import app.aaps.pump.apex.utils.keys.ApexBooleanKey
 import app.aaps.pump.apex.utils.keys.ApexDoubleKey
@@ -489,6 +493,17 @@ class ApexPumpPlugin @Inject constructor(
         service!!.syncDateTime("ApexService-timezoneOrDSTChanged")
     }
 
+    override fun preprocessPreferences(preferenceFragment: PreferenceFragmentCompat) {
+        super.preprocessPreferences(preferenceFragment)
+        val is411 = pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) ?: false
+        val manualVoltage = is411 && preferences.get(ApexStringKey.CalcBatteryType) == BatteryType.Custom.name
+
+        preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexBooleanKey.CalculateBatteryPercentage.key)?.isVisible = is411
+        preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexStringKey.CalcBatteryType.key)?.isVisible = is411
+        preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexDoubleKey.BatteryLowVoltage.key)?.isVisible = manualVoltage
+        preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexDoubleKey.BatteryHighVoltage.key)?.isVisible = manualVoltage
+    }
+
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
         if (requiredKey != null) return
         val category = PreferenceCategory(context)
@@ -509,6 +524,29 @@ class ApexPumpPlugin @Inject constructor(
                 entries = arrayOf(rh.gs(R.string.setting_alarm_length_long), rh.gs(R.string.setting_alarm_length_medium), rh.gs(R.string.setting_alarm_length_short)),
                 entryValues = arrayOf(AlarmLength.Long.name, AlarmLength.Medium.name, AlarmLength.Short.name)
             ))
+            addPreference(AdaptiveSwitchPreference(
+                ctx = context,
+                booleanKey = ApexBooleanKey.CalculateBatteryPercentage,
+                title = R.string.setting_calc_battery_title,
+                summary = R.string.setting_calc_battery_summary
+            ))
+            addPreference(AdaptiveListPreference(
+                ctx = context,
+                stringKey = ApexStringKey.CalcBatteryType,
+                title = R.string.setting_calc_battery_type_title,
+                entries = arrayOf(rh.gs(R.string.setting_calc_battery_type_alkaline), rh.gs(R.string.setting_calc_battery_type_lithium), rh.gs(R.string.setting_calc_battery_type_ni_mh), rh.gs(R.string.setting_calc_battery_type_ni_zn), rh.gs(R.string.setting_calc_battery_type_custom)),
+                entryValues = arrayOf(BatteryType.Alkaline.name, BatteryType.Lithium.name, BatteryType.NiMh.name, BatteryType.NiZn.name, BatteryType.Custom.name)
+            ))
+            addPreference(AdaptiveDoublePreference(
+                ctx = context,
+                doubleKey = ApexDoubleKey.BatteryLowVoltage,
+                title = R.string.setting_calc_battery_low_vtg,
+            ))
+            addPreference(AdaptiveDoublePreference(
+                ctx = context,
+                doubleKey = ApexDoubleKey.BatteryHighVoltage,
+                title = R.string.setting_calc_battery_high_vtg,
+            ))
             addPreference(AdaptiveDoublePreference(
                 ctx = context,
                 doubleKey = ApexDoubleKey.MaxBasal,
@@ -518,6 +556,16 @@ class ApexPumpPlugin @Inject constructor(
                 ctx = context,
                 doubleKey = ApexDoubleKey.MaxBolus,
                 title = R.string.setting_max_bolus,
+            ))
+            addPreference(AdaptiveSwitchPreference(
+                ctx = context,
+                booleanKey = ApexBooleanKey.LogInsulinChange,
+                title = R.string.setting_log_insulin_change,
+            ))
+            addPreference(AdaptiveSwitchPreference(
+                ctx = context,
+                booleanKey = ApexBooleanKey.LogBatteryChange,
+                title = R.string.setting_log_battery_change,
             ))
         }
     }
