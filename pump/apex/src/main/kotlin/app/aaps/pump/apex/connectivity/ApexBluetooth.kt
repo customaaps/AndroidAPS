@@ -49,7 +49,7 @@ class ApexBluetooth @Inject constructor(
         private val WRITE_UUID = UUID.fromString("0000FFE9-0000-1000-8000-00805F9B34FB")
         private val CCC_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
 
-        private const val WRITE_DELAY_MS = 250
+        private const val WRITE_DELAY_MS = 1000
     }
 
     private val bluetoothAdapter = context.getSystemService(BluetoothManager::class.java).adapter

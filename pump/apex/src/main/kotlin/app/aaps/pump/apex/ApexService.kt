@@ -1014,13 +1014,16 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         }
 
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.CONNECTED))
-        if (!getStatus("BLE-onConnect")) {
-            aapsLogger.error(LTag.PUMPCOMM, "Failed to get status - disconnecting.")
-            return disconnect(true)
-        }
-        if (!getBoluses("BLE-onConnect"))  {
-            aapsLogger.error(LTag.PUMPCOMM, "Failed to get boluses - disconnecting.")
-            return disconnect(true)
+        // Do a fast reconnect on failed commands
+        if (!doNotReconnect) {
+            if (!getStatus("BLE-onConnect")) {
+                aapsLogger.error(LTag.PUMPCOMM, "Failed to get status - disconnecting.")
+                return disconnect(true)
+            }
+            if (!getBoluses("BLE-onConnect")) {
+                aapsLogger.error(LTag.PUMPCOMM, "Failed to get boluses - disconnecting.")
+                return disconnect(true)
+            }
         }
 
         unreachableTimerTask?.cancel()

@@ -11,4 +11,6 @@ class StatusV2(command: PumpCommand): PumpObjectModel() {
 
     /** Pump battery voltage */
     val batteryVoltage = command.objectData[5].toUByte().toDouble() / 100.0
+
+    // TODO: audio bolus settings
 }

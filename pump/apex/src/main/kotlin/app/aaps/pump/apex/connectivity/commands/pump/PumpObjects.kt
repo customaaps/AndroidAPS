@@ -6,7 +6,6 @@ import app.aaps.pump.apex.connectivity.commands.CommandId
 
 enum class PumpObject(
     val commandId: CommandId = CommandId.GetValue,
-    //val objectId: Int? = null,
     val valueId: List<Int>? = null,
 ) {
     Heartbeat(commandId = CommandId.Heartbeat),
@@ -25,8 +24,6 @@ enum class PumpObject(
             val valueId = objectData[0].toInt()
             for (e in entries) {
                 if (commandId != e.commandId) continue
-                //if (e.objectId == null) return e
-                //if (objectId != e.objectId) continue
                 if (e.valueId == null) return e
                 if (!e.valueId.contains(valueId)) continue
                 return e

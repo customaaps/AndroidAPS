@@ -18,7 +18,8 @@ class PumpCommand(private var data: ByteArray) {
     val type: Int get() = data[0].toUByte().toInt() // Should always be AA
     val length: Int get() = data[1].toUByte().toInt() // May be greater or less than packet length!
 
-    val objectType: Int get() = data[2].toUByte().toInt()
+    // Byte 2 - unused
+
     val id: CommandId? get() = CommandId.entries.find { it.raw.toUByte() == data[3].toUByte() }
     val objectData: ByteArray get() = data.copyOfRange(4, realLength() - 2)
 
@@ -62,5 +63,5 @@ class PumpCommand(private var data: ByteArray) {
         return isCompleteCommand()
     }
 
-    override fun toString(): String  = "PumpCommand(type=0x${type.toString(16)}, objType=0x${objectType.toString(16)}, data=${objectData.toHex()})"
+    override fun toString(): String  = "PumpCommand(type=0x${type.toString(16)}, data=${objectData.toHex()})"
 }
