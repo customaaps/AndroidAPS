@@ -37,6 +37,7 @@ import app.aaps.pump.apex.connectivity.commands.device.DeviceCommand
 import app.aaps.pump.apex.connectivity.commands.device.ExtendedBolus
 import app.aaps.pump.apex.connectivity.commands.device.GetValue
 import app.aaps.pump.apex.connectivity.commands.device.NotifyAboutConnection
+import app.aaps.pump.apex.connectivity.commands.device.SetConnectionProfile
 import app.aaps.pump.apex.connectivity.commands.device.SyncDateTime
 import app.aaps.pump.apex.connectivity.commands.device.TemporaryBasal
 import app.aaps.pump.apex.connectivity.commands.device.UpdateBasalProfileRates
@@ -530,6 +531,22 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         return true
     }
 
+    fun setConnectionProfile(caller: String): Boolean {
+        aapsLogger.debug(LTag.PUMPCOMM, "setConnectionProfile - $caller")
+        val response = executeWithResponse(SetConnectionProfile(apexDeviceInfo))
+        if (response == null) {
+            aapsLogger.error(LTag.PUMPCOMM, "[setConnectionProfile caller=$caller] Timed out while trying to communicate with the pump")
+            return false
+        }
+
+        if (response.code != CommandResponse.Code.Accepted) {
+            aapsLogger.error(LTag.PUMPCOMM, "[caller=$caller] Failed to set connection profile: ${response.code.name}")
+            return false
+        }
+
+        return true
+    }
+
     fun updateBasalPatternIndex(id: Int, caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "updateBasalPatternIndex - $caller")
         val response = executeWithResponse(UpdateUsedBasalProfile(apexDeviceInfo, id))
@@ -957,6 +974,8 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         preferences.put(ApexDoubleKey.MaxBasal, 0.0)
         preferences.put(ApexDoubleKey.MaxBolus, 0.0)
         pumpSync.connectNewPump()
+
+        setConnectionProfile("ApexService-onInitialConnection")
     }
 
     fun startConnection() {
