@@ -227,12 +227,14 @@ class ApexBluetooth @Inject constructor(
             @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
             override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
                 super.onCharacteristicRead(gatt, characteristic, status)
+                _status = Status.CONNECTED
                 onPumpData(characteristic, characteristic.value)
             }
 
             @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
             override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
                 super.onCharacteristicChanged(gatt, characteristic)
+                _status = Status.CONNECTED
                 onPumpData(characteristic, characteristic.value)
             }
         }, BluetoothDevice.TRANSPORT_LE)
