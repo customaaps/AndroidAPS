@@ -181,7 +181,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         apexBluetooth.send(GetValue(apexDeviceInfo, value))
         try {
             aapsLogger.debug(LTag.PUMPCOMM, "Get ${value.name} | Waiting for response")
-            getValueResult.waitMillis(if (getValueResult.isSingleObject) 5000 else 15000)
+            getValueResult.waitMillis(30000)
         } catch (e: InterruptedException) {
             aapsLogger.error(LTag.PUMPCOMM, "Get ${value.name} | Timed out")
             isGetThreadRunning = false
@@ -208,7 +208,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         apexBluetooth.send(command)
         try {
             aapsLogger.debug(LTag.PUMPCOMM, "$command | Waiting for response")
-            commandResponse.waitMillis(5000)
+            commandResponse.waitMillis(15000)
         } catch (e: InterruptedException) {
             aapsLogger.error(LTag.PUMPCOMM, "$command | Timed out")
             commandResponse.waiting = false
@@ -230,10 +230,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             val firstTry = intGetValue(value)
             if (firstTry != null || doNotReconnect || !connectionFinished) return@getValue firstTry
             doNotReconnect = true
+            disconnect(true)
         }
 
-        disconnect(true)
         if (!ensureConnected()) {
+            aapsLogger.error(LTag.PUMPCOMM, "Get ${value.name} | Timed out waiting for reconnection")
             synchronized(commandLock) { doNotReconnect = false }
             return null
         }
@@ -250,10 +251,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             val firstTry = intExecuteWithResponse(command)
             if (firstTry != null || doNotReconnect || !connectionFinished) return@executeWithResponse firstTry
             doNotReconnect = true
+            disconnect(true)
         }
 
-        disconnect(true)
         if (!ensureConnected()) {
+            aapsLogger.error(LTag.PUMPCOMM, "$command | Timed out waiting for reconnection")
             synchronized(commandLock) { doNotReconnect = false }
             return null
         }
@@ -267,7 +269,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     private fun ensureConnected(): Boolean {
         var times = 0
-        while (!connectionFinished && times < 50) {
+        while (!connectionFinished && times < 100) {
             aapsLogger.debug(LTag.PUMPCOMM, "Waiting for successful connection")
             SystemClock.sleep(500)
             times++
@@ -883,6 +885,10 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     private fun onHeartbeat() {
         aapsLogger.debug(LTag.PUMPCOMM, "Got heartbeat")
+        if (connectionStatus == ApexBluetooth.Status.DISCONNECTED) {
+            aapsLogger.error(LTag.PUMPCOMM, "BUG: Got heartbeat but pump is disconnected!")
+            return
+        }
 
         // Pump sent heartbeat => connection is established.
         pump.gettingReady = false
@@ -986,10 +992,10 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun disconnect(isReconnect: Boolean = false) {
         manualDisconnect = !isReconnect
-        if (apexBluetooth.status != ApexBluetooth.Status.DISCONNECTED)
-            apexBluetooth.disconnect()
-        else if (isReconnect)
+        apexBluetooth.disconnect()
+        if (isReconnect)
             apexBluetooth.connect()
+        SystemClock.sleep(50)
     }
 
 

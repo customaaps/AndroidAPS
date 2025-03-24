@@ -34,7 +34,10 @@ import app.aaps.pump.apex.utils.keys.ApexStringKey
 import kotlinx.coroutines.sync.Mutex
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.math.min
 
+@Singleton
 class ApexBluetooth @Inject constructor(
     val aapsLogger: AAPSLogger,
     val preferences: Preferences,
@@ -73,28 +76,45 @@ class ApexBluetooth @Inject constructor(
         this.callback = callback
     }
 
+    private var prevCommandMs = SystemClock.uptimeMillis()
+
     @Suppress("DEPRECATION")
     @SuppressLint("MissingPermission")
     @Synchronized
     fun send(command: DeviceCommand) {
-        if (checkBT()) return
-        if (status != Status.CONNECTED) return
+        if (checkBT())  {
+            aapsLogger.error(LTag.PUMPBTCOMM, "Tried to invoke command but BT is not ready")
+            return
+        }
+        if (status != Status.CONNECTED) {
+            aapsLogger.error(LTag.PUMPBTCOMM, "Tried to invoke command but pump is disconnected")
+            return
+        }
 
-        Thread {
-            SystemClock.sleep(WRITE_DELAY_MS.toLong())
-            val data = command.serialize()
-            aapsLogger.debug(LTag.PUMPBTCOMM, "DEVICE -> ${data.toHex()}")
+        val delta = WRITE_DELAY_MS - SystemClock.uptimeMillis() + prevCommandMs
+        if (delta > 0) SystemClock.sleep(delta)
+        prevCommandMs = SystemClock.uptimeMillis()
+
+        val data = command.serialize()
+        var start = 0
+        while (start < data.size) {
+            val end = min(start + mtu, data.size)
+            val chunk = data.copyOfRange(start, end)
+
+            aapsLogger.debug(LTag.PUMPBTCOMM, "DEVICE[$start] -> ${chunk.toHex()}")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 bluetoothGatt!!.writeCharacteristic(
                     writeCharacteristic!!,
-                    data,
+                    chunk,
                     BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
             } else {
                 writeCharacteristic!!.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-                writeCharacteristic!!.setValue(data)
+                writeCharacteristic!!.setValue(chunk)
                 bluetoothGatt!!.writeCharacteristic(writeCharacteristic!!)
             }
-        }.start()
+
+            start = end
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -131,19 +151,12 @@ class ApexBluetooth @Inject constructor(
         aapsLogger.debug(LTag.PUMPBTCOMM, "Disconnect")
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
         if (checkBT()) return
-        when (status) {
-            Status.CONNECTED -> {
-                bluetoothGatt?.disconnect()
-            }
-            Status.CONNECTING -> {
-                stopScan()
-                SystemClock.sleep(100)
-                bluetoothGatt?.close()
-                SystemClock.sleep(100)
-                bluetoothGatt = null
-            }
-            else -> return
-        }
+
+        stopScan()
+        bluetoothGatt?.disconnect()
+        bluetoothGatt?.close()
+        bluetoothGatt = null
+
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED))
     }
 
@@ -164,6 +177,11 @@ class ApexBluetooth @Inject constructor(
     @Synchronized
     @SuppressLint("MissingPermission")
     private fun setupGatt() {
+        // Do not allow multiple GATTs
+        if (bluetoothGatt != null) {
+            bluetoothGatt?.close()
+            bluetoothGatt = null
+        }
         bluetoothGatt = bluetoothDevice!!.connectGatt(context, false, object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
                 super.onConnectionStateChange(gatt, status, newState)
@@ -176,27 +194,24 @@ class ApexBluetooth @Inject constructor(
                         bluetoothGatt?.close()
                     }
                     BluetoothGatt.STATE_CONNECTED -> {
-                        bluetoothGatt?.discoverServices()
                         aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Discovering services")
+                        bluetoothGatt?.discoverServices()
                     }
                 }
             }
 
+            @Suppress("DEPRECATION")
             override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
                 super.onMtuChanged(gatt, mtu, status)
-                this@ApexBluetooth.mtu = mtu
-                aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Got MTU $mtu")
-            }
-
-            @Suppress("DEPRECATION")
-            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-                if (status != BluetoothGatt.GATT_SUCCESS) return
+                if (status != BluetoothGatt.GATT_SUCCESS || gatt == null) {
+                    aapsLogger.error(LTag.PUMPBTCOMM, "Failed to update MTU")
+                    disconnect()
+                    return
+                }
 
                 Thread {
-                    gatt.requestMtu(512)
-                    SystemClock.sleep(150)
-
-                    aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Requesting notification")
+                    this@ApexBluetooth.mtu = mtu
+                    aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Updated MTU=$mtu, requesting notification")
 
                     writeCharacteristic = gatt.getService(WRITE_SERVICE.uuid).getCharacteristic(WRITE_UUID)
                     readCharacteristic = gatt.getService(READ_SERVICE.uuid).getCharacteristic(READ_UUID)
@@ -212,14 +227,26 @@ class ApexBluetooth @Inject constructor(
                 }.start()
             }
 
+            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                if (status != BluetoothGatt.GATT_SUCCESS) {
+                    aapsLogger.error(LTag.PUMPBTCOMM, "Failed to discover services")
+                    disconnect()
+                    return
+                }
+
+                aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Requested services, requesting MTU")
+                gatt.requestMtu(512)
+            }
+
             override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
                 super.onDescriptorWrite(gatt, descriptor, status)
                 Thread {
-                    aapsLogger.debug(LTag.PUMPBTCOMM, "Connected | Notification status: $status")
+                    aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Notification status: $status")
                     gatt?.setCharacteristicNotification(readCharacteristic, true)
-                    SystemClock.sleep(10)
+                    prevCommandMs = SystemClock.uptimeMillis()
+                    SystemClock.sleep(1000)
                     _status = Status.CONNECTED
-                    callback?.onConnect()
+                    Thread { callback?.onConnect() }.start()
                     aapsLogger.debug(LTag.PUMPBTCOMM, "Connected")
                 }.start()
             }
@@ -227,14 +254,12 @@ class ApexBluetooth @Inject constructor(
             @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
             override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
                 super.onCharacteristicRead(gatt, characteristic, status)
-                _status = Status.CONNECTED
                 onPumpData(characteristic, characteristic.value)
             }
 
             @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
             override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
                 super.onCharacteristicChanged(gatt, characteristic)
-                _status = Status.CONNECTED
                 onPumpData(characteristic, characteristic.value)
             }
         }, BluetoothDevice.TRANSPORT_LE)
