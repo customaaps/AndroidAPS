@@ -36,7 +36,7 @@ import app.aaps.pump.apex.connectivity.commands.device.CancelTemporaryBasal
 import app.aaps.pump.apex.connectivity.commands.device.DeviceCommand
 import app.aaps.pump.apex.connectivity.commands.device.ExtendedBolus
 import app.aaps.pump.apex.connectivity.commands.device.GetValue
-import app.aaps.pump.apex.connectivity.commands.device.NotifyAboutConnection
+import app.aaps.pump.apex.connectivity.commands.device.RequestHeartbeat
 import app.aaps.pump.apex.connectivity.commands.device.SetConnectionProfile
 import app.aaps.pump.apex.connectivity.commands.device.SyncDateTime
 import app.aaps.pump.apex.connectivity.commands.device.TemporaryBasal
@@ -94,6 +94,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     companion object {
         const val USED_BASAL_PATTERN_INDEX = 7
+        const val HEARTBEAT_PERIOD_MINUTES = 2
         val FIRST_SUPPORTED_PROTO = ProtocolVersion.PROTO_4_10
         val LAST_SUPPORTED_PROTO = ProtocolVersion.PROTO_4_11
     }
@@ -228,7 +229,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     fun getValue(value: GetValue.Value): List<PumpObjectModel>? {
         synchronized(commandLock) {
             val firstTry = intGetValue(value)
-            if (firstTry != null || doNotReconnect || !connectionFinished) return@getValue firstTry
+            if (firstTry != null || connectionStatus != ApexBluetooth.Status.CONNECTED || doNotReconnect || !connectionFinished) return@getValue firstTry
             doNotReconnect = true
             disconnect(true)
         }
@@ -249,7 +250,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     private fun executeWithResponse(command: DeviceCommand): CommandResponse? {
         synchronized(commandLock) {
             val firstTry = intExecuteWithResponse(command)
-            if (firstTry != null || doNotReconnect || !connectionFinished) return@executeWithResponse firstTry
+            if (firstTry != null || connectionStatus != ApexBluetooth.Status.CONNECTED || doNotReconnect || !connectionFinished) return@executeWithResponse firstTry
             doNotReconnect = true
             disconnect(true)
         }
@@ -327,11 +328,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         return true
     }
 
-    fun notifyAboutConnection(caller: String): Boolean {
-        aapsLogger.debug(LTag.PUMPCOMM, "notifyAboutConnection - $caller")
-        val response = executeWithResponse(NotifyAboutConnection(apexDeviceInfo))
+    fun requestHeartbeat(caller: String): Boolean {
+        aapsLogger.debug(LTag.PUMPCOMM, "requestHeartbeat - $caller")
+        val response = executeWithResponse(RequestHeartbeat(apexDeviceInfo, HEARTBEAT_PERIOD_MINUTES))
         if (response == null) {
-            aapsLogger.error(LTag.PUMPCOMM, "[notifyAboutConnection caller=$caller] Timed out while trying to communicate with the pump")
+            aapsLogger.error(LTag.PUMPCOMM, "[requestHeartbeat caller=$caller] Timed out while trying to communicate with the pump")
             return false
         }
 
@@ -990,7 +991,14 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         apexBluetooth.connect()
     }
 
+    private var lastDisconnect = 0L
     fun disconnect(isReconnect: Boolean = false) {
+        if (SystemClock.uptimeMillis() - lastDisconnect < 15000) {
+            aapsLogger.error(LTag.PUMPBTCOMM, "Last disconnect was not long ago, skipping this one")
+            return
+        }
+
+        lastDisconnect = SystemClock.uptimeMillis()
         manualDisconnect = !isReconnect
         apexBluetooth.disconnect()
         if (isReconnect)
@@ -1028,10 +1036,6 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             aapsLogger.error(LTag.PUMPCOMM, "Failed to sync date and time - disconnecting.")
             return disconnect(true)
         }
-        if (!notifyAboutConnection("BLE-onConnect")) {
-            aapsLogger.error(LTag.PUMPCOMM, "Failed to notify about connection - disconnecting.")
-            return disconnect(true)
-        }
 
         if (apexDeviceInfo.serialNumber != preferences.get(ApexStringKey.LastConnectedSerialNumber)) {
             onInitialConnection()
@@ -1051,11 +1055,17 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             }
         }
 
+        if (!requestHeartbeat("BLE-onConnect")) {
+            aapsLogger.error(LTag.PUMPCOMM, "Failed to notify about connection - disconnecting.")
+            return disconnect(true)
+        }
+
         unreachableTimerTask?.cancel()
         unreachableTimerTask = null
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.CONNECTED))
         pump.gettingReady = false
         connectionFinished = true
+        doNotReconnect = false
     }
 
     private var isDisconnectLoopRunning = false
@@ -1066,7 +1076,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             while (connectionStatus != ApexBluetooth.Status.CONNECTED && !manualDisconnect) {
                 if (connectionStatus == ApexBluetooth.Status.DISCONNECTED) {
                     aapsLogger.debug(LTag.PUMPCOMM, "Starting connection loop")
-                    startConnection()
+                    if (!doNotReconnect) startConnection()
                 }
                 SystemClock.sleep(100)
             }

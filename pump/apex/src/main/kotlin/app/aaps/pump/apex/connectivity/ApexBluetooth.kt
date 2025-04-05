@@ -192,6 +192,7 @@ class ApexBluetooth @Inject constructor(
                         aapsLogger.debug(LTag.PUMPBTCOMM, "Disconnected")
                         Thread { callback?.onDisconnect() }.start()
                         bluetoothGatt?.close()
+                        bluetoothGatt = null
                     }
                     BluetoothGatt.STATE_CONNECTED -> {
                         aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Discovering services")
@@ -267,7 +268,18 @@ class ApexBluetooth @Inject constructor(
         if (bluetoothGatt == null) {
             aapsLogger.error(LTag.PUMPBTCOMM, "Connecting | Failed to set up GATT")
             _status = Status.DISCONNECTED
+            return
         }
+
+        Thread {
+            SystemClock.sleep(25000)
+            if (status == Status.CONNECTING) {
+                aapsLogger.error(LTag.PUMPBTCOMM, "Connecting | Timed out setting up GATT")
+                bluetoothGatt?.close()
+                bluetoothGatt = null
+                _status = Status.DISCONNECTED
+            }
+        }.start()
     }
 
     private fun onPumpData(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
