@@ -287,11 +287,12 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             .toObservable(EventPreferenceChange::class.java)
             .observeOn(aapsSchedulers.io)
             .subscribe({
-                           if (it.isChanged(ApexStringKey.SerialNumber.key)) {
-                               onSerialChanged()
-                           } else if (it.isChanged(ApexDoubleKey.MaxBolus.key) || it.isChanged(ApexDoubleKey.MaxBasal.key) || it.isChanged(ApexStringKey.AlarmSoundLength.key) && apexBluetooth.status == ApexBluetooth.Status.CONNECTED) {
-                               updateSettings("ApexService-PreferencesListener")
-                           }
+                        when (it.changedKey) {
+                            ApexStringKey.SerialNumber.key -> onSerialChanged()
+                            ApexDoubleKey.MaxBolus.key -> if (pump.maxBolus != preferences.get(ApexDoubleKey.MaxBolus)) updateSettings("ApexService-PreferencesListener-MaxBolus")
+                            ApexDoubleKey.MaxBasal.key -> if (pump.maxBasal != preferences.get(ApexDoubleKey.MaxBasal)) updateSettings("ApexService-PreferencesListener-MaxBasal")
+                            ApexStringKey.AlarmSoundLength.key -> if (pump.lastV2?.alarmLength?.name != preferences.get(ApexStringKey.AlarmSoundLength)) updateSettings("ApexService-PreferencesListener-AlarmSoundLength")
+                        }
                        }, fabricPrivacy::logException)
 
         pump.serialNumber = apexDeviceInfo.serialNumber
