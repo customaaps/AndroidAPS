@@ -76,7 +76,7 @@ class WizardActivity : ViewSelectorActivity() {
                 val viewAdapter = EditPlusMinusViewAdapter.getViewAdapter(sp, applicationContext, container, false)
                 val view = viewAdapter.root
                 val initValue = stringToDouble(editStartTime?.editText?.text.toString(), 0.0)
-                editStartTime = PlusMinusEditText(viewAdapter, initValue, -60.0, 300.0, stepValues, DecimalFormat("0"), false, getString(R.string.action_start_min))
+                editStartTime = PlusMinusEditText(viewAdapter, initValue, -60.0, 300.0, stepValues, DecimalFormat("0"), false, getString(R.string.action_start_minutes))
                 container.addView(view)
                 view
             }
