@@ -10,8 +10,8 @@ mockito = "5.16.1"
 junit = "5.12.1"
 okhttp = "4.12.0"
 retrofit = "2.11.0"
-kotlinx-serialization = "1.8.0"
-kotlinx-coroutines = "1.10.1"
+kotlinx-serialization = "1.8.1"
+kotlinx-coroutines = "1.10.2"
 work = "2.10.0"
 datastorePreferences = "1.1.4"
 annotation = "1.9.1"
@@ -33,7 +33,7 @@ com-google-dagger-android-processor = { group = "com.google.dagger", name = "dag
 com-google-dagger-android-support = { group = "com.google.dagger", name = "dagger-android-support", version.ref = "dagger" }
 
 com-google-firebase-gradle = { group = "com.google.firebase", name = "firebase-crashlytics-gradle", version = "3.0.3" }
-com-google-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version = "33.11.0" }
+com-google-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version = "33.12.0" }
 com-google-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 com-google-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 com-google-firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
@@ -134,8 +134,8 @@ org-junit-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-
 
 com-madgag-spongycastle = { group = "com.madgag.spongycastle", name = "core", version = "1.58.0.0" }
 com-caverock-androidsvg = { group = "com.caverock", name = "androidsvg", version = "1.4" }
-net-danlew-android-joda = { group = "net.danlew", name = "android.joda", version = "2.13.0.1" }
-joda-time = { group = "joda-time", name = "joda-time", version = "2.13.1" }
+net-danlew-android-joda = { group = "net.danlew", name = "android.joda", version = "2.13.1" }
+joda-time = { group = "joda-time", name = "joda-time", version = "2.14.0" }
 org-json = { group = "org.json", name = "json", version = "20250107" }
 org-skyscreamer-jsonassert = { group = "org.skyscreamer", name = "jsonassert", version = "1.5.3" }
 com-scottyab-rootbeer-lib = { group = "com.scottyab", name = "rootbeer-lib", version = "0.1.1" }
