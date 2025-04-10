@@ -99,6 +99,7 @@ dependencies {
     implementation(project(":core:interfaces"))
     implementation(project(":core:keys"))
     implementation(project(":core:ui"))
+    implementation(project(":core:data"))
 
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core)

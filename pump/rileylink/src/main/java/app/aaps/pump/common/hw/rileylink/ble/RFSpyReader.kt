@@ -62,14 +62,15 @@ class RFSpyReader internal constructor(private val aapsLogger: AAPSLogger, priva
             val serviceUUID = UUID.fromString(GattAttributes.SERVICE_RADIO)
             val radioDataUUID = UUID.fromString(GattAttributes.CHARA_RADIO_DATA)
             var result: BLECommOperationResult
+            val delay: Long = if (rileyLinkBle.isFastMode) 1 else 100
             while (true) {
                 try {
                     acquireCount++
                     waitForRadioData.acquire()
                     aapsLogger.debug(LTag.PUMPBTCOMM, "${ThreadUtil.sig()}waitForRadioData acquired (count=$acquireCount) at t=${SystemClock.uptimeMillis()}")
-                    SystemClock.sleep(100)
+                    SystemClock.sleep(delay)
                     result = rileyLinkBle.readCharacteristicBlocking(serviceUUID, radioDataUUID)
-                    SystemClock.sleep(100)
+                    SystemClock.sleep(delay)
                     if (result.resultCode == BLECommOperationResult.RESULT_SUCCESS) {
                         if (stopAtNull) {
                             // only data up to the first null is valid

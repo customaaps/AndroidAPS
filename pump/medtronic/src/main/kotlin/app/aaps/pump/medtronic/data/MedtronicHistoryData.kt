@@ -499,7 +499,7 @@ class MedtronicHistoryData @Inject constructor(
                 }
             }
         }
-        if (lastRewindRecord != null) {
+        if (lastRewindRecord != null && sp.getBoolean(R.string.key_log_insulin_change, true)) {
             uploadCareportalEventIfFoundInHistory(
                 lastRewindRecord,
                 MedtronicConst.Statistics.LastRewind,
@@ -527,7 +527,7 @@ class MedtronicHistoryData @Inject constructor(
                 }
             }
         }
-        if (lastBatteryChangeRecord != null) {
+        if (lastBatteryChangeRecord != null && sp.getBoolean(R.string.key_log_battery_change, true)) {
             uploadCareportalEventIfFoundInHistory(
                 lastBatteryChangeRecord,
                 MedtronicConst.Statistics.LastBatteryChange,

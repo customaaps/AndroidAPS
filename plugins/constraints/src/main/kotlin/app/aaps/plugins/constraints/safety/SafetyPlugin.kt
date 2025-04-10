@@ -156,17 +156,15 @@ class SafetyPlugin @Inject constructor(
         if (!closedLoop.value()) value.set(false, rh.gs(R.string.smbnotallowedinopenloopmode), this)
         val nightModeResult = checkNightMode()
 
-        aapsLogger.debug(LTag.CONSTRAINTS, "Night mode result (null == active): $nightModeResult")
+        aapsLogger.debug(LTag.CONSTRAINTS, "Night mode result: ${nightModeResult ?: "active"}")
         if (nightModeResult == null)
             value.set(false, rh.gs(R.string.night_mode_smbs_disabled), this)
 
         val bg = glucoseStatusProvider.glucoseStatusData?.glucose
-        if (bg != null && preferences.get(BooleanKey.EnableSmbBgThreshold)) {
-            val th = preferences.get(UnitDoubleKey.SmbBgThreshold)
-            if (bg <= th) {
-                aapsLogger.debug(LTag.CONSTRAINTS, "SMBs are disabled cause of an active BG threshold: $bg < ${profileUtil.convertToMgdlDetect(th)}")
-                value.set(false, rh.gs(R.string.bg_threshold_smbs_disabled, bg, profileUtil.convertToMgdlDetect(th)), this)
-            }
+        val th = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.SmbBgThreshold))
+        if (bg != null && bg <= th && preferences.get(BooleanKey.EnableSmbBgThreshold)) {
+            aapsLogger.debug(LTag.CONSTRAINTS, "SMBs are disabled cause of an active BG threshold: $bg < $th")
+            value.set(false, rh.gs(R.string.bg_threshold_smbs_disabled, bg, th), this)
         }
 
         return value

@@ -18,6 +18,7 @@
     <string name="key_rileylink_name" translatable="false">pref_rileylink_name</string>
     <string name="key_riley_link_show_battery_level" translatable="false">pref_riley_link_show_reported_battery_level</string>
     <string name="key_medtronic_encoding" translatable="false">pref_medtronic_encoding</string>
+    <string name="key_fast_mode" translatable="false">pref_rl_fast_mode</string>
 
     <!-- RL BLE Config -->
     <string name="riley_link_ble_config_button_scan_start">Scan</string>
@@ -88,6 +89,8 @@
     <!-- RileyLink - Preferences -->
     <string name="riley_link_show_battery_level">Show battery level reported by OrangeLink/EmaLink/DiaLink</string>
     <string name="riley_link_show_battery_level_summary">DOES NOT work with the original RileyLink. May not work with other RileyLink alternatives.</string>
+    <string name="riley_link_fast_mode">[EXPERIMENTAL] Fast mode</string>
+    <string name="riley_link_fast_mode_summary">Lower down delays and etc. Highly experimental.</string>
 
     <plurals name="duration_days">
         <item quantity="one">%1$d day</item>

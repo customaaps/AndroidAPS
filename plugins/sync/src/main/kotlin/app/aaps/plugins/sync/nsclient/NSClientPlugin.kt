@@ -10,7 +10,6 @@ import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.plugin.PluginType
-import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.nsclient.NSAlarm
@@ -71,8 +70,7 @@ class NSClientPlugin @Inject constructor(
     private val dateUtil: DateUtil,
     private val profileUtil: ProfileUtil,
     private val nsSettingsStatus: NSSettingsStatus,
-    private val decimalFormatter: DecimalFormatter,
-    private val config: Config
+    private val decimalFormatter: DecimalFormatter
 ) : NsClient, Sync, PluginBase(
     PluginDescription()
         .mainType(PluginType.SYNC)
@@ -81,7 +79,6 @@ class NSClientPlugin @Inject constructor(
         .pluginName(R.string.ns_client_title)
         .shortName(R.string.ns_client_short_name)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
-        .showInList { config.isEngineeringMode() }
         .description(R.string.description_ns_client),
     aapsLogger, rh
 ) {
