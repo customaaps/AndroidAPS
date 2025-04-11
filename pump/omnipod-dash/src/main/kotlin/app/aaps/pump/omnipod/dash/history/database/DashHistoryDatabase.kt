@@ -26,7 +26,7 @@ abstract class DashHistoryDatabase : RoomDatabase() {
                 DashHistoryDatabase::class.java,
                 "omnipod_dash_history_database.db",
             )
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(false)
                 .build()
     }
 }

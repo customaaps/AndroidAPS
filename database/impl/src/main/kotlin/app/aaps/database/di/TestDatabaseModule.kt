@@ -23,8 +23,7 @@ open class TestDatabaseModule {
                     createCustomIndexes(db)
                 }
             })
-            .fallbackToDestructiveMigration()
-            .fallbackToDestructiveMigrationOnDowngrade()
+            .fallbackToDestructiveMigration(false)
             .build()
 
     private fun createCustomIndexes(database: SupportSQLiteDatabase) {
