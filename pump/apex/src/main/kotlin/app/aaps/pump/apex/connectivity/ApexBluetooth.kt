@@ -120,6 +120,11 @@ class ApexBluetooth @Inject constructor(
     @SuppressLint("MissingPermission")
     @Synchronized
     fun connect() {
+        if (_status != Status.DISCONNECTED) {
+            aapsLogger.debug(LTag.PUMPBTCOMM, "Already connecting! Ignoring repeated request")
+            return
+        }
+
         aapsLogger.debug(LTag.PUMPBTCOMM, "Connect")
         if (preferences.get(ApexStringKey.SerialNumber).isEmpty()) return
         if (checkBT()) return
@@ -148,9 +153,13 @@ class ApexBluetooth @Inject constructor(
     @SuppressLint("MissingPermission")
     @Synchronized
     fun disconnect() {
+        if (bluetoothGatt == null && status != Status.CONNECTING) {
+            aapsLogger.debug(LTag.PUMPBTCOMM, "Already connecting! Ignoring repeated request")
+            return
+        }
+
         aapsLogger.debug(LTag.PUMPBTCOMM, "Disconnect")
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
-        if (checkBT()) return
 
         stopScan()
         bluetoothGatt?.disconnect()
@@ -181,7 +190,9 @@ class ApexBluetooth @Inject constructor(
         if (bluetoothGatt != null) {
             bluetoothGatt?.close()
             bluetoothGatt = null
+            SystemClock.sleep(50)
         }
+
         bluetoothGatt = bluetoothDevice!!.connectGatt(context, false, object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
                 super.onConnectionStateChange(gatt, status, newState)
@@ -327,6 +338,7 @@ class ApexBluetooth @Inject constructor(
     override fun onScanResult(callbackType: Int, result: ScanResult?) {
         super.onScanResult(callbackType, result)
         if (result == null) {
+            aapsLogger.error(LTag.PUMPBTCOMM, "Scan results empty $callbackType")
             _status = Status.DISCONNECTED
             return
         }
@@ -334,6 +346,15 @@ class ApexBluetooth @Inject constructor(
         stopScan()
         preferences.put(ApexStringKey.BluetoothAddress, result.device.address)
         reconnect()
+    }
+
+    @SuppressLint("MissingPermission")
+    @Synchronized
+    override fun onScanFailed(errorCode: Int) {
+        super.onScanFailed(errorCode)
+        aapsLogger.error(LTag.PUMPBTCOMM, "Scan failed $errorCode")
+        _status = Status.DISCONNECTED
+        return
     }
 
     enum class Status {
