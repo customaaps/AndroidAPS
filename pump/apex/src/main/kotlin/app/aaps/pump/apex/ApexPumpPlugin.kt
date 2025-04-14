@@ -498,7 +498,7 @@ class ApexPumpPlugin @Inject constructor(
         super.preprocessPreferences(preferenceFragment)
 
         val is411 = pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) ?: false
-        val manualVoltage = is411 && preferences.get(ApexStringKey.CalcBatteryType) == BatteryType.Custom.name
+        val manualVoltage = is411 && preferences.get(ApexStringKey.CalcBatteryType) == BatteryType.Custom.name && preferences.get(ApexBooleanKey.CalculateBatteryPercentage)
 
         preferenceFragment.findPreference<AdaptiveSwitchPreference>(ApexBooleanKey.CalculateBatteryPercentage.key)?.isVisible = is411
         preferenceFragment.findPreference<AdaptiveListPreference>(ApexStringKey.CalcBatteryType.key)?.isVisible = is411 && preferences.get(ApexBooleanKey.CalculateBatteryPercentage)
