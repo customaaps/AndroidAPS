@@ -80,7 +80,7 @@ class ApexPumpPlugin @Inject constructor(
     PluginDescription()
         .mainType(PluginType.PUMP)
         .fragmentClass(ApexFragment::class.java.name)
-        .pluginIcon(R.drawable.ic_apex)
+        .pluginIcon(R.drawable.ic_apex_detailed)
         .pluginName(R.string.apex_plugin_name)
         .shortName(R.string.apex_plugin_shortname)
         .description(R.string.apex_plugin_description)
