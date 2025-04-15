@@ -196,6 +196,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         }
 
         aapsLogger.debug(LTag.PUMPCOMM, "Get ${value.name} | Completed")
+        apexBluetooth.tickDelay()
         getValueResult.response
     }
 
@@ -223,6 +224,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         }
 
         aapsLogger.debug(LTag.PUMPCOMM, "$command | Completed")
+        apexBluetooth.tickDelay()
         commandResponse.response
     }
 

@@ -21,9 +21,11 @@ import android.os.SystemClock
 import androidx.core.app.ActivityCompat
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
+import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.Preferences
 import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.core.utils.toHex
@@ -43,6 +45,7 @@ class ApexBluetooth @Inject constructor(
     val preferences: Preferences,
     val context: Context,
     val rxBus: RxBus,
+    val uiInteraction: UiInteraction
 ) : ScanCallback() {
     companion object {
         private val READ_SERVICE = ParcelUuid.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
@@ -72,22 +75,34 @@ class ApexBluetooth @Inject constructor(
     val status: Status
         get() = _status
 
+    private var prevCommandMs = SystemClock.uptimeMillis()
+    private val connectionLock = Mutex()
+
     fun setCallback(callback: ApexBluetoothCallback) {
         this.callback = callback
     }
 
-    private var prevCommandMs = SystemClock.uptimeMillis()
+    fun tickDelay() {
+        prevCommandMs = SystemClock.uptimeMillis()
+    }
 
     @Suppress("DEPRECATION")
     @SuppressLint("MissingPermission")
-    @Synchronized
-    fun send(command: DeviceCommand) {
+    fun send(command: DeviceCommand) = synchronized(connectionLock) {
         if (checkBT())  {
             aapsLogger.error(LTag.PUMPBTCOMM, "Tried to invoke command but BT is not ready")
             return
         }
         if (status != Status.CONNECTED) {
             aapsLogger.error(LTag.PUMPBTCOMM, "Tried to invoke command but pump is disconnected")
+            return
+        }
+        if (writeCharacteristic == null) {
+            aapsLogger.error(LTag.PUMPBTCOMM, "Tried to invoke command but the write characteristic is null")
+            return
+        }
+        if (bluetoothGatt == null) {
+            aapsLogger.error(LTag.PUMPBTCOMM, "Tried to invoke command but GATT is null")
             return
         }
 
@@ -118,8 +133,7 @@ class ApexBluetooth @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    @Synchronized
-    fun connect() {
+    fun connect() = synchronized(connectionLock) {
         if (_status != Status.DISCONNECTED) {
             aapsLogger.debug(LTag.PUMPBTCOMM, "Already connecting! Ignoring repeated request")
             return
@@ -151,8 +165,7 @@ class ApexBluetooth @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    @Synchronized
-    fun disconnect() {
+    fun disconnect() = synchronized(connectionLock) {
         if (bluetoothGatt == null && status != Status.CONNECTING) {
             aapsLogger.debug(LTag.PUMPBTCOMM, "Already connecting! Ignoring repeated request")
             return
@@ -166,13 +179,29 @@ class ApexBluetooth @Inject constructor(
         bluetoothGatt?.close()
         bluetoothGatt = null
 
+        _status = Status.DISCONNECTED
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED))
     }
 
     private fun checkBT(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             ToastUtils.errorToast(context, context.getString(app.aaps.core.ui.R.string.need_connect_permission))
+            uiInteraction.addNotification(
+                Notification.PERMISSION_BT,
+                context.getString(app.aaps.core.ui.R.string.need_connect_permission),
+                Notification.URGENT)
             aapsLogger.error(LTag.PUMPBTCOMM, "No Bluetooth permission!")
+            return true
+        }
+
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ToastUtils.errorToast(context, context.getString(app.aaps.core.ui.R.string.location_permission_not_granted))
+            uiInteraction.addNotification(
+                Notification.PERMISSION_LOCATION,
+                context.getString(app.aaps.core.ui.R.string.location_permission_not_granted),
+                Notification.URGENT)
+            aapsLogger.error(LTag.PUMPBTCOMM, "No coarse/fine location permission!")
             return true
         }
 
@@ -201,9 +230,9 @@ class ApexBluetooth @Inject constructor(
                         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED))
                         _status = Status.DISCONNECTED
                         aapsLogger.debug(LTag.PUMPBTCOMM, "Disconnected")
-                        Thread { callback?.onDisconnect() }.start()
                         bluetoothGatt?.close()
                         bluetoothGatt = null
+                        Thread { callback?.onDisconnect() }.start()
                     }
                     BluetoothGatt.STATE_CONNECTED -> {
                         aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Discovering services")
@@ -215,7 +244,11 @@ class ApexBluetooth @Inject constructor(
             @Suppress("DEPRECATION")
             override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
                 super.onMtuChanged(gatt, mtu, status)
-                if (status != BluetoothGatt.GATT_SUCCESS || gatt == null) {
+
+                writeCharacteristic = gatt?.getService(WRITE_SERVICE.uuid)?.getCharacteristic(WRITE_UUID)
+                readCharacteristic = gatt?.getService(READ_SERVICE.uuid)?.getCharacteristic(READ_UUID)
+
+                if (status != BluetoothGatt.GATT_SUCCESS || writeCharacteristic == null || readCharacteristic == null) {
                     aapsLogger.error(LTag.PUMPBTCOMM, "Failed to update MTU")
                     disconnect()
                     return
@@ -225,9 +258,7 @@ class ApexBluetooth @Inject constructor(
                     this@ApexBluetooth.mtu = mtu
                     aapsLogger.debug(LTag.PUMPBTCOMM, "Connecting | Updated MTU=$mtu, requesting notification")
 
-                    writeCharacteristic = gatt.getService(WRITE_SERVICE.uuid).getCharacteristic(WRITE_UUID)
-                    readCharacteristic = gatt.getService(READ_SERVICE.uuid).getCharacteristic(READ_UUID)
-                    gatt.setCharacteristicNotification(readCharacteristic, true)
+                    gatt!!.setCharacteristicNotification(readCharacteristic, true)
 
                     val ccc = readCharacteristic!!.getDescriptor(CCC_UUID)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -242,6 +273,12 @@ class ApexBluetooth @Inject constructor(
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     aapsLogger.error(LTag.PUMPBTCOMM, "Failed to discover services")
+                    disconnect()
+                    return
+                }
+
+                if (gatt.getService(READ_SERVICE.uuid) == null || gatt.getService(WRITE_SERVICE.uuid) == null) {
+                    aapsLogger.error(LTag.PUMPBTCOMM, "R/W services were not found!")
                     disconnect()
                     return
                 }
@@ -342,6 +379,12 @@ class ApexBluetooth @Inject constructor(
             _status = Status.DISCONNECTED
             return
         }
+        if (!result.device.name.startsWith("APEX")) {
+            aapsLogger.error(LTag.PUMPBTCOMM, "Got not a pump (${result.device.name}) - skipping")
+            _status = Status.DISCONNECTED
+            return
+        }
+
         aapsLogger.debug(LTag.PUMPBTCOMM, "Found device ${result.device.name}")
         stopScan()
         preferences.put(ApexStringKey.BluetoothAddress, result.device.address)
