@@ -71,6 +71,11 @@ interface Pump {
     fun waitForDisconnectionInSeconds(): Int = 5
 
     /**
+     * @return is pump keeping persistent Bluetooth connection?
+     */
+    fun isConnectionPersistent(): Boolean = false
+
+    /**
      * Stop connection process
      */
     fun stopConnecting()

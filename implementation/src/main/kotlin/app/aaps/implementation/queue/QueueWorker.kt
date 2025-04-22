@@ -70,36 +70,39 @@ class QueueWorker internal constructor(
                     rxBus.send(EventDismissBolusProgressIfRunning(null, null))
                     rxBus.send(EventPumpStatusChanged(rh.gs(R.string.connectiontimedout)))
                     aapsLogger.debug(LTag.PUMPQUEUE, "timed out")
-                    pump.stopConnecting()
 
-                    //BLUETOOTH-WATCHDOG
-                    var watchdog = preferences.get(BooleanKey.PumpBtWatchdog)
-                    val lastWatchdog = sp.getLong(app.aaps.core.utils.R.string.key_btwatchdog_lastbark, 0L)
-                    watchdog = watchdog && System.currentTimeMillis() - lastWatchdog > Constants.MIN_WATCHDOG_INTERVAL_IN_SECONDS * 1000
-                    if (watchdog) {
-                        aapsLogger.debug(LTag.PUMPQUEUE, "BT watchdog - toggling the phone bluetooth")
-                        //write time
-                        sp.putLong(app.aaps.core.utils.R.string.key_btwatchdog_lastbark, System.currentTimeMillis())
-                        //toggle BT
-                        pump.disconnect("watchdog")
-                        SystemClock.sleep(1000)
-                        (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter?.let { bluetoothAdapter ->
-                            bluetoothAdapter.safeDisable(1000)
-                            bluetoothAdapter.safeEnable(1000)
+                    if (!pump.isConnectionPersistent()) {
+                        pump.stopConnecting()
+
+                        //BLUETOOTH-WATCHDOG
+                        var watchdog = preferences.get(BooleanKey.PumpBtWatchdog)
+                        val lastWatchdog = sp.getLong(app.aaps.core.utils.R.string.key_btwatchdog_lastbark, 0L)
+                        watchdog = watchdog && System.currentTimeMillis() - lastWatchdog > Constants.MIN_WATCHDOG_INTERVAL_IN_SECONDS * 1000
+                        if (watchdog) {
+                            aapsLogger.debug(LTag.PUMPQUEUE, "BT watchdog - toggling the phone bluetooth")
+                            //write time
+                            sp.putLong(app.aaps.core.utils.R.string.key_btwatchdog_lastbark, System.currentTimeMillis())
+                            //toggle BT
+                            pump.disconnect("watchdog")
+                            SystemClock.sleep(1000)
+                            (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter?.let { bluetoothAdapter ->
+                                bluetoothAdapter.safeDisable(1000)
+                                bluetoothAdapter.safeEnable(1000)
+                            }
+                            //start over again once after watchdog barked
+                            //Notification notification = new Notification(Notification.OLD_NSCLIENT, "Watchdog", Notification.URGENT);
+                            //rxBus.send(new EventNewNotification(notification));
+                            lastCommandTime = System.currentTimeMillis()
+                            connectionStartTime = lastCommandTime
+                            pump.connect("watchdog")
+                        } else {
+                            queue.clear()
+                            aapsLogger.debug(LTag.PUMPQUEUE, "no connection possible")
+                            rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
+                            pump.disconnect("Queue empty")
+                            rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED))
+                            return Result.success()
                         }
-                        //start over again once after watchdog barked
-                        //Notification notification = new Notification(Notification.OLD_NSCLIENT, "Watchdog", Notification.URGENT);
-                        //rxBus.send(new EventNewNotification(notification));
-                        lastCommandTime = System.currentTimeMillis()
-                        connectionStartTime = lastCommandTime
-                        pump.connect("watchdog")
-                    } else {
-                        queue.clear()
-                        aapsLogger.debug(LTag.PUMPQUEUE, "no connection possible")
-                        rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
-                        pump.disconnect("Queue empty")
-                        rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED))
-                        return Result.success()
                     }
                 }
                 if (pump.isHandshakeInProgress()) {
@@ -145,21 +148,26 @@ class QueueWorker internal constructor(
                         }
                     }
                 }
-                if (queue.size() == 0 && queue.performing() == null) {
-                    val secondsFromLastCommand = (System.currentTimeMillis() - lastCommandTime) / 1000
-                    if (secondsFromLastCommand >= pump.waitForDisconnectionInSeconds()) {
-                        queue.waitingForDisconnect = true
-                        aapsLogger.debug(LTag.PUMPQUEUE, "queue empty. disconnect")
-                        rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
-                        pump.disconnect("Queue empty")
-                        rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED))
-                        aapsLogger.debug(LTag.PUMPQUEUE, "disconnected")
-                        return Result.success()
-                    } else {
-                        rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.WAITING_FOR_DISCONNECTION))
-                        aapsLogger.debug(LTag.PUMPQUEUE, "waiting for disconnect")
-                        SystemClock.sleep(1000)
+                if (!pump.isConnectionPersistent()) {
+                    if (queue.size() == 0 && queue.performing() == null) {
+                        val secondsFromLastCommand = (System.currentTimeMillis() - lastCommandTime) / 1000
+                        if (secondsFromLastCommand >= pump.waitForDisconnectionInSeconds()) {
+                            queue.waitingForDisconnect = true
+                            aapsLogger.debug(LTag.PUMPQUEUE, "queue empty. disconnect")
+                            rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
+                            pump.disconnect("Queue empty")
+                            rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED))
+                            aapsLogger.debug(LTag.PUMPQUEUE, "disconnected")
+                            return Result.success()
+                        } else {
+                            rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.WAITING_FOR_DISCONNECTION))
+                            aapsLogger.debug(LTag.PUMPQUEUE, "waiting for disconnect")
+                            SystemClock.sleep(1000)
+                        }
                     }
+                } else {
+                    aapsLogger.debug(LTag.PUMPQUEUE, "connection is persistent - not disconnecting")
+                    return Result.success()
                 }
             }
         } finally {
