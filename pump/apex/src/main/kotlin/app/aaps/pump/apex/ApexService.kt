@@ -8,6 +8,7 @@ import android.os.SystemClock
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.TE
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.Notification
@@ -22,13 +23,14 @@ import app.aaps.core.interfaces.rx.events.EventDismissNotification
 import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.rx.events.EventPreferenceChange
 import app.aaps.core.interfaces.rx.events.EventProfileSwitchChanged
-import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.Preferences
 import app.aaps.core.utils.notifyAll
+import app.aaps.core.utils.toHex
 import app.aaps.core.utils.waitMillis
 import app.aaps.pump.apex.connectivity.ApexBluetooth
+import app.aaps.pump.apex.connectivity.FirmwareVersion
 import app.aaps.pump.apex.connectivity.ProtocolVersion
 import app.aaps.pump.apex.connectivity.commands.device.Bolus
 import app.aaps.pump.apex.connectivity.commands.device.CancelBolus
@@ -91,11 +93,13 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     @Inject lateinit var pumpSync: PumpSync
     @Inject lateinit var fabricPrivacy: FabricPrivacy
     @Inject lateinit var pump: ApexPump
+    @Inject lateinit var config: Config
+    @Inject lateinit var status: ApexDriverStatus
 
     companion object {
         const val USED_BASAL_PATTERN_INDEX = 7
         const val HEARTBEAT_PERIOD_MINUTES = 2
-        val FIRST_SUPPORTED_PROTO = ProtocolVersion.PROTO_4_10
+        val FIRST_SUPPORTED_PROTO = ProtocolVersion.PROTO_4_9
         val LAST_SUPPORTED_PROTO = ProtocolVersion.PROTO_4_11
     }
 
@@ -148,8 +152,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     private var doNotReconnect = false
     private var connectionFinished = false
 
-    val isBusy: Boolean
-        get() = commandLock.isLocked
+    private var connectionId = 0
 
     val lastConnected: Long
         get() = if (connectionStatus != ApexBluetooth.Status.CONNECTED) {
@@ -179,24 +182,31 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             else -> false
         }
 
+        status.addAction(
+            ApexDriverStatus.Action.FallbackGettingValue,
+            rh.gs(R.string.action_fallback_getting_obj, value.name)
+        )
+
         apexBluetooth.send(GetValue(apexDeviceInfo, value))
         try {
             aapsLogger.debug(LTag.PUMPCOMM, "Get ${value.name} | Waiting for response")
             getValueResult.waitMillis(30000)
-        } catch (e: InterruptedException) {
+        } catch (_: InterruptedException) {
             aapsLogger.error(LTag.PUMPCOMM, "Get ${value.name} | Timed out")
             isGetThreadRunning = false
+            status.removeAction(ApexDriverStatus.Action.FallbackGettingValue)
             return null
         }
 
         if (getValueResult.response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "Get ${value.name} | Timed out")
             isGetThreadRunning = false
+            status.removeAction(ApexDriverStatus.Action.FallbackGettingValue)
             return null
         }
 
         aapsLogger.debug(LTag.PUMPCOMM, "Get ${value.name} | Completed")
-        apexBluetooth.tickDelay()
+        status.removeAction(ApexDriverStatus.Action.FallbackGettingValue)
         getValueResult.response
     }
 
@@ -206,66 +216,79 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             return null
         }
 
+        status.addAction(
+            ApexDriverStatus.Action.FallbackExecutingCommand,
+            rh.gs(R.string.action_fallback_executing_obj, command.toString())
+        )
+
         commandResponse.clear()
         apexBluetooth.send(command)
         try {
             aapsLogger.debug(LTag.PUMPCOMM, "$command | Waiting for response")
             commandResponse.waitMillis(15000)
-        } catch (e: InterruptedException) {
+        } catch (_: InterruptedException) {
             aapsLogger.error(LTag.PUMPCOMM, "$command | Timed out")
             commandResponse.waiting = false
+            status.removeAction(ApexDriverStatus.Action.FallbackExecutingCommand)
             return null
         }
 
         if (commandResponse.response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "$command | Timed out")
             commandResponse.waiting = false
+            status.removeAction(ApexDriverStatus.Action.FallbackExecutingCommand)
             return null
         }
 
         aapsLogger.debug(LTag.PUMPCOMM, "$command | Completed")
-        apexBluetooth.tickDelay()
+        status.removeAction(ApexDriverStatus.Action.FallbackExecutingCommand)
         commandResponse.response
     }
 
-    fun getValue(value: GetValue.Value): List<PumpObjectModel>? {
+    fun getValue(value: GetValue.Value, noOptimizations: Boolean = false): List<PumpObjectModel>? {
         synchronized(commandLock) {
             val firstTry = intGetValue(value)
-            if (firstTry != null || connectionStatus != ApexBluetooth.Status.CONNECTED || doNotReconnect || !connectionFinished) return@getValue firstTry
+            if (firstTry != null || noOptimizations || apexBluetooth.status != ApexBluetooth.Status.CONNECTED || doNotReconnect || !connectionFinished) return@getValue firstTry
+            status.addAction(ApexDriverStatus.Action.Reconnecting, R.string.action_reconnecting)
             doNotReconnect = true
             disconnect(true)
         }
 
         if (!ensureConnected()) {
             aapsLogger.error(LTag.PUMPCOMM, "Get ${value.name} | Timed out waiting for reconnection")
+            status.removeAction(ApexDriverStatus.Action.Reconnecting)
             synchronized(commandLock) { doNotReconnect = false }
             return null
         }
 
+        status.removeAction(ApexDriverStatus.Action.Reconnecting)
         synchronized(commandLock) {
-            val final = intGetValue(value)
             doNotReconnect = false
+            val final = intGetValue(value)
             return@getValue final
         }
     }
 
-    private fun executeWithResponse(command: DeviceCommand): CommandResponse? {
+    private fun executeWithResponse(command: DeviceCommand, noOptimizations: Boolean = false): CommandResponse? {
         synchronized(commandLock) {
             val firstTry = intExecuteWithResponse(command)
-            if (firstTry != null || connectionStatus != ApexBluetooth.Status.CONNECTED || doNotReconnect || !connectionFinished) return@executeWithResponse firstTry
+            if (firstTry != null || noOptimizations || connectionStatus != ApexBluetooth.Status.CONNECTED || doNotReconnect || !connectionFinished) return@executeWithResponse firstTry
+            status.addAction(ApexDriverStatus.Action.Reconnecting, R.string.action_reconnecting)
             doNotReconnect = true
             disconnect(true)
         }
 
         if (!ensureConnected()) {
             aapsLogger.error(LTag.PUMPCOMM, "$command | Timed out waiting for reconnection")
+            status.removeAction(ApexDriverStatus.Action.Reconnecting)
             synchronized(commandLock) { doNotReconnect = false }
             return null
         }
 
+        status.removeAction(ApexDriverStatus.Action.Reconnecting)
         synchronized(commandLock) {
-            val final = intExecuteWithResponse(command)
             doNotReconnect = false
+            val final = intExecuteWithResponse(command)
             return@executeWithResponse final
         }
     }
@@ -290,7 +313,9 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             .observeOn(aapsSchedulers.io)
             .subscribe({
                         when (it.changedKey) {
+                            ApexStringKey.FirmwareVer.key -> onFwVerChanged()
                             ApexStringKey.SerialNumber.key -> onSerialChanged()
+                            ApexStringKey.CalcBatteryType.key, ApexDoubleKey.BatteryLowVoltage.key, ApexDoubleKey.BatteryHighVoltage.key, ApexBooleanKey.CalculateBatteryPercentage.key -> onBatteryStuffChanged()
                             ApexDoubleKey.MaxBolus.key -> if (pump.maxBolus != preferences.get(ApexDoubleKey.MaxBolus)) updateSettings("ApexService-PreferencesListener-MaxBolus")
                             ApexDoubleKey.MaxBasal.key -> if (pump.maxBasal != preferences.get(ApexDoubleKey.MaxBasal)) updateSettings("ApexService-PreferencesListener-MaxBasal")
                             ApexStringKey.AlarmSoundLength.key -> if (pump.lastV2?.alarmLength?.name != preferences.get(ApexStringKey.AlarmSoundLength)) updateSettings("ApexService-PreferencesListener-AlarmSoundLength")
@@ -313,11 +338,35 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         startConnection()
     }
 
+    private fun onFwVerChanged() {
+        if (apexBluetooth.status != ApexBluetooth.Status.DISCONNECTED) disconnect()
+        startConnection()
+    }
+
+    private fun onBatteryStuffChanged() {
+        getStatus("ApexService-onBatteryStuffChanged", force = true)
+    }
+
     //////// Public methods
+
+    fun checkPump(caller: String, optimize: Boolean = false): Boolean {
+        aapsLogger.debug(LTag.PUMPCOMM, "checkPump - $caller")
+
+        try {
+            status.addAction(ApexDriverStatus.Action.CheckingPump, R.string.action_checking_pump)
+            return getStatus("ApexService-checkPump", optimize)
+        } finally {
+            status.removeAction(ApexDriverStatus.Action.CheckingPump)
+        }
+    }
 
     fun syncDateTime(caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "syncDateTime - $caller")
-        val response = executeWithResponse(SyncDateTime(apexDeviceInfo, DateTime.now()))
+
+        status.addAction(ApexDriverStatus.Action.UpdatingDateTime, R.string.action_updating_dt)
+        val response = executeWithResponse(SyncDateTime(apexDeviceInfo, DateTime.now()), noOptimizations = true)
+        status.removeAction(ApexDriverStatus.Action.UpdatingDateTime)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[syncDateTime caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -333,7 +382,16 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun requestHeartbeat(caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "requestHeartbeat - $caller")
-        val response = executeWithResponse(RequestHeartbeat(apexDeviceInfo, HEARTBEAT_PERIOD_MINUTES))
+
+        if (pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_10) != true) {
+            aapsLogger.warn(LTag.PUMPCOMM, "requestHeartbeat isn't supported yet.")
+            return true
+        }
+
+        status.addAction(ApexDriverStatus.Action.RequestingHeartbeat, R.string.action_requesting_heartbeat)
+        val response = executeWithResponse(RequestHeartbeat(apexDeviceInfo, HEARTBEAT_PERIOD_MINUTES), noOptimizations = true)
+        status.removeAction(ApexDriverStatus.Action.RequestingHeartbeat)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[requestHeartbeat caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -355,8 +413,25 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         }
 
         val doseRaw = (dbi.insulin / 0.025).roundToInt()
+        val temporaryId = DateTime.now().withSecondOfMinute(59).withMillisOfSecond(0).millis
 
-        val response = executeWithResponse(Bolus(apexDeviceInfo, doseRaw))
+        val action = if (dbi.bolusType == BS.Type.SMB)
+            ApexDriverStatus.Action.SettingMicroBolus
+        else
+            ApexDriverStatus.Action.SettingBolus
+
+        if (!checkPump("ApexService-bolus", optimize = true)) return false
+
+        status.addAction(action, rh.gs(
+            if (dbi.bolusType == BS.Type.SMB)
+                R.string.action_setting_smb
+            else
+                R.string.action_setting_bolus,
+            dbi.insulin,
+        ))
+        val response = executeWithResponse(Bolus(apexDeviceInfo, doseRaw), noOptimizations = true)
+        status.removeAction(action)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[bolus caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -370,7 +445,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         val syncResult = pumpSync.addBolusWithTempId(
             timestamp = dbi.timestamp,
             amount = dbi.insulin,
-            temporaryId = dbi.timestamp,
+            temporaryId = temporaryId,
             type = dbi.bolusType,
             pumpSerial = apexDeviceInfo.serialNumber,
             pumpType = PumpType.APEX_TRUCARE_III,
@@ -379,7 +454,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
         pump.inProgressBolus = ApexPump.InProgressBolus(
             requestedDose = dbi.insulin,
-            temporaryId = dbi.timestamp,
+            temporaryId = temporaryId,
             detailedBolusInfo = dbi,
             treatment = EventOverviewBolusProgress.Treatment(
                 insulin = dbi.insulin,
@@ -389,7 +464,6 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             )
         )
 
-        getStatus("ApexService-bolus")
         return true
     }
 
@@ -400,7 +474,15 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         val durationRaw = durationMinutes / 15
         if (durationMinutes % 15 > 0) aapsLogger.warn(LTag.PUMPCOMM, "[extendedBolus caller=$caller] Bolus duration is not aligned to 15 minute steps! Rounded down.")
 
-        val response = executeWithResponse(ExtendedBolus(apexDeviceInfo, doseRaw, durationRaw))
+        if (!checkPump("ApexService-extendedBolus", optimize = true)) return false
+
+        status.addAction(
+            ApexDriverStatus.Action.SettingExtendedBolus,
+            rh.gs(R.string.action_setting_ext_bolus, dose, durationMinutes)
+        )
+        val response = executeWithResponse(ExtendedBolus(apexDeviceInfo, doseRaw, durationRaw), noOptimizations = true)
+        status.removeAction(ApexDriverStatus.Action.SettingExtendedBolus)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[extendedBolus caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -426,7 +508,15 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         val durationRaw = durationMinutes / 15
         if (durationMinutes % 15 > 0) aapsLogger.warn(LTag.PUMPCOMM, "[temporaryBasal caller=$caller] Bolus duration is not aligned to 15 minute steps! Rounded down.")
 
+        if (!checkPump("ApexService-temporaryBasal", optimize = true)) return false
+
+        status.addAction(
+            ApexDriverStatus.Action.SettingTBR,
+            rh.gs(R.string.action_setting_tbr, dose, durationMinutes)
+        )
         val response = executeWithResponse(TemporaryBasal(apexDeviceInfo, true, durationRaw, doseRaw))
+        status.removeAction(ApexDriverStatus.Action.SettingTBR)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[temporaryBasal caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -456,7 +546,19 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun cancelBolus(caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "cancelBolus - $caller")
+
+        pump.inProgressBolus?.let {
+            // Communication would take longer than just finishing the bolus.
+            if (it.requestedDose - it.currentDose < 0.10) {
+                aapsLogger.debug(LTag.PUMPCOMM, "[cancelBolus caller=$caller] Skipping, progress ${it.currentDose} / ${it.requestedDose} U")
+                return@cancelBolus true
+            }
+        } ?: return false
+
+        status.addAction(ApexDriverStatus.Action.CancelingBolus, R.string.action_canceling_bolus)
         val response = executeWithResponse(CancelBolus(apexDeviceInfo))
+        status.removeAction(ApexDriverStatus.Action.CancelingBolus)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[cancelBolus caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -474,7 +576,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun cancelTemporaryBasal(caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "cancelTemporaryBasal - $caller")
+
+        status.addAction(ApexDriverStatus.Action.CancelingTBR, R.string.action_canceling_tbr)
         val response = executeWithResponse(CancelTemporaryBasal(apexDeviceInfo))
+        status.removeAction(ApexDriverStatus.Action.CancelingTBR)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[cancelTemporaryBasal caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -499,6 +605,8 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun updateSettings(caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "updateSettings - $caller")
+
+        status.addAction(ApexDriverStatus.Action.UpdatingSettings, R.string.action_updating_settings)
         val response = executeWithResponse(
             pump.lastV1!!.toUpdateSettingsV1(
                 apexDeviceInfo,
@@ -508,6 +616,8 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
                 enableAdvancedBolus = false,
             )
         )
+        status.removeAction(ApexDriverStatus.Action.UpdatingSettings)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[updateSettings caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -523,7 +633,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun updateSystemState(suspend: Boolean, caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "updateSystemState - $caller")
+
+        status.addAction(ApexDriverStatus.Action.UpdatingSystemState, R.string.action_updating_sys_state)
         val response = executeWithResponse(UpdateSystemState(apexDeviceInfo, suspend))
+        status.removeAction(ApexDriverStatus.Action.UpdatingSystemState)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[updateSystemState caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -539,7 +653,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun setConnectionProfile(caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "setConnectionProfile - $caller")
+
+        status.addAction(ApexDriverStatus.Action.UpdatingConnectionProfile, R.string.action_updating_connection)
         val response = executeWithResponse(SetConnectionProfile(apexDeviceInfo))
+        status.removeAction(ApexDriverStatus.Action.UpdatingConnectionProfile)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[setConnectionProfile caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -555,7 +673,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun updateBasalPatternIndex(id: Int, caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "updateBasalPatternIndex - $caller")
+
+        status.addAction(ApexDriverStatus.Action.SettingBasalProfileIndex, R.string.action_setting_basal_no)
         val response = executeWithResponse(UpdateUsedBasalProfile(apexDeviceInfo, id))
+        status.removeAction(ApexDriverStatus.Action.SettingBasalProfileIndex)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[updateBasalPatternIndex caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -575,10 +697,13 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
         aapsLogger.debug(LTag.PUMPCOMM, "updateCurrentBasalPattern - $caller")
 
+        status.addAction(ApexDriverStatus.Action.SettingBasalProfileContents, R.string.action_setting_basal_profile)
         val response = executeWithResponse(UpdateBasalProfileRates(
             apexDeviceInfo,
             doses.map { (it / 0.025).roundToInt() }
         ))
+        status.removeAction(ApexDriverStatus.Action.SettingBasalProfileContents)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[updateBasalPatternIndex caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -594,7 +719,16 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun getTDDs(caller: String): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "getTDDs - $caller")
+
+        if (pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) != true) {
+            aapsLogger.warn(LTag.PUMPCOMM, "TDDs are unreliable on 6.25 and older!")
+            return false
+        }
+
+        status.addAction(ApexDriverStatus.Action.GettingTDDs, R.string.action_getting_tdds)
         val response = getValue(GetValue.Value.TDDs)
+        status.removeAction(ApexDriverStatus.Action.GettingTDDs)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[getTDDs caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -604,10 +738,12 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     }
 
     fun getBoluses(caller: String, isFullHistory: Boolean = false): Boolean {
-        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.getting_boluses)))
-
         aapsLogger.debug(LTag.PUMPCOMM, "getBoluses - $caller")
-        val response = getValue(if (isFullHistory) GetValue.Value.BolusHistory else GetValue.Value.LatestBoluses)
+
+        status.addAction(ApexDriverStatus.Action.GettingBoluses, R.string.action_getting_boluses)
+        val response = getValue((if (isFullHistory) GetValue.Value.BolusHistory else GetValue.Value.LatestBoluses))
+        status.removeAction(ApexDriverStatus.Action.GettingBoluses)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[getBoluses full=$isFullHistory caller=$caller] Timed out while trying to communicate with the pump")
             return false
@@ -616,17 +752,33 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         return true
     }
 
-    fun getStatus(caller: String): Boolean {
-        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.getting_pump_status)))
+    fun getStatus(caller: String, optimize: Boolean = false, force: Boolean = false): Boolean {
+        if (abs(DateTime.now().millis - pump.dateTime.millis) < 25000 && !force) {
+            aapsLogger.debug(LTag.PUMPCOMM, "Status is already fresh, skipping unnecessary update.")
+            return true
+        }
+
+        val hasV2 = pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) == true
+
         aapsLogger.debug(LTag.PUMPCOMM, "getStatus - $caller")
-        val responseV1 = getValue(GetValue.Value.StatusV1)
+
+        status.addAction(ApexDriverStatus.Action.GettingStatus,
+             if (hasV2) rh.gs(R.string.action_getting_status_v, 1)
+             else rh.gs(R.string.action_getting_status)
+        )
+        val responseV1 = getValue(GetValue.Value.StatusV1, noOptimizations = !optimize)
+        if (!hasV2 || responseV1 == null) status.removeAction(ApexDriverStatus.Action.GettingStatus)
+
         if (responseV1 == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[getStatus caller=$caller] V1 | Timed out while trying to communicate with the pump")
             return false
         }
 
-        if ((pump.firmwareVersion?.protocolMinor ?: 0) >= 11) {
-            val responseV2 = getValue(GetValue.Value.StatusV2)
+        if (hasV2) {
+            status.updateAction(ApexDriverStatus.Action.GettingStatus, rh.gs(R.string.action_getting_status_v, 2))
+            val responseV2 = getValue(GetValue.Value.StatusV2, noOptimizations = true)
+            status.removeAction(ApexDriverStatus.Action.GettingStatus)
+
             if (responseV2 == null) {
                 aapsLogger.error(LTag.PUMPCOMM, "[getStatus caller=$caller] V2 | Timed out while trying to communicate with the pump")
                 return false
@@ -638,10 +790,12 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     fun getBasalProfiles(caller: String): Map<Int, List<Double>>? {
         val ret = mutableMapOf<Int, List<Double>>()
-
         aapsLogger.debug(LTag.PUMPCOMM, "getBasalProfiles - $caller")
 
+        status.addAction(ApexDriverStatus.Action.GettingBasalProfiles, R.string.action_getting_basal)
         val response = getValue(GetValue.Value.BasalProfiles)
+        status.removeAction(ApexDriverStatus.Action.GettingBasalProfiles)
+
         if (response == null) {
             aapsLogger.error(LTag.PUMPCOMM, "[getBasalProfiles caller=$caller] Timed out while trying to communicate with the pump")
             return null
@@ -667,12 +821,22 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         pump.inProgressBolus?.currentDose = dose
 
         val bolus = pump.inProgressBolus ?: return
+        val isSMB = bolus.detailedBolusInfo.bolusType == BS.Type.SMB
 
-        if (bolus.detailedBolusInfo.bolusType == BS.Type.SMB) {
-            rxBus.send(EventPumpStatusChanged(rh.gs(app.aaps.core.ui.R.string.smb_bolus_u, bolus.requestedDose)))
-        } else {
-            rxBus.send(EventPumpStatusChanged(rh.gs(app.aaps.core.ui.R.string.bolus_u_min, bolus.requestedDose)))
-        }
+        status.updateOrAddAction(
+            if (isSMB)
+                ApexDriverStatus.Action.MicroBolusing
+            else
+                ApexDriverStatus.Action.Bolusing,
+            rh.gs(
+                if (isSMB)
+                    R.string.action_bolusing_smb
+                else
+                    R.string.action_bolusing,
+                bolus.currentDose,
+                bolus.requestedDose
+            )
+        )
 
         rxBus.send(EventOverviewBolusProgress.apply {
             t = bolus.treatment
@@ -686,6 +850,12 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         if (pump.inProgressBolus == null) return
         pump.inProgressBolus!!.currentDose = dose
 
+        status.removeAction(
+            if (pump.inProgressBolus!!.detailedBolusInfo.bolusType == BS.Type.SMB)
+                ApexDriverStatus.Action.MicroBolusing
+            else
+                ApexDriverStatus.Action.Bolusing
+        )
         rxBus.send(EventOverviewBolusProgress.apply {
             percent = 100
             status = rh.gs(R.string.status_delivered, dose)
@@ -698,6 +868,13 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     private fun onBolusFailed(cancelled: Boolean = false) {
         aapsLogger.debug(LTag.PUMPCOMM, "bolus failed (cancelled? $cancelled)")
         if (pump.inProgressBolus == null) return
+
+        status.removeAction(
+            if (pump.inProgressBolus!!.detailedBolusInfo.bolusType == BS.Type.SMB)
+                ApexDriverStatus.Action.MicroBolusing
+            else
+                ApexDriverStatus.Action.Bolusing
+        )
 
         if (cancelled) {
             pump.inProgressBolus!!.cancelled = true
@@ -841,19 +1018,6 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         }
     }
 
-    private fun onTBRChanged(update: ApexPump.StatusUpdate) {
-        // if (update.current.tbr == null && update.previous?.tbr != null) {
-        //     val stop = System.currentTimeMillis()
-        //     pumpSync.syncStopTemporaryBasalWithPumpId(
-        //         timestamp = stop,
-        //         endPumpId = stop,
-        //         pumpType = PumpType.APEX_TRUCARE_III,
-        //         pumpSerial = apexDeviceInfo.serialNumber,
-        //     )
-        //     aapsLogger.debug(LTag.PUMP, "Detected TBR cancellation")
-        // }
-    }
-
     private fun onStatusV1(status: StatusV1) {
         val update = pump.updateFromV1(status)
         aapsLogger.debug(LTag.PUMPCOMM, "Got V1 | Status updates: ${update.changes.joinToString(", ") { it.name }}")
@@ -864,13 +1028,13 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
         onAlarmsChanged(update)
         onBasalChanged(update)
-        onBatteryChanged(update)
         onReservoirChanged(update)
-        onTBRChanged(update)
 
         // We may retrieve the forgotten in V1 alarm length from V2.
-        if (pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) == false)
+        if (pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) == false) {
             onSettingsChanged(update)
+            onBatteryChanged(update)
+        }
 
         rxBus.send(EventApexPumpDataChanged())
     }
@@ -882,8 +1046,8 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         preferences.put(ApexStringKey.AlarmSoundLength, status.alarmLength!!.name)
 
         onSettingsChanged(update)
+        onBatteryChanged(update)
 
-        //onBatteryChanged(update)
         rxBus.send(EventApexPumpDataChanged())
     }
 
@@ -894,13 +1058,12 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             return
         }
 
-        // Pump sent heartbeat => connection is established.
-        pump.gettingReady = false
+        status.addAction(ApexDriverStatus.Action.Heartbeat, R.string.action_heartbeat)
+        if (!getStatus("HeartbeatHandler")) return status.removeAction(ApexDriverStatus.Action.Heartbeat)
+        if (!getBoluses("HeartbeatHandler")) return status.removeAction(ApexDriverStatus.Action.Heartbeat)
+        status.removeAction(ApexDriverStatus.Action.Heartbeat)
 
-        if (!getStatus("HeartbeatHandler")) return
-        if (!getBoluses("HeartbeatHandler")) return
-
-        rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.CONNECTED))
+        status.updateConnectionState(ApexDriverStatus.ConnectionState.Connected)
     }
 
     private fun onVersion(version: Version) {
@@ -923,7 +1086,8 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         // Find the bolus in history and sync it.
         // Pump may round up boluses, use 0.11 for failsafe.
         val ipb = pump.inProgressBolus
-        if (ipb != null && entry.dateTime.millis - ipb.temporaryId >= -45000) {
+        val delta = abs(entry.dateTime.millis - (ipb?.temporaryId ?: 0))
+        if (ipb != null && (delta <= 1000 || (delta > 59000 && delta < 61000))) {
             aapsLogger.debug(LTag.PUMP, "Syncing current bolus [${entry.standardDose * 0.025}U -> ${entry.standardPerformed * 0.025}U]")
             val delta = abs(entry.standardDose * 0.025 - ipb.currentDose)
             if (!ipb.cancelled && delta > 0.11) {
@@ -944,7 +1108,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             synchronized(pump.inProgressBolus!!) {
                 pump.inProgressBolus!!.notifyAll()
             }
-            SystemClock.sleep(10)
+            SystemClock.sleep(100)
             pump.inProgressBolus = null
 
             getStatus("ApexService-updateAfterBolus")
@@ -966,6 +1130,9 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     // !! Unreliable on 6.25 firmware, TODO: think about solution
     private fun onTDDEntry(entry: TDDEntry) {
+        // Ignore unreliable TDDs on 6.25 and older FWs
+        if (pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) != true) return
+
         pumpSync.createOrUpdateTotalDailyDose(
             timestamp = entry.dateTime.millis,
             pumpId = entry.dateTime.millis,
@@ -1007,68 +1174,113 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         if (isReconnect)
             apexBluetooth.connect()
         SystemClock.sleep(50)
+        if (connectionFinished) connectionFinished = false
     }
 
 
     override fun onConnect() {
-        aapsLogger.debug(LTag.PUMPCOMM, "onConnect")
+        try {
+            aapsLogger.debug(LTag.PUMPCOMM, "onConnect")
+            status.addAction(ApexDriverStatus.Action.Initializing, R.string.action_initializing)
 
-        val version = getValue(GetValue.Value.Version)?.firstOrNull()
-        if (version !is Version) {
-            aapsLogger.error(LTag.PUMPCOMM, "Failed to get version - disconnecting.")
-            return disconnect(true)
-        }
+            connectionId++
 
-        aapsLogger.debug(LTag.PUMPCOMM, version.toString())
+            val prefFw = FirmwareVersion.valueOf(preferences.get(ApexStringKey.FirmwareVer))
+            if (prefFw == FirmwareVersion.AUTO) {
+                status.addAction(ApexDriverStatus.Action.GettingVersion, R.string.action_getting_version)
+                val version = getValue(GetValue.Value.Version)?.firstOrNull()
+                status.removeAction(ApexDriverStatus.Action.GettingVersion)
 
-        pump.firmwareVersion = version
+                if (version !is Version) {
+                    aapsLogger.error(LTag.PUMPCOMM, "Failed to get version - disconnecting.")
+                    return disconnect(true)
+                }
 
-        if (!version.isSupported(FIRST_SUPPORTED_PROTO, LAST_SUPPORTED_PROTO)) {
-            aapsLogger.error(LTag.PUMPCOMM, "Unsupported protocol v${version.protocolMajor}.${version.protocolMinor} - disconnecting.")
-            uiInteraction.addNotification(
-                Notification.PUMP_ERROR,
-                rh.gs(R.string.notification_pump_unsupported),
-                Notification.URGENT,
-            )
-            return disconnect()
-        }
+                aapsLogger.debug(LTag.PUMPCOMM, version.toString())
+                pump.firmwareVersion = version
+            } else {
+                pump.firmwareVersion = Version(prefFw.major, prefFw.minor, prefFw.protocolVersion)
+                aapsLogger.debug(LTag.PUMPCOMM, "Manual version: ${prefFw.name}")
+            }
 
-        onVersion(version)
+            val version = pump.firmwareVersion!!
+            if (!version.isSupported(FIRST_SUPPORTED_PROTO, LAST_SUPPORTED_PROTO)) {
+                aapsLogger.error(LTag.PUMPCOMM, "Unsupported protocol v${version.protocolMajor}.${version.protocolMinor} - disconnecting.")
+                uiInteraction.addNotification(
+                    Notification.PUMP_ERROR,
+                    rh.gs(R.string.notification_pump_unsupported),
+                    Notification.URGENT,
+                )
+                return disconnect()
+            }
 
-        if (!syncDateTime("BLE-onConnect")) {
-            aapsLogger.error(LTag.PUMPCOMM, "Failed to sync date and time - disconnecting.")
-            return disconnect(true)
-        }
+            onVersion(version)
 
-        if (apexDeviceInfo.serialNumber != preferences.get(ApexStringKey.LastConnectedSerialNumber)) {
-            onInitialConnection()
-            preferences.put(ApexStringKey.LastConnectedSerialNumber, apexDeviceInfo.serialNumber)
-        }
-
-        rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.CONNECTED))
-        // Do a fast reconnect on failed commands
-        if (!doNotReconnect) {
-            if (!getStatus("BLE-onConnect")) {
-                aapsLogger.error(LTag.PUMPCOMM, "Failed to get status - disconnecting.")
+            if (!syncDateTime("BLE-onConnect")) {
+                aapsLogger.error(LTag.PUMPCOMM, "Failed to sync date and time - disconnecting.")
                 return disconnect(true)
             }
-            if (!getBoluses("BLE-onConnect")) {
-                aapsLogger.error(LTag.PUMPCOMM, "Failed to get boluses - disconnecting.")
-                return disconnect(true)
+
+            if (apexDeviceInfo.serialNumber != preferences.get(ApexStringKey.LastConnectedSerialNumber)) {
+                onInitialConnection()
+                preferences.put(ApexStringKey.LastConnectedSerialNumber, apexDeviceInfo.serialNumber)
             }
-        }
 
-        if (!requestHeartbeat("BLE-onConnect")) {
-            aapsLogger.error(LTag.PUMPCOMM, "Failed to notify about connection - disconnecting.")
-            return disconnect(true)
-        }
+            // Do a fast reconnect on failed commands
+            if (!doNotReconnect) {
+                if (!getStatus("BLE-onConnect")) {
+                    aapsLogger.error(LTag.PUMPCOMM, "Failed to get status - disconnecting.")
+                    return disconnect(true)
+                }
+                if (!getBoluses("BLE-onConnect")) {
+                    aapsLogger.error(LTag.PUMPCOMM, "Failed to get boluses - disconnecting.")
+                    return disconnect(true)
+                }
+            }
 
-        unreachableTimerTask?.cancel()
-        unreachableTimerTask = null
-        rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.CONNECTED))
-        pump.gettingReady = false
-        connectionFinished = true
-        doNotReconnect = false
+            if (pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_10) == true) {
+                if (!requestHeartbeat("BLE-onConnect")) {
+                    aapsLogger.error(LTag.PUMPCOMM, "Failed to notify about connection - disconnecting.")
+                    return disconnect(true)
+                }
+            } else {
+                spawnHeartbeatLoop()
+            }
+
+            unreachableTimerTask?.cancel()
+            unreachableTimerTask = null
+            status.updateConnectionState(ApexDriverStatus.ConnectionState.Connected)
+            pump.isInitialized = true
+            connectionFinished = true
+            doNotReconnect = false
+        } finally {
+            status.removeAction(ApexDriverStatus.Action.Initializing)
+        }
+    }
+
+    @Synchronized
+    private fun spawnHeartbeatLoop() {
+        Thread {
+            val savedConnectionId = connectionId
+
+            while (true) {
+                val now = DateTime.now()
+                val msTillNextMinute = now.withSecondOfMinute(5).plus(HEARTBEAT_PERIOD_MINUTES * 60000L).millis - now.millis
+                SystemClock.sleep(msTillNextMinute)
+
+                if (connectionStatus != ApexBluetooth.Status.CONNECTED) {
+                    aapsLogger.debug(LTag.PUMPCOMM, "Pump has been disconnected. Stopping thread")
+                    return@Thread
+                }
+                if (connectionId != savedConnectionId) {
+                    aapsLogger.debug(LTag.PUMPCOMM, "Incorrect connection ID. Stopping thread")
+                    return@Thread
+                }
+
+                aapsLogger.debug(LTag.PUMPCOMM, "Triggering fake heartbeat")
+                onHeartbeat()
+            }
+        }.start()
     }
 
     private var isDisconnectLoopRunning = false
@@ -1130,29 +1342,54 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             aapsLogger.error(LTag.PUMPCOMM, "Invalid command with crc ${command.checksum}")
             return
         }
+
         val type = PumpObject.findObject(command.id!!, command.objectData, aapsLogger)
         aapsLogger.debug(LTag.PUMPCOMM, "from PUMP: ${command.id!!.name}, ${type?.name}")
 
         if (type == null) return
         if (type == PumpObject.CommandResponse) return onCommandResponse(CommandResponse(command))
 
-        notifyAboutResponse(command, type)
-        Thread { processObject(command, type) }.start()
+        val obj = when (type) {
+            PumpObject.Heartbeat       -> Heartbeat()
+            PumpObject.StatusV1        -> StatusV1(command, apexDeviceInfo)
+            PumpObject.StatusV2        -> StatusV2(command)
+            PumpObject.BasalProfile    -> BasalProfile(command)
+            PumpObject.AlarmEntry      -> AlarmObject(command, apexDeviceInfo)
+            PumpObject.TDDEntry        -> TDDEntry(command, apexDeviceInfo)
+            PumpObject.BolusEntry      -> BolusEntry(command, apexDeviceInfo)
+            PumpObject.FirmwareEntry   -> Version(command)
+            else                       -> return
+        }
+        val validationMsg = obj.validate()
+        if (validationMsg != null) {
+            aapsLogger.error(LTag.PUMPCOMM, "Got invalid (reason: $validationMsg) object of type $type - ${command.objectData.toHex()}")
+            if (config.isEngineeringMode()) {
+                uiInteraction.addNotification(
+                    Notification.APEX_SERVICE_MSG,
+                    "Invalid object data ($type, $validationMsg) - please send log to developer!",
+                    Notification.URGENT,
+                )
+            }
+            return
+        }
+
+        notifyAboutResponse(command, obj, type)
+        Thread { processObject(obj) }.start()
     }
 
-    private fun processObject(command: PumpCommand, type: PumpObject) {
-        when (type) {
-            PumpObject.StatusV1        -> onStatusV1(StatusV1(command))
-            PumpObject.StatusV2        -> onStatusV2(StatusV2(command))
-            PumpObject.Heartbeat       -> onHeartbeat()
-            PumpObject.BolusEntry      -> onBolusEntry(BolusEntry(command, apexDeviceInfo))
-            PumpObject.TDDEntry        -> onTDDEntry(TDDEntry(command))
+    private fun processObject(obj: PumpObjectModel) {
+        when (obj) {
+            is StatusV1 -> onStatusV1(obj)
+            is StatusV2 -> onStatusV2(obj)
+            is Heartbeat -> onHeartbeat()
+            is BolusEntry -> onBolusEntry(obj)
+            is TDDEntry -> onTDDEntry(obj)
             else -> {}
         }
     }
 
     @Synchronized
-    private fun notifyAboutResponse(command: PumpCommand, type: PumpObject) {
+    private fun notifyAboutResponse(command: PumpCommand, obj: PumpObjectModel, type: PumpObject) {
         if (!getValueResult.waiting) {
             aapsLogger.debug(LTag.PUMPCOMM, "Got pump command but not waiting for it")
             return
@@ -1174,21 +1411,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             return
         }
 
-        getValueResult.add(
-            when (type) {
-                PumpObject.Heartbeat       -> Heartbeat()
-                PumpObject.CommandResponse -> CommandResponse(command)
-                PumpObject.StatusV1        -> StatusV1(command)
-                PumpObject.StatusV2        -> StatusV2(command)
-                PumpObject.BasalProfile    -> BasalProfile(command)
-                PumpObject.AlarmEntry      -> AlarmObject(command)
-                PumpObject.TDDEntry        -> TDDEntry(command)
-                PumpObject.BolusEntry      -> BolusEntry(command, apexDeviceInfo)
-                PumpObject.FirmwareEntry   -> Version(command)
-                else                       -> return
-            }
-        )
-
+        getValueResult.add(obj)
         if (getValueResult.isSingleObject) {
             aapsLogger.debug(LTag.PUMPCOMM, "Got single value - everything is ready")
             getValueResult.waiting = false
@@ -1230,7 +1453,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             }
         }.start()
         // Let thread start
-        SystemClock.sleep(10)
+        SystemClock.sleep(50)
     }
 
     //////// Binder

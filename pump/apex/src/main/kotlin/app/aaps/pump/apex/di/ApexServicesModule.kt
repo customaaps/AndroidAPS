@@ -1,5 +1,6 @@
 package app.aaps.pump.apex.di
 
+import app.aaps.pump.apex.ApexDriverStatus
 import app.aaps.pump.apex.ApexService
 import app.aaps.pump.apex.connectivity.ApexBluetooth
 import app.aaps.pump.apex.interfaces.ApexDeviceInfo
@@ -12,6 +13,7 @@ import dagger.android.ContributesAndroidInjector
 @Suppress("unused")
 abstract class ApexServicesModule {
     @Binds abstract fun contributesApexDeviceInfo(apexDeviceInfoImpl: ApexDeviceInfoImpl): ApexDeviceInfo
+    @ContributesAndroidInjector abstract fun contributesApexDriverStatus(): ApexDriverStatus
     @ContributesAndroidInjector abstract fun contributesApexBluetooth(): ApexBluetooth
     @ContributesAndroidInjector abstract fun contributesApexService(): ApexService
 }

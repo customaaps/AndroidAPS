@@ -2,12 +2,12 @@ package app.aaps.pump.apex.connectivity.commands.pump
 
 import app.aaps.pump.apex.utils.getUnsignedShort
 
-class CommandResponse(command: PumpCommand): PumpObjectModel() {
+class CommandResponse(val command: PumpCommand): PumpObjectModel() {
     /** Command response code */
-    val code = Code.entries.find { it.raw.toByte() == command.objectData[0] } ?: Code.Unknown
+    val code get() = Code.entries.find { it.raw.toByte() == command.objectData[0] } ?: Code.Unknown
 
     /** Bolus dose if present */
-    val dose = getUnsignedShort(command.objectData, 2)
+    val dose get() = getUnsignedShort(command.objectData, 2)
 
     enum class Code(val raw: Int) {
         Accepted(0x55),

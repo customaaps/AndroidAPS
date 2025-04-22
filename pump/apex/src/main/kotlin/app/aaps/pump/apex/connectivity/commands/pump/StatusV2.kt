@@ -2,15 +2,20 @@ package app.aaps.pump.apex.connectivity.commands.pump
 
 import app.aaps.pump.apex.utils.getUnsignedShort
 
-class StatusV2(command: PumpCommand): PumpObjectModel() {
+class StatusV2(val command: PumpCommand): PumpObjectModel() {
     /** Pump-calculated absolute insulin, in 0.025U steps */
-    val absoluteInsulin = getUnsignedShort(command.objectData, 2)
+    val absoluteInsulin get() = getUnsignedShort(command.objectData, 2)
 
     /** Alarm length */
-    val alarmLength = AlarmLength.entries.find { it.raw == command.objectData[4] }
+    val alarmLength get() = AlarmLength.entries.find { it.raw == command.objectData[4] }
 
     /** Pump battery voltage */
-    val batteryVoltage = command.objectData[5].toUByte().toDouble() / 100.0
+    val batteryVoltage get() = command.objectData[5].toUByte().toDouble() / 100.0
 
     // TODO: audio bolus settings
+
+    override fun validate(): String? {
+        if (alarmLength == null) return "alarmLength invalid"
+        return null
+    }
 }

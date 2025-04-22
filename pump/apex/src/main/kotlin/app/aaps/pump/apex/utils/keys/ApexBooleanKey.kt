@@ -15,7 +15,8 @@ enum class ApexBooleanKey(
     override val negativeDependency: BooleanPreferenceKey? = null,
     override val hideParentScreenIfHidden: Boolean = false
 ) : BooleanPreferenceKey {
-    LogInsulinChange("apex_log_insulin_change", true),
-    LogBatteryChange("apex_log_battery_change", true),
-    CalculateBatteryPercentage("apex_calc_battery_percentage", false),
+    LogInsulinChange("apex_log_insulin_change", true, defaultedBySM = true),
+    LogBatteryChange("apex_log_battery_change", true, defaultedBySM = true),
+    CalculateBatteryPercentage("apex_calc_battery_percentage", true, defaultedBySM = true),
+    HideSerial("apex_hide_serial", true, defaultedBySM = true),
 }

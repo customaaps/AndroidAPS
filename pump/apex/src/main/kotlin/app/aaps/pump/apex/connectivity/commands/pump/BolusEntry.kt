@@ -6,26 +6,30 @@ import app.aaps.pump.apex.interfaces.ApexDeviceInfo
 import app.aaps.pump.apex.utils.getDateTime
 import app.aaps.pump.apex.utils.getUnsignedShort
 import app.aaps.pump.apex.utils.hexAsDecToDec
+import app.aaps.pump.apex.utils.validateDateTime
 import org.joda.time.DateTime
 
-class BolusEntry(command: PumpCommand, info: ApexDeviceInfo): PumpObjectModel() {
+class BolusEntry(
+    val command: PumpCommand,
+    val info: ApexDeviceInfo
+): PumpObjectModel() {
     /** Bolus entry index */
-    val index = command.objectData[1].toUByte().toInt()
+    val index get() = command.objectData[1].toUByte().toInt()
 
     /** Bolus date */
-    val dateTime = getDateTime(command.objectData, 2, info)
+    val dateTime get() = getDateTime(command.objectData, 2, info)
 
     /** Standard bolus requested dose */
-    val standardDose = getUnsignedShort(command.objectData, 8)
+    val standardDose get() = getUnsignedShort(command.objectData, 8)
 
     /** Standard bolus actual dose */
-    val standardPerformed = getUnsignedShort(command.objectData, 10)
+    val standardPerformed get() = getUnsignedShort(command.objectData, 10)
 
     /** Extended bolus requested dose */
-    val extendedDose = getUnsignedShort(command.objectData, 12)
+    val extendedDose get() = getUnsignedShort(command.objectData, 12)
 
     /** Extended bolus actual dose */
-    val extendedPerformed = getUnsignedShort(command.objectData, 14)
+    val extendedPerformed get() = getUnsignedShort(command.objectData, 14)
 
     fun toShortLocalString(rh: ResourceHelper): String {
         val diff = System.currentTimeMillis() - dateTime.millis
@@ -34,5 +38,12 @@ class BolusEntry(command: PumpCommand, info: ApexDeviceInfo): PumpObjectModel() 
         } else {
             return rh.gs(R.string.overview_pump_last_bolus_min, standardPerformed * 0.025, diff / 60 / 1000)
         }
+    }
+
+    override fun validate(): String? {
+        if (standardDose > 0 && extendedDose > 0) return "dose both extended + standard"
+        if (standardPerformed > 0 && extendedPerformed > 0) return "performed both extended + standard"
+        if (!validateDateTime(command.objectData, 2, info)) return "invalid datetime"
+        return null
     }
 }

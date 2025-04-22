@@ -147,6 +147,7 @@ open class Notification {
         const val USER_MESSAGE = 1000
 
         const val PERMISSION_EXTERNAL_STORAGE = 2000
+        const val APEX_SERVICE_MSG = 2001
 
         const val IMPORTANCE_HIGH = 2
         const val CATEGORY_ALARM = "alarm"

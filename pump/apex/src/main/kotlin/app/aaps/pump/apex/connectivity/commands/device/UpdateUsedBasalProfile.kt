@@ -16,5 +16,5 @@ class UpdateUsedBasalProfile(
     override val additionalData: ByteArray
         get() = byteArrayOf(index.toByte())
 
-    override fun toString(): String = "UpdateUsedBasalProfile(id = $index)"
+    override fun toString(): String = "UpdateUsedBasalProfile($index)"
 }

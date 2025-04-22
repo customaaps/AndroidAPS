@@ -48,7 +48,7 @@ class GetValue(
         /** Latest temporary basals, proto >=4.11 */
         LatestTemporaryBasals(0x27),
 
-        /** Firmware version */
+        /** Firmware version, proto >=4.10 */
         Version(0x31),
     }
 

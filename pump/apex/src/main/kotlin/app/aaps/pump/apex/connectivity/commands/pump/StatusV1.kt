@@ -2,124 +2,121 @@ package app.aaps.pump.apex.connectivity.commands.pump
 
 import app.aaps.pump.apex.connectivity.commands.device.UpdateSettingsV1
 import app.aaps.pump.apex.interfaces.ApexDeviceInfo
+import app.aaps.pump.apex.utils.getDateTime
 import app.aaps.pump.apex.utils.getUnsignedInt
 import app.aaps.pump.apex.utils.getUnsignedShort
-import app.aaps.pump.apex.utils.hexAsDecToDec
 import app.aaps.pump.apex.utils.toBoolean
-import org.joda.time.DateTime
+import app.aaps.pump.apex.utils.validateDateTime
+import app.aaps.pump.apex.utils.validateInt
 
-class StatusV1(command: PumpCommand): PumpObjectModel() {
+class StatusV1(
+    val command: PumpCommand,
+    val apexDeviceInfo: ApexDeviceInfo
+): PumpObjectModel() {
     /** Pump approximate battery level */
-    val batteryLevel = BatteryLevel.entries.find { it.raw == command.objectData[2] }
+    val batteryLevel get() = BatteryLevel.entries.find { it.raw == command.objectData[2] }
 
     /** Alarm type */
-    val alarmType = AlarmType.entries.find { it.raw == command.objectData[3] }
+    val alarmType get() = AlarmType.entries.find { it.raw == command.objectData[3] }
 
     /** Bolus delivery speed */
-    val deliverySpeed = BolusDeliverySpeed.entries.find { it.raw == command.objectData[4] }
+    val deliverySpeed get() = BolusDeliverySpeed.entries.find { it.raw == command.objectData[4] }
 
     /** Screen brightness */
-    val brightness = ScreenBrightness.entries.find { it.raw == command.objectData[5] }
+    val brightness get() = ScreenBrightness.entries.find { it.raw == command.objectData[5] }
 
-    private val bolusFlags = command.objectData[6].toUByte().toInt()
+    private val bolusFlags get() = command.objectData[6].toUByte().toInt()
     private enum class BolusFlags(val raw: Int) {
         AdvancedBolusEnabled(1 shl 1),
         BGReminderEnabled(1 shl 2),
     }
 
     /** Are dual and extended bolus types enabled? */
-    val advancedBolusEnabled = (bolusFlags and BolusFlags.AdvancedBolusEnabled.raw) == 1
+    val advancedBolusEnabled get() = (bolusFlags and BolusFlags.AdvancedBolusEnabled.raw) == 1
 
     /** Is BG reminder alarm enabled? */
-    val bgReminderEnabled = (bolusFlags and BolusFlags.BGReminderEnabled.raw) == 1
+    val bgReminderEnabled get() = (bolusFlags and BolusFlags.BGReminderEnabled.raw) == 1
 
     /** Keys lock enabled? */
-    val keyboardLockEnabled = command.objectData[7].toBoolean()
+    val keyboardLockEnabled get() = command.objectData[7].toBoolean()
 
     /** Pump auto-suspend enabled? */
-    val autoSuspendEnabled = command.objectData[8].toBoolean()
+    val autoSuspendEnabled get() = command.objectData[8].toBoolean()
 
     /** Time for auto-suspend to trigger, in 30 minute steps */
-    val autoSuspendDuration = command.objectData[9].toUByte().toInt()
+    val autoSuspendDuration get() = command.objectData[9].toUByte().toInt()
 
     /** Low reservoir alarm threshold in 1U steps */
-    val lowReservoirThreshold = command.objectData[10].toUByte().toInt()
+    val lowReservoirThreshold get() = command.objectData[10].toUByte().toInt()
 
     /** Low reservoir alarm (triggered by time left) threshold in 30 minute steps */
-    val lowReservoirTimeLeftThreshold = command.objectData[11].toUByte().toInt()
+    val lowReservoirTimeLeftThreshold get() = command.objectData[11].toUByte().toInt()
 
     /** Is using preset basal pattern? */
-    val isDefaultBasal = command.objectData[12].toBoolean()
+    val isDefaultBasal get() = command.objectData[12].toBoolean()
 
     /** Is pump locked? */
-    val isLocked = command.objectData[12].toBoolean()
+    val isLocked get() = command.objectData[12].toBoolean()
 
     /** Current basal pattern index */
-    val currentBasalPattern = command.objectData[14].toUByte().toInt()
+    val currentBasalPattern get() = command.objectData[14].toUByte().toInt()
 
     /** Is TDD limit enabled? */
-    val totalDailyDoseLimitEnabled = command.objectData[15].toBoolean()
+    val totalDailyDoseLimitEnabled get() = command.objectData[15].toBoolean()
 
     /** Screen disable timeout, in 0.1s steps */
-    val screenTimeout = getUnsignedShort(command.objectData, 16)
+    val screenTimeout get() = getUnsignedShort(command.objectData, 16)
 
     /** Current TDD */
-    val totalDailyDose = getUnsignedInt(command.objectData, 18)
+    val totalDailyDose get() = getUnsignedInt(command.objectData, 18)
 
     /** TDD alarm threshold */
-    val maxTDD = getUnsignedInt(command.objectData, 22)
+    val maxTDD get() = getUnsignedInt(command.objectData, 22)
 
     /** Maximum basal rate in 0.025U steps */
-    val maxBasal = getUnsignedShort(command.objectData, 26)
+    val maxBasal get() = getUnsignedShort(command.objectData, 26)
 
     /** Maximum bolus in 0.025U steps */
-    val maxBolus = getUnsignedShort(command.objectData, 28)
+    val maxBolus get() = getUnsignedShort(command.objectData, 28)
 
     /** Bolus preset: Breakfast A 5:00-7:00 */
-    val presetBreakfastA = getUnsignedShort(command.objectData, 30)
+    val presetBreakfastA get() = getUnsignedShort(command.objectData, 30)
 
     /** Bolus preset: Breakfast B 7:00-10:00 */
-    val presetBreakfastB = getUnsignedShort(command.objectData, 32)
+    val presetBreakfastB get() = getUnsignedShort(command.objectData, 32)
 
     /** Bolus preset: Dinner A 10:00-12:00 */
-    val presetDinnerA = getUnsignedShort(command.objectData, 34)
+    val presetDinnerA get() = getUnsignedShort(command.objectData, 34)
 
     /** Bolus preset: Dinner B 12:00-15:00 */
-    val presetDinnerB = getUnsignedShort(command.objectData, 36)
+    val presetDinnerB get() = getUnsignedShort(command.objectData, 36)
 
     /** Bolus preset: Supper A 15:00-18:00 */
-    val presetSupperA = getUnsignedShort(command.objectData, 38)
+    val presetSupperA get() = getUnsignedShort(command.objectData, 38)
 
     /** Bolus preset: Supper B 18:00-22:00 */
-    val presetSupperB = getUnsignedShort(command.objectData, 40)
+    val presetSupperB get() = getUnsignedShort(command.objectData, 40)
 
     /** Bolus preset: Night A 22:00-0:00 */
-    val presetNightA = getUnsignedShort(command.objectData, 42)
+    val presetNightA get() = getUnsignedShort(command.objectData, 42)
 
     /** Bolus preset: Night B 0:00-5:00 */
-    val presetNightB = getUnsignedShort(command.objectData, 44)
+    val presetNightB get() = getUnsignedShort(command.objectData, 44)
 
     /** System date and time */
-    val dateTime = DateTime(
-        command.objectData[46].toUByte().toInt() + 2000, // year
-        command.objectData[47].toUByte().toInt(), // month
-        command.objectData[48].toUByte().toInt(), // day
-        command.objectData[49].toUByte().toInt(), // hour
-        command.objectData[50].toUByte().toInt(), // minute
-        command.objectData[51].toUByte().toInt(), // second
-    )
+    val dateTime get() = getDateTime(command.objectData, 46, apexDeviceInfo, alwaysNonHex = true)
 
     /** System language */
-    val language = Language.entries.find { it.raw == command.objectData[52] }
+    val language get() = Language.entries.find { it.raw == command.objectData[52] }
 
     /** Is temporary basal active? */
-    val isTemporaryBasalActive = command.objectData[53].toBoolean()
+    val isTemporaryBasalActive get() = command.objectData[53].toBoolean()
 
     /** Reservoir level, last 3 numbers are decimals */
-    val reservoir = getUnsignedInt(command.objectData, 54)
+    val reservoir get() = getUnsignedInt(command.objectData, 54)
 
     /** Current alarms list */
-    val alarms = buildList {
+    val alarms get() = buildList {
         for (i in 0..<9) {
             val raw = getUnsignedShort(command.objectData, 58 + 2 * i)
             if (raw != 0) add(Alarm.entries.find { it.raw == raw } ?: Alarm.Unknown)
@@ -127,24 +124,35 @@ class StatusV1(command: PumpCommand): PumpObjectModel() {
     }
 
     /** Current basal rate in 0.025U steps */
-    val currentBasalRate = getUnsignedShort(command.objectData, 78)
+    val currentBasalRate get() = getUnsignedShort(command.objectData, 78)
 
     /** Current basal rate end time */
-    val currentBasalEndHour = command.objectData[80].toUByte().toInt()
+    val currentBasalEndHour get() = command.objectData[80].toUByte().toInt()
     /** Current basal rate end time */
-    val currentBasalEndMinute = command.objectData[81].toUByte().toInt()
+    val currentBasalEndMinute get() = command.objectData[81].toUByte().toInt()
 
     /** TBR if present */
-    val temporaryBasalRate = getUnsignedShort(command.objectData, 82)
+    val temporaryBasalRate get() = getUnsignedShort(command.objectData, 82)
 
     /** Is TBR absolute? */
-    val temporaryBasalRateIsAbsolute = command.objectData[84].toBoolean()
+    val temporaryBasalRateIsAbsolute get() = command.objectData[84].toBoolean()
 
     /** TBR duration, in 1 minute steps */
-    val temporaryBasalRateDuration = getUnsignedShort(command.objectData, 86)
+    val temporaryBasalRateDuration get() = getUnsignedShort(command.objectData, 86)
 
     /** TBR elapsed time, in 1 minute steps */
-    val temporaryBasalRateElapsed = getUnsignedShort(command.objectData, 88)
+    val temporaryBasalRateElapsed get() = getUnsignedShort(command.objectData, 88)
+
+    override fun validate(): String? {
+        if (batteryLevel == null) return "batteryLevel invalid"
+        if (alarmType == null) return "alarmType invalid"
+        if (deliverySpeed == null) return "deliverySpeed invalid"
+        if (brightness == null) return "brightness invalid"
+        if (!validateInt(currentBasalPattern, 0, 7)) return "currentBasalPattern invalid"
+        if (!validateDateTime(command.objectData, 46, apexDeviceInfo, alwaysNonHex = true)) return "dateTime invalid"
+        if (language == null) return "language invalid"
+        return null
+    }
 
     fun toUpdateSettingsV1(
         info: ApexDeviceInfo,

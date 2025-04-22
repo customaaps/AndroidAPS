@@ -24,7 +24,7 @@ class PumpCommand(private var data: ByteArray) {
     val objectData: ByteArray get() = data.copyOfRange(4, realLength() - 2)
 
     val checksum: ByteArray
-        get() = data.copyOfRange(data.size - 2, data.size)
+        get() = data.copyOfRange(minOf(data.size, realLength()) - 2, minOf(data.size, realLength()))
 
     private fun realLength(): Int =
         if (id == CommandId.Heartbeat)

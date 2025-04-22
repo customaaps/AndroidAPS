@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
  */
 @Singleton
 class ApexPump @Inject constructor(
-    val preferences: Preferences
+    val preferences: Preferences,
 ) {
     private var _status: PumpStatus? = null
     val status: PumpStatus?
@@ -65,6 +65,9 @@ class ApexPump @Inject constructor(
     val isTBRunning: Boolean
         get() = tbr != null
 
+    val isBolusing: Boolean
+        get() = inProgressBolus != null
+
     val settingsAreUnadvised: Boolean
         get() = isAdvancedBolusEnabled || currentBasalPattern != ApexService.USED_BASAL_PATTERN_INDEX
 
@@ -75,10 +78,7 @@ class ApexPump @Inject constructor(
     var lastBolus: BolusEntry? = null
     var firmwareVersion: Version? = null
     var serialNumber: String = ""
-    var gettingReady: Boolean = true
-
-    val isBolusing: Boolean
-        get() = inProgressBolus != null
+    var isInitialized: Boolean = true
 
     fun updateFromV1(obj: StatusV1): StatusUpdate {
         val updates = arrayListOf<Update>()
@@ -235,17 +235,30 @@ class ApexPump @Inject constructor(
         val tbr: TBR?,
         val basal: Basal?,
     ) {
-        fun overall(): String {
-            return "Date ${dateTime}, battery ${batteryLevel.percentage}, " +
+        override fun toString() =
+                "Date ${dateTime}, battery ${batteryLevel.percentage}, " +
                 "reservoir ${reservoirLevel}, alarms ${alarms.joinToString(", ", "[", "]") { it.name }}, " +
                 "maxBasal $maxBasal, maxBolus $maxBolus, " +
                 "TBR ${tbr?.rate}, basal ${basal?.rate}"
+
+        fun getPumpStatusIcon(): String = when {
+            alarms.isNotEmpty() -> "{fa-bell}"
+            basal == null -> "{fa-ban}"
+            else -> "{fa-check}"
         }
 
         fun getPumpStatus(rh: ResourceHelper): String = when {
             alarms.isNotEmpty() -> rh.gs(R.string.overview_pump_status_alarm)
             basal == null -> rh.gs(R.string.overview_pump_status_suspended)
             else -> rh.gs(R.string.overview_pump_status_normal)
+        }
+
+        fun getBatteryIcon(): String = when {
+            batteryLevel.percentage > 90 -> "{fa-battery-4}"
+            batteryLevel.percentage >= 75 -> "{fa-battery-3}"
+            batteryLevel.percentage >= 50 -> "{fa-battery-2}"
+            batteryLevel.percentage >= 25 -> "{fa-battery-1}"
+            else -> "{fa-battery-0}"
         }
 
         fun getBatteryLevel(rh: ResourceHelper): String = if (batteryLevel.approximate)
@@ -257,16 +270,27 @@ class ApexPump @Inject constructor(
 
         fun getTBR(rh: ResourceHelper): String = if (tbr != null) {
             val diff = tbr.durationMinutes - tbr.elapsedMinutes
-            val id = if (tbr.isAbsolute) R.string.overview_pump_tempbasal else R.string.overview_pump_tempbasal_percentage
             val value = if (tbr.isAbsolute) tbr.rate else tbr.percentage
             if (diff >= 60)
-                rh.gs(id, value, diff / 60, diff % 60)
+                rh.gs(
+                    if (tbr.isAbsolute)
+                        R.string.overview_pump_tempbasal_h
+                    else
+                        R.string.overview_pump_tempbasal_percentage_h,
+                    value, diff / 60, diff % 60
+                )
             else
-                rh.gs(id, value, diff)
+                rh.gs(
+                    if (tbr.isAbsolute)
+                        R.string.overview_pump_tempbasal
+                    else
+                        R.string.overview_pump_tempbasal_percentage,
+                    value, diff
+                )
         } else "-"
 
         fun getBasal(rh: ResourceHelper): String = if (basal != null) {
-            rh.gs(R.string.overview_pump_basal, basal.rate, basal.endHour, basal.endMinute)
+            rh.gs(R.string.overview_pump_basal, basal.rate)
         } else "-"
     }
 

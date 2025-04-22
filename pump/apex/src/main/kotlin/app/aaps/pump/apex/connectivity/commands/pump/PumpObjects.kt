@@ -34,7 +34,9 @@ enum class PumpObject(
     }
 }
 
-abstract class PumpObjectModel
+abstract class PumpObjectModel {
+    open fun validate(): String? = null
+}
 
 enum class BatteryLevel(val raw: Byte, val approximatePercentage: Int) {
     Dead(0, 0),

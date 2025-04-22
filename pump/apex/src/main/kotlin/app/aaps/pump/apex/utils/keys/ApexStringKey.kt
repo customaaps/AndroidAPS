@@ -2,6 +2,7 @@ package app.aaps.pump.apex.utils.keys
 
 import app.aaps.core.keys.BooleanPreferenceKey
 import app.aaps.core.keys.StringPreferenceKey
+import app.aaps.pump.apex.connectivity.FirmwareVersion
 import app.aaps.pump.apex.connectivity.commands.pump.AlarmLength
 import app.aaps.pump.apex.misc.BatteryType
 
@@ -23,4 +24,5 @@ enum class ApexStringKey(
     BluetoothAddress("apex_bt_address", ""),
     AlarmSoundLength("apex_alarm_length", AlarmLength.Short.name),
     CalcBatteryType("apex_battery_type", BatteryType.Custom.name),
+    FirmwareVer("apex_fw_ver", FirmwareVersion.AUTO.name),
 }
