@@ -149,6 +149,7 @@ class ApexPumpPlugin @Inject constructor(
         get() = pump.batteryLevel.percentage
     override val pumpDescription = PumpDescription().fillFor(model())
 
+    override fun isConnectionPersistent() = true
     override fun isBusy() = false //service?.isBusy ?: false
     override fun isSuspended() = pump.isSuspended
     override fun isInitialized() = pump.isInitialized && service != null
