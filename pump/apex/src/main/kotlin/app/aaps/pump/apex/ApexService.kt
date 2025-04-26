@@ -154,6 +154,8 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     private var connectionId = 0
 
+    val isReadyForExecutingCommands: Boolean get() = connectionFinished
+
     val lastConnected: Long
         get() = if (connectionStatus != ApexBluetooth.Status.CONNECTED) {
             lastConnectedTimestamp
@@ -539,6 +541,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             type = type,
         )
 
+        if (type == PumpSync.TemporaryBasalType.EMULATED_PUMP_SUSPEND) {
+            aapsLogger.debug(LTag.PUMP, "Emulated pump suspend detected - disconnecting pump after the queue ends.")
+            onEmulatedSuspend()
+        }
+
         aapsLogger.debug(LTag.PUMP, "Started TBR ${dose}U for ${durationMinutes}min by $caller")
         getStatus("ApexService-temporaryBasal")
         return true
@@ -816,6 +823,21 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     //////// Pump commands handlers
 
+    @Synchronized
+    private fun onEmulatedSuspend() {
+        Thread {
+            SystemClock.sleep(2500)
+            status.updateConnectionState(ApexDriverStatus.ConnectionState.Disconnecting)
+            while (commandQueue.size() != 0) {
+                aapsLogger.debug(LTag.PUMP, "Waiting for queue to end")
+                SystemClock.sleep(250)
+            }
+            aapsLogger.debug(LTag.PUMP, "Disconnecting")
+            disconnect()
+        }.start()
+        SystemClock.sleep(100)
+    }
+
     private fun onBolusProgress(dose: Double) {
         aapsLogger.debug(LTag.PUMPCOMM, "bolus progress $dose")
         pump.inProgressBolus?.currentDose = dose
@@ -892,7 +914,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
                 pump.inProgressBolus!!.failed = true
                 pump.inProgressBolus!!.notifyAll()
             }
-            SystemClock.sleep(10)
+            SystemClock.sleep(100)
             pump.inProgressBolus = null
         }
     }
@@ -1163,7 +1185,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     private var lastDisconnect = 0L
     fun disconnect(isReconnect: Boolean = false) {
-        if (SystemClock.uptimeMillis() - lastDisconnect < 15000) {
+        if (SystemClock.uptimeMillis() - lastDisconnect < 15000 && isReconnect) {
             aapsLogger.error(LTag.PUMPBTCOMM, "Last disconnect was not long ago, skipping this one")
             return
         }

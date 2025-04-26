@@ -153,9 +153,13 @@ class ApexPumpPlugin @Inject constructor(
     override fun isBusy() = false //service?.isBusy ?: false
     override fun isSuspended() = pump.isSuspended
     override fun isInitialized() = pump.isInitialized && service != null
-    override fun isConnecting() = service?.connectionStatus == ApexBluetooth.Status.CONNECTING
+    override fun isConnecting() = when (service?.connectionStatus) {
+        ApexBluetooth.Status.CONNECTING -> true
+        ApexBluetooth.Status.CONNECTED -> service?.isReadyForExecutingCommands == false
+        else -> false
+    }
     override fun isHandshakeInProgress() = false
-    override fun isConnected() = service?.connectionStatus == ApexBluetooth.Status.CONNECTED
+    override fun isConnected() = service?.connectionStatus == ApexBluetooth.Status.CONNECTED && service?.isReadyForExecutingCommands == true
     override fun isBatteryChangeLoggingEnabled() = preferences.get(ApexBooleanKey.LogBatteryChange)
     override fun lastDataTime() = service?.lastConnected ?: System.currentTimeMillis()
 
