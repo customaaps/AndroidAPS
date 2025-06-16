@@ -65,7 +65,6 @@ import kotlin.math.floor
 import androidx.core.net.toUri
 
 abstract class GenericAPSPluginBase(
-    pluginDescription: PluginDescription,
     aapsLogger: AAPSLogger,
     rh: ResourceHelper,
     val config: Config,
@@ -83,7 +82,7 @@ abstract class GenericAPSPluginBase(
     val iobCobCalculator: IobCobCalculator,
     val processedTbrEbData: ProcessedTbrEbData,
 ): PluginBase(
-    pluginDescription
+    PluginDescription()
         .mainType(PluginType.APS)
         .fragmentClass(OpenAPSFragment::class.java.name)
         .pluginIcon(app.aaps.core.ui.R.drawable.ic_generic_icon)

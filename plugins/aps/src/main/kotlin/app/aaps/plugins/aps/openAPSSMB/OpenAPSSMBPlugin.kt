@@ -104,11 +104,6 @@ open class OpenAPSSMBPlugin @Inject constructor(
     private val determineBasalSMB: DetermineBasalSMB,
     private val dynamicISF: DynamicISF,
 ) : GenericAPSPluginBase(
-    PluginDescription()
-        .pluginName(R.string.openapssmb)
-        .shortName(app.aaps.core.ui.R.string.smb_shortname)
-        .description(R.string.description_smb)
-        .setDefault(),
     aapsLogger, rh, config, persistenceLayer, dateUtil,
     preferences, uiInteraction, profiler, activePlugin,
     glucoseStatusProvider, hardLimits, rxBus, profileFunction,
@@ -295,5 +290,13 @@ open class OpenAPSSMBPlugin @Inject constructor(
             addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.ApsAutoIsfHalfBasalExerciseTarget, dialogMessage = R.string.half_basal_exercise_target_summary, title = R.string.half_basal_exercise_target_title))
             addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.ApsCarbsRequestThreshold, dialogMessage = R.string.carbs_req_threshold_summary, title = R.string.carbs_req_threshold))
         }
+    }
+
+    init {
+        pluginDescription
+            .pluginName(R.string.openapssmb)
+            .shortName(app.aaps.core.ui.R.string.smb_shortname)
+            .description(R.string.description_smb)
+            .setDefault()
     }
 }

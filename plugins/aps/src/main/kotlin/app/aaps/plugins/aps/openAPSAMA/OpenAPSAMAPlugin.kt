@@ -67,11 +67,6 @@ class OpenAPSAMAPlugin @Inject constructor(
     profiler: Profiler,
     private val determineBasalAMA: DetermineBasalAMA
 ) : GenericAPSPluginBase(
-    PluginDescription()
-    .pluginName(R.string.openapsama)
-    .shortName(R.string.oaps_shortname)
-    .description(R.string.description_ama)
-    .setDefault(),
     aapsLogger, rh, config, persistenceLayer, dateUtil,
     preferences, uiInteraction, profiler, activePlugin,
     glucoseStatusProvider, hardLimits, rxBus, profileFunction,
@@ -216,5 +211,12 @@ class OpenAPSAMAPlugin @Inject constructor(
                 addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsAmaBolusSnoozeDivisor, dialogMessage = R.string.openapsama_bolus_snooze_dia_divisor_summary, title = R.string.openapsama_bolus_snooze_dia_divisor))
             })
         }
+    }
+
+    init {
+        pluginDescription
+            .pluginName(R.string.openapsama)
+            .shortName(R.string.oaps_shortname)
+            .description(R.string.description_ama)
     }
 }
