@@ -50,7 +50,5 @@ interface Intents {
         // Patched Syai Tag App -> AAPS
         const val SYAI_TAG_APP = "info.nightscout.androidaps.action.SYAI_TAG_APP"
         const val CN_SYAI_TAG_APP = "cn.diyaps.sharing.SI_APP"
-        // Patched Sinocare App -> AAPS
-        const val SINOCARE_APP = "cn.diyaps.sharing.SINO_APP"
     }
 }

@@ -43,7 +43,6 @@ import app.aaps.plugins.source.NSClientSourcePlugin
 import app.aaps.plugins.source.OttaiPlugin
 import app.aaps.plugins.source.PoctechPlugin
 import app.aaps.plugins.source.RandomBgPlugin
-import app.aaps.plugins.source.SinocarePlugin
 import app.aaps.plugins.source.SyaiTagPlugin
 import app.aaps.plugins.source.TomatoPlugin
 import app.aaps.plugins.source.XdripSourcePlugin
@@ -457,12 +456,6 @@ abstract class PluginsListModule {
     @IntoMap
     @IntKey(475)
     abstract fun bindRandomBgPlugin(plugin: RandomBgPlugin): PluginBase
-
-    @Binds
-    @AllConfigs
-    @IntoMap
-    @IntKey(476)
-    abstract fun bindSinocarePlugin(plugin: SinocarePlugin): PluginBase
 
     @Binds
     @AllConfigs

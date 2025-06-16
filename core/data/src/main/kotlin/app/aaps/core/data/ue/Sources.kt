@@ -76,6 +76,5 @@ enum class Sources {
     Database,           // for PersistenceLayer
     Unknown,             //if necessary
     SyaiTag,
-    Sinocare,
     ;
 }
