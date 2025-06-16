@@ -91,6 +91,7 @@
     <string name="updated_at">Last update</string>
     <string name="suspend">Suspend</string>
     <string name="auto">Auto</string>
+    <string name="pump_is_locked">Pump is locked! Cannot issue boluses.</string>
 
     <string name="action_label">Current action</string>
     <string name="action_driver_error">Driver error: %1$s</string>

@@ -69,6 +69,7 @@
     <string name="status_label">Статус помпы</string>
     <string name="updated_at">Посл. обновление</string>
     <string name="suspend">Приостановить</string>
+    <string name="pump_is_locked">Помпа заблокирована! Подача болюсов невозможна.</string>
     <string name="setting_log_battery_change">Записывать смену батареи</string>
     <string name="setting_calc_battery_title">Рассчитывать процент заряда</string>
     <string name="setting_calc_battery_summary">Рассчитывать процент по напряжению батареи</string>

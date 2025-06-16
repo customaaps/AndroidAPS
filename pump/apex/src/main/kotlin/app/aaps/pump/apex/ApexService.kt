@@ -97,6 +97,10 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     @Inject lateinit var status: ApexDriverStatus
 
     companion object {
+        const val COMMAND_RESPONSE_TIMEOUT = 5000L
+        const val SINGLE_VALUE_RESPONSE_TIMEOUT = 5000L
+        const val COMPLEX_VALUE_RESPONSE_TIMEOUT = 30000L
+
         const val USED_BASAL_PATTERN_INDEX = 7
         const val HEARTBEAT_PERIOD_MINUTES = 2
         val FIRST_SUPPORTED_PROTO = ProtocolVersion.PROTO_4_9
@@ -192,7 +196,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         apexBluetooth.send(GetValue(apexDeviceInfo, value))
         try {
             aapsLogger.debug(LTag.PUMPCOMM, "Get ${value.name} | Waiting for response")
-            getValueResult.waitMillis(30000)
+            getValueResult.waitMillis(if (getValueResult.isSingleObject) SINGLE_VALUE_RESPONSE_TIMEOUT else COMPLEX_VALUE_RESPONSE_TIMEOUT)
         } catch (_: InterruptedException) {
             aapsLogger.error(LTag.PUMPCOMM, "Get ${value.name} | Timed out")
             isGetThreadRunning = false
@@ -227,7 +231,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         apexBluetooth.send(command)
         try {
             aapsLogger.debug(LTag.PUMPCOMM, "$command | Waiting for response")
-            commandResponse.waitMillis(15000)
+            commandResponse.waitMillis(COMMAND_RESPONSE_TIMEOUT)
         } catch (_: InterruptedException) {
             aapsLogger.error(LTag.PUMPCOMM, "$command | Timed out")
             commandResponse.waiting = false
@@ -247,12 +251,19 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         commandResponse.response
     }
 
+    private val cannotBeReconnected: Boolean
+        get() =
+            apexBluetooth.status != ApexBluetooth.Status.CONNECTED || // if pump was disconnected
+            doNotReconnect || // if some command has already requested reconnect
+            !connectionFinished || // if driver is initializing
+            pump.inProgressBolus?.lockHistory == true // if driver is listening to bolus progress
+
     fun getValue(value: GetValue.Value, noOptimizations: Boolean = false): List<PumpObjectModel>? {
         synchronized(commandLock) {
             val firstTry = intGetValue(value)
-            if (firstTry != null || noOptimizations || apexBluetooth.status != ApexBluetooth.Status.CONNECTED || doNotReconnect || !connectionFinished) return@getValue firstTry
-            status.addAction(ApexDriverStatus.Action.Reconnecting, R.string.action_reconnecting)
+            if (firstTry != null || noOptimizations || cannotBeReconnected) return@getValue firstTry
             doNotReconnect = true
+            status.addAction(ApexDriverStatus.Action.Reconnecting, R.string.action_reconnecting)
             disconnect(true)
         }
 
@@ -274,9 +285,9 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     private fun executeWithResponse(command: DeviceCommand, noOptimizations: Boolean = false): CommandResponse? {
         synchronized(commandLock) {
             val firstTry = intExecuteWithResponse(command)
-            if (firstTry != null || noOptimizations || connectionStatus != ApexBluetooth.Status.CONNECTED || doNotReconnect || !connectionFinished) return@executeWithResponse firstTry
-            status.addAction(ApexDriverStatus.Action.Reconnecting, R.string.action_reconnecting)
+            if (firstTry != null || noOptimizations || cannotBeReconnected) return@executeWithResponse firstTry
             doNotReconnect = true
+            status.addAction(ApexDriverStatus.Action.Reconnecting, R.string.action_reconnecting)
             disconnect(true)
         }
 
@@ -560,7 +571,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
                 aapsLogger.debug(LTag.PUMPCOMM, "[cancelBolus caller=$caller] Skipping, progress ${it.currentDose} / ${it.requestedDose} U")
                 return@cancelBolus true
             }
-        } ?: return false
+        } ?: return true
 
         status.addAction(ApexDriverStatus.Action.CancelingBolus, R.string.action_canceling_bolus)
         val response = executeWithResponse(CancelBolus(apexDeviceInfo))
@@ -747,6 +758,11 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
     fun getBoluses(caller: String, isFullHistory: Boolean = false): Boolean {
         aapsLogger.debug(LTag.PUMPCOMM, "getBoluses - $caller")
 
+        if (pump.inProgressBolus?.lockHistory == true) {
+            aapsLogger.info(LTag.PUMPCOMM, "Pump history is locked. Bolus is in progress.")
+            return true
+        }
+
         status.addAction(ApexDriverStatus.Action.GettingBoluses, R.string.action_getting_boluses)
         val response = getValue((if (isFullHistory) GetValue.Value.BolusHistory else GetValue.Value.LatestBoluses))
         status.removeAction(ApexDriverStatus.Action.GettingBoluses)
@@ -840,82 +856,86 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     private fun onBolusProgress(dose: Double) {
         aapsLogger.debug(LTag.PUMPCOMM, "bolus progress $dose")
-        pump.inProgressBolus?.currentDose = dose
+        pump.inProgressBolus?.let {
+            it.currentDose = dose
+            val isSMB = it.detailedBolusInfo.bolusType == BS.Type.SMB
 
-        val bolus = pump.inProgressBolus ?: return
-        val isSMB = bolus.detailedBolusInfo.bolusType == BS.Type.SMB
-
-        status.updateOrAddAction(
-            if (isSMB)
-                ApexDriverStatus.Action.MicroBolusing
-            else
-                ApexDriverStatus.Action.Bolusing,
-            rh.gs(
+            status.updateOrAddAction(
                 if (isSMB)
-                    R.string.action_bolusing_smb
+                    ApexDriverStatus.Action.MicroBolusing
                 else
-                    R.string.action_bolusing,
-                bolus.currentDose,
-                bolus.requestedDose
+                    ApexDriverStatus.Action.Bolusing,
+                rh.gs(
+                    if (isSMB)
+                        R.string.action_bolusing_smb
+                    else
+                        R.string.action_bolusing,
+                    it.currentDose,
+                    it.requestedDose
+                )
             )
-        )
 
-        rxBus.send(EventOverviewBolusProgress.apply {
-            t = bolus.treatment
-            percent = (bolus.currentDose / bolus.requestedDose * 100).roundToInt()
-            status = rh.gs(R.string.status_delivering, dose)
-        })
+            rxBus.send(EventOverviewBolusProgress.apply {
+                t = it.treatment
+                percent = (it.currentDose / it.requestedDose * 100).roundToInt()
+                status = rh.gs(R.string.status_delivering, dose)
+            })
+        }
     }
 
     private fun onBolusCompleted(dose: Double) {
         aapsLogger.debug(LTag.PUMPCOMM, "bolus completed")
-        if (pump.inProgressBolus == null) return
-        pump.inProgressBolus!!.currentDose = dose
+        pump.inProgressBolus?.let {
+            it.currentDose = dose
+            it.lockHistory = false
 
-        status.removeAction(
-            if (pump.inProgressBolus!!.detailedBolusInfo.bolusType == BS.Type.SMB)
-                ApexDriverStatus.Action.MicroBolusing
-            else
-                ApexDriverStatus.Action.Bolusing
-        )
-        rxBus.send(EventOverviewBolusProgress.apply {
-            percent = 100
-            status = rh.gs(R.string.status_delivered, dose)
-        })
+            status.removeAction(
+                if (it.detailedBolusInfo.bolusType == BS.Type.SMB)
+                    ApexDriverStatus.Action.MicroBolusing
+                else
+                    ApexDriverStatus.Action.Bolusing
+            )
+            rxBus.send(EventOverviewBolusProgress.apply {
+                percent = 100
+                status = rh.gs(R.string.status_delivered, dose)
+            })
 
-        // Request new bolus history to fixup bolus ID.
-        Thread { getBoluses("ApexService-onBolusCompleted") }.start()
+            // Request new bolus history to fixup bolus ID.
+            Thread { getBoluses("ApexService-onBolusCompleted") }.start()
+        }
     }
 
     private fun onBolusFailed(cancelled: Boolean = false) {
         aapsLogger.debug(LTag.PUMPCOMM, "bolus failed (cancelled? $cancelled)")
-        if (pump.inProgressBolus == null) return
+        pump.inProgressBolus?.let {
+            it.lockHistory = false
 
-        status.removeAction(
-            if (pump.inProgressBolus!!.detailedBolusInfo.bolusType == BS.Type.SMB)
-                ApexDriverStatus.Action.MicroBolusing
-            else
-                ApexDriverStatus.Action.Bolusing
-        )
+            status.removeAction(
+                if (it.detailedBolusInfo.bolusType == BS.Type.SMB)
+                    ApexDriverStatus.Action.MicroBolusing
+                else
+                    ApexDriverStatus.Action.Bolusing
+            )
 
-        if (cancelled) {
-            pump.inProgressBolus!!.cancelled = true
-            rxBus.send(EventOverviewBolusProgress.apply {
-                status = rh.gs(R.string.status_bolus_cancelled)
-            })
-        }
-
-        if (pump.inProgressBolus!!.currentDose >= 0.025) {
-            // Request new bolus history to fixup bolus ID and delivered amount.
-            Thread { getBoluses("ApexService-onBolusCompleted") }.start()
-        } else {
-            aapsLogger.debug(LTag.PUMPCOMM, "bolus entirely failed!")
-            synchronized(pump.inProgressBolus!!) {
-                pump.inProgressBolus!!.failed = true
-                pump.inProgressBolus!!.notifyAll()
+            if (cancelled) {
+                it.cancelled = true
+                rxBus.send(EventOverviewBolusProgress.apply {
+                    status = rh.gs(R.string.status_bolus_cancelled)
+                })
             }
-            SystemClock.sleep(100)
-            pump.inProgressBolus = null
+
+            if (it.currentDose >= 0.025) {
+                // Request new bolus history to fixup bolus ID and delivered amount.
+                Thread { getBoluses("ApexService-onBolusCompleted") }.start()
+            } else {
+                aapsLogger.debug(LTag.PUMPCOMM, "bolus entirely failed!")
+                synchronized(it) {
+                    it.failed = true
+                    it.notifyAll()
+                }
+                SystemClock.sleep(100)
+                pump.inProgressBolus = null
+            }
         }
     }
 
@@ -1040,6 +1060,18 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         }
     }
 
+    private fun onSystemStateChanged(v1: StatusV1) {
+        if (v1.isLocked == true) {
+            uiInteraction.addNotification(
+                Notification.PUMP_IS_LOCKED,
+                rh.gs(R.string.pump_is_locked),
+                Notification.URGENT,
+            )
+        } else {
+            uiInteraction.dismissNotification(Notification.PUMP_IS_LOCKED)
+        }
+    }
+
     private fun onStatusV1(status: StatusV1) {
         val update = pump.updateFromV1(status)
         aapsLogger.debug(LTag.PUMPCOMM, "Got V1 | Status updates: ${update.changes.joinToString(", ") { it.name }}")
@@ -1051,6 +1083,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
         onAlarmsChanged(update)
         onBasalChanged(update)
         onReservoirChanged(update)
+        onSystemStateChanged(status)
 
         // We may retrieve the forgotten in V1 alarm length from V2.
         if (pump.firmwareVersion?.atleastProto(ProtocolVersion.PROTO_4_11) == false) {
@@ -1107,36 +1140,39 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
         // Find the bolus in history and sync it.
         // Pump may round up boluses, use 0.11 for failsafe.
-        val ipb = pump.inProgressBolus
-        val delta = abs(entry.dateTime.millis - (ipb?.temporaryId ?: 0))
-        if (ipb != null && (delta <= 1000 || (delta > 59000 && delta < 61000))) {
-            aapsLogger.debug(LTag.PUMP, "Syncing current bolus [${entry.standardDose * 0.025}U -> ${entry.standardPerformed * 0.025}U]")
-            val delta = abs(entry.standardDose * 0.025 - ipb.currentDose)
-            if (!ipb.cancelled && delta > 0.11) {
-                aapsLogger.debug(LTag.PUMP, "Not this bolus: $delta > 0.11")
+        pump.inProgressBolus?.let {
+            val delta = abs(entry.dateTime.millis - it.temporaryId)
+            // Pump saves all boluses like they were issued on the 59th second of minute.
+            // Considering that in the condition.
+            if (delta <= 1000 || (delta > 59000 && delta < 61000)) {
+                aapsLogger.debug(LTag.PUMP, "Syncing current bolus [${entry.standardDose * 0.025}U -> ${entry.standardPerformed * 0.025}U]")
+                val deltaU = abs(entry.standardDose * 0.025 - if (it.useFallbackDose) it.requestedDose else it.currentDose)
+                if (!it.cancelled && deltaU > 0.11) {
+                    aapsLogger.debug(LTag.PUMP, "Not this bolus: $delta > 0.11")
+                    return
+                }
+
+                val syncResult = pumpSync.syncBolusWithTempId(
+                    timestamp = entry.dateTime.millis,
+                    temporaryId = it.temporaryId,
+                    amount = entry.standardPerformed * 0.025,
+                    pumpId = entry.dateTime.millis,
+                    pumpType = PumpType.APEX_TRUCARE_III,
+                    pumpSerial = apexDeviceInfo.serialNumber,
+                    type = it.detailedBolusInfo.bolusType,
+                )
+                aapsLogger.debug(LTag.PUMP, "Final bolus [${entry.standardDose * 0.025}U -> ${entry.standardPerformed * 0.025}U] sync succeeded? $syncResult")
+                synchronized(pump.inProgressBolus!!) {
+                    pump.inProgressBolus!!.notifyAll()
+                }
+                SystemClock.sleep(100)
+                pump.inProgressBolus = null
+
+                getStatus("ApexService-updateAfterBolus")
                 return
             }
-
-            val syncResult = pumpSync.syncBolusWithTempId(
-                timestamp = entry.dateTime.millis,
-                temporaryId = ipb.temporaryId,
-                amount = entry.standardPerformed * 0.025,
-                pumpId = entry.dateTime.millis,
-                pumpType = PumpType.APEX_TRUCARE_III,
-                pumpSerial = apexDeviceInfo.serialNumber,
-                type = ipb.detailedBolusInfo.bolusType,
-            )
-            aapsLogger.debug(LTag.PUMP, "Final bolus [${entry.standardDose * 0.025}U -> ${entry.standardPerformed * 0.025}U] sync succeeded? $syncResult")
-            synchronized(pump.inProgressBolus!!) {
-                pump.inProgressBolus!!.notifyAll()
-            }
-            SystemClock.sleep(100)
-            pump.inProgressBolus = null
-
-            getStatus("ApexService-updateAfterBolus")
-            return
+            if (entry.index < 2) return
         }
-        if (ipb != null && entry.index < 2) return
 
         // Otherwise, just sync the bolus with the DB
         pumpSync.syncBolusWithPumpId(
@@ -1249,7 +1285,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             }
 
             // Do a fast reconnect on failed commands
-            if (!doNotReconnect) {
+            if (!doNotReconnect || pump.inProgressBolus != null) {
                 if (!getStatus("BLE-onConnect")) {
                     aapsLogger.error(LTag.PUMPCOMM, "Failed to get status - disconnecting.")
                     return disconnect(true)
@@ -1330,6 +1366,8 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
 
     override fun onDisconnect() {
         aapsLogger.debug(LTag.PUMPCOMM, "onDisconnect")
+        pump.inProgressBolus?.lockHistory = false
+        pump.inProgressBolus?.useFallbackDose = true
         connectionFinished = false
 
         isGetThreadRunning = false
@@ -1388,7 +1426,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             if (config.isEngineeringMode()) {
                 uiInteraction.addNotification(
                     Notification.APEX_SERVICE_MSG,
-                    "Invalid object data ($type, $validationMsg) - please send log to developer!",
+                    "Invalid object data ($type, $validationMsg) - please send log to developers!",
                     Notification.URGENT,
                 )
             }

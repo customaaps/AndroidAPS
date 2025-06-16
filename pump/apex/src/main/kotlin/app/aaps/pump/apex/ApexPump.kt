@@ -211,6 +211,8 @@ class ApexPump @Inject constructor(
         var detailedBolusInfo: DetailedBolusInfo,
         var treatment: EventOverviewBolusProgress.Treatment,
         var failed: Boolean = false,
+        var lockHistory: Boolean = true,
+        var useFallbackDose: Boolean = false,
     )
 
     enum class Update {
