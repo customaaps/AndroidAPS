@@ -60,5 +60,5 @@
     <string name="night_mode_lowtt">Выключать ночной режим при низкой ТТ</string>
     <string name="night_mode_smbs_disabled">SMB выключены из-за активного ночного режима</string>
     <string name="night_mode_disabled">Ночной режим отключен: %1$s</string>
-    <string name="bg_threshold_smbs_disabled">SMB отключены т.к. ГК ниже порогового значения: %1$d &lt; %2$d</string>
+    <string name="bg_threshold_smbs_disabled">SMB отключены т.к. ГК ниже порогового значения: %1$f &lt; %2$f</string>
 </resources>
