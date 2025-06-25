@@ -29,6 +29,9 @@ interface Insulin : ConfigExportImport {
     val comment: String
     val dia: Double
     val peak: Int
+    val delay: Int
+
+    val isDiaDynamic: Boolean
 
     fun iobCalcForTreatment(bolus: BS, time: Long, dia: Double): Iob
 

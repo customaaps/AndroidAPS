@@ -38,5 +38,6 @@ data class Carbs(
     override var utcOffset: Long = TimeZone.getDefault().getOffset(timestamp).toLong(),
     override var duration: Long, // in milliseconds
     var amount: Double,
-    var notes: String? = null
+    var notes: String? = null,
+    var absorptionSpeed: Long? = null,
 ) : TraceableDBEntry, DBEntryWithTimeAndDuration

@@ -132,4 +132,6 @@ enum class BooleanKey(
     AllowRecalculatedBGs("allow_recalc_bgs", false),
     LyumjevU200("lyumjev_u200", false),
     EnableSmbBgThreshold("enable_smb_bg_threshold", false),
+
+    LyumjevForceOref("lyumjev_force_oref", false, defaultedBySM = true),
 }

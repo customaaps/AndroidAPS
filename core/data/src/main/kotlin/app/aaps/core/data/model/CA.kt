@@ -13,7 +13,8 @@ data class CA(
     var utcOffset: Long = TimeZone.getDefault().getOffset(timestamp).toLong(),
     var duration: Long, // in milliseconds
     var amount: Double,
-    var notes: String? = null
+    var notes: String? = null,
+    var absorptionSpeed: Long? = null,
 ) : HasIDs {
 
     fun contentEqualsTo(other: CA): Boolean =
@@ -22,7 +23,8 @@ data class CA(
             utcOffset == other.utcOffset &&
             amount == other.amount &&
             notes == other.notes &&
-            duration == other.duration
+            duration == other.duration &&
+            absorptionSpeed == other.absorptionSpeed
 
     fun onlyNsIdAdded(previous: CA): Boolean =
         previous.id != id &&

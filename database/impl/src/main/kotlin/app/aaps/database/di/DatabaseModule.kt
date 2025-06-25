@@ -8,8 +8,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import app.aaps.database.AppDatabase
 import app.aaps.database.entities.TABLE_APS_RESULTS
+import app.aaps.database.entities.TABLE_BOLUSES
+import app.aaps.database.entities.TABLE_BOLUS_CALCULATOR_RESULTS
+import app.aaps.database.entities.TABLE_CARBS
+import app.aaps.database.entities.TABLE_EFFECTIVE_PROFILE_SWITCHES
 import app.aaps.database.entities.TABLE_HEART_RATE
 import app.aaps.database.entities.TABLE_PREFERENCE_CHANGES
+import app.aaps.database.entities.TABLE_PROFILE_SWITCHES
 import app.aaps.database.entities.TABLE_STEPS_COUNT
 import app.aaps.database.entities.TABLE_USER_ENTRY
 import dagger.Module
@@ -178,7 +183,21 @@ open class DatabaseModule {
         }
     }
 
+    internal val migration29to30 = object : Migration(29, 30) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE `$TABLE_CARBS` ADD COLUMN `absorptionSpeed` INTEGER")
+            database.execSQL("ALTER TABLE `$TABLE_BOLUS_CALCULATOR_RESULTS` ADD COLUMN `carbsAbsorptionSpeed` INTEGER")
+
+            database.execSQL("ALTER TABLE `$TABLE_PROFILE_SWITCHES` ADD COLUMN `delay` INTEGER")
+            database.execSQL("ALTER TABLE `$TABLE_EFFECTIVE_PROFILE_SWITCHES` ADD COLUMN `delay` INTEGER")
+            database.execSQL("ALTER TABLE `$TABLE_BOLUSES` ADD COLUMN `delay` INTEGER")
+
+            // Custom indexes must be dropped on migration to pass room schema checking after upgrade
+            dropCustomIndexes(database)
+        }
+    }
+
     /** List of all migrations for easy reply in tests. */
     @VisibleForTesting
-    internal val migrations = arrayOf(migration20to21, migration21to22, migration22to23, migration23to24, migration24to25, migration25to26, migration26to27, migration27to28, migration28to29)
+    internal val migrations = arrayOf(migration20to21, migration21to22, migration22to23, migration23to24, migration24to25, migration25to26, migration26to27, migration27to28, migration28to29, migration29to30)
 }

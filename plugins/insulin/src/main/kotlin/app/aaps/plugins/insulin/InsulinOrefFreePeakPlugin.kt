@@ -44,16 +44,20 @@ class InsulinOrefFreePeakPlugin @Inject constructor(
     override fun configuration(): JSONObject =
         JSONObject()
             .put(IntKey.InsulinOrefPeak, preferences)
+            .put(IntKey.InsulinOrefDelay, preferences)
 
     override fun applyConfiguration(configuration: JSONObject) {
         configuration
             .store(IntKey.InsulinOrefPeak, preferences)
+            .store(IntKey.InsulinOrefDelay, preferences)
     }
 
     override fun commentStandardText(): String {
-        return rh.gs(R.string.insulin_peak_time) + ": " + peak
+        return rh.gs(R.string.insulin_peak_time) + ": " + peak + "\n" + rh.gs(R.string.insulin_delay_time) + ": " + delay
     }
 
+    override val delay: Int
+        get() = preferences.get(IntKey.InsulinOrefDelay)
     override val peak: Int
         get() = preferences.get(IntKey.InsulinOrefPeak)
 
@@ -74,6 +78,7 @@ class InsulinOrefFreePeakPlugin @Inject constructor(
             title = rh.gs(R.string.insulin_oref_peak)
             initialExpandedChildrenCount = 0
             addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.InsulinOrefPeak, title = R.string.insulin_peak_time))
+            addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.InsulinOrefDelay, title = R.string.insulin_delay_time, dialogMessage = R.string.insulin_delay_comment))
         }
     }
 }

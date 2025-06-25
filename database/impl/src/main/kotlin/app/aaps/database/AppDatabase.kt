@@ -43,7 +43,8 @@ import app.aaps.database.entities.TotalDailyDose
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.entities.VersionChange
 
-const val DATABASE_VERSION = 29
+// FORK'S VERSION HAS BEEN CHANGED - CONSIDER THIS WHILE MERGING
+const val DATABASE_VERSION = 30
 
 @Database(
     version = DATABASE_VERSION,

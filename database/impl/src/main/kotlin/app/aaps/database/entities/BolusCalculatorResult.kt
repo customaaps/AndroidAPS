@@ -54,6 +54,7 @@ data class BolusCalculatorResult(
     var wasCOBUsed: Boolean,
     var cobInsulin: Double,
     var carbs: Double,
+    var carbsAbsorptionSpeed: Long? = null,
     var wereCarbsUsed: Boolean,
     var carbsInsulin: Double,
     var otherCorrection: Double,

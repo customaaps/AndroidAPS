@@ -35,6 +35,7 @@ class InsulinOrefRapidActingPlugin @Inject constructor(
     override fun commentStandardText(): String = rh.gs(R.string.fast_acting_insulin_comment)
 
     override val peak = 75
+    override val delay = 10
 
     init {
         pluginDescription

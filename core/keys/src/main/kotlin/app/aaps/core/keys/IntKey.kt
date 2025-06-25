@@ -59,6 +59,7 @@ enum class IntKey(
     AlertsStaleDataThreshold("missed_bg_readings_threshold", 30, 15, 10000, defaultedBySM = true, dependency = BooleanKey.AlertMissedBgReading),
     AlertsPumpUnreachableThreshold("pump_unreachable_threshold", 30, 30, 300, defaultedBySM = true, dependency = BooleanKey.AlertPumpUnreachable),
     InsulinOrefPeak("insulin_oref_peak", 75, 35, 120, hideParentScreenIfHidden = true),
+    InsulinOrefDelay("insulin_oref_delay", 0, 0, 45, hideParentScreenIfHidden = true),
 
     AutotuneDefaultTuneDays("autotune_default_tune_days", 5, 1, 30),
 

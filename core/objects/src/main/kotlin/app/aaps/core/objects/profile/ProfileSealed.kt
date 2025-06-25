@@ -115,7 +115,7 @@ sealed class ProfileSealed(
         null,
         0,
         100,
-        ICfg("", (value.dia * 3600 * 1000).toLong(), 0),
+        ICfg("", (value.dia * 3600 * 1000).toLong(), 0, 0),
         value.timeZone.rawOffset.toLong(),
         activePlugin?.activeAPS
     )

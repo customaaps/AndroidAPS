@@ -9,6 +9,8 @@
     <string name="insulin_shortname">INS</string>
     <string name="insulin_oref_peak">IOB Curve Peak Time</string>
     <string name="insulin_peak_time">Peak Time [min]</string>
+    <string name="insulin_delay_time">Delay Time [min]</string>
+    <string name="insulin_delay_comment">The delay in minutes before IOB actually starts decreasing.\nSet to 0 to disable.\n\nTypical values are:\n10 for (Ultra-)Rapid Acting\n5 for Lyumjev</string>
     <string name="free_peak_oref">Free-Peak Oref</string>
     <string name="rapid_acting_oref">Rapid-Acting Oref</string>
     <string name="ultra_rapid_oref">Ultra-Rapid Oref</string>
@@ -17,5 +19,6 @@
     <string name="ultra_fast_acting_insulin_comment">Fiasp</string>
 
     <string name="insulin_u200">Is U200</string>
+    <string name="force_common_model">Use common insulin model</string>
 
 </resources>

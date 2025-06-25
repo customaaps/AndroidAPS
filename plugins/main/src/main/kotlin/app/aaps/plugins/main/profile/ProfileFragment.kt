@@ -131,7 +131,7 @@ class ProfileFragment : DaggerFragment() {
         val aps = activePlugin.activeAPS
         binding.isfDynamicLabel.visibility = aps.supportsDynamicIsf().toVisibility()
         binding.icDynamicLabel.visibility = aps.supportsDynamicIc().toVisibility()
-        binding.diaDynamicLabel.visibility = (activePlugin.activeInsulin.id == Insulin.InsulinType.OREF_LYUMJEV).toVisibility()
+        binding.diaDynamicLabel.visibility = activePlugin.activeInsulin.isDiaDynamic.toVisibility()
     }
 
     fun build() {

@@ -30,6 +30,7 @@ data class BCR(
     var wasCOBUsed: Boolean,
     var cobInsulin: Double,
     var carbs: Double,
+    var carbsAbsorptionSpeed: Long? = null,
     var wereCarbsUsed: Boolean,
     var carbsInsulin: Double,
     var otherCorrection: Double,
@@ -65,6 +66,7 @@ data class BCR(
             wasCOBUsed == other.wasCOBUsed &&
             cobInsulin == other.cobInsulin &&
             carbs == other.carbs &&
+            carbsAbsorptionSpeed == other.carbsAbsorptionSpeed &&
             wereCarbsUsed == other.wereCarbsUsed &&
             carbsInsulin == other.carbsInsulin &&
             otherCorrection == other.otherCorrection &&

@@ -16,11 +16,9 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.keys.BooleanKey
-import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.extensions.put
 import app.aaps.core.objects.extensions.store
-import app.aaps.core.validators.preferences.AdaptiveIntPreference
 import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import org.json.JSONObject
 import javax.inject.Inject
@@ -46,15 +44,19 @@ class InsulinLyumjevPlugin @Inject constructor(
     override fun configuration(): JSONObject =
         JSONObject()
             .put(BooleanKey.LyumjevU200, preferences)
+            .put(BooleanKey.LyumjevForceOref, preferences)
 
     override fun applyConfiguration(configuration: JSONObject) {
         configuration
             .store(BooleanKey.LyumjevU200, preferences)
+            .store(BooleanKey.LyumjevForceOref, preferences)
     }
 
     override fun commentStandardText(): String = rh.gs(R.string.lyumjev)
 
     override val peak = 45
+    override val delay = 5
+    override val isDiaDynamic get() = !preferences.get(BooleanKey.LyumjevForceOref)
 
     init {
         pluginDescription
@@ -67,10 +69,19 @@ class InsulinLyumjevPlugin @Inject constructor(
     override fun iobCalcForTreatment(bolus: BS, time: Long, dia: Double): Iob {
         assert(dia != 0.0)
         assert(peak != 0)
+
+        if (preferences.get(BooleanKey.LyumjevForceOref)) {
+            return super.iobCalcForTreatment(bolus, time, dia)
+        }
+
         val result = Iob()
         if (bolus.amount != 0.0) {
-            val bolusTime = bolus.timestamp
-            val t = (time - bolusTime) / 1000.0 / 60.0
+            val bolusTime = time - bolus.timestamp
+            val t = (bolusTime - delay) / 1000.0 / 60.0
+            if (t < 0) {
+                result.iobContrib = bolus.amount
+                return result
+            }
             if (t >= 8 * 60) return super.iobCalcForTreatment(bolus, time, dia)
 
             // MP Model for estimation of PD-based peak time: (a0 + a1*X)/(1+b1*X), where X = bolus size
@@ -121,6 +132,7 @@ class InsulinLyumjevPlugin @Inject constructor(
             title = rh.gs(R.string.lyumjev)
             initialExpandedChildrenCount = 0
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.LyumjevU200, title = R.string.insulin_u200))
+            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.LyumjevForceOref, title = R.string.force_common_model))
         }
     }
 }

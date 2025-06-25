@@ -56,6 +56,8 @@ abstract class InsulinOrefBasePlugin(
             }
         }
 
+    override val isDiaDynamic = false
+
     open fun sendShortDiaNotification(dia: Double) {
         if (System.currentTimeMillis() - lastWarned > 60 * 1000) {
             lastWarned = System.currentTimeMillis()
@@ -77,12 +79,15 @@ abstract class InsulinOrefBasePlugin(
         assert(peak != 0)
         val result = Iob()
         if (bolus.amount != 0.0) {
-            val bolusTime = bolus.timestamp
-            val t = (time - bolusTime) / 1000.0 / 60.0
+            val bolusTime = (time - bolus.timestamp)
+            val t = (bolusTime - delay) / 1000.0 / 60.0
             val td = dia * 60 //getDIA() always >= MIN_DIA
             val tp = peak.toDouble()
-            // force the IOB to 0 if over DIA hours have passed
-            if (t < td) {
+            if (t < 0) {
+                // force the IOB to 100% if delay had not passed
+                result.iobContrib = bolus.amount
+            } else if (t < td) {
+                // force the IOB to 0 if over DIA hours have passed
                 val tau = tp * (1 - tp / td) / (1 - 2 * tp / td)
                 val a = 2 * tau / td
                 val s = 1 / (1 - a + (1 + a) * exp(-td / tau))
@@ -94,7 +99,7 @@ abstract class InsulinOrefBasePlugin(
     }
 
     override val iCfg: ICfg
-        get() = ICfg(friendlyName, (dia * 1000.0 * 3600.0).toLong(), T.mins(peak.toLong()).msecs())
+        get() = ICfg(friendlyName, (dia * 1000.0 * 3600.0).toLong(), T.mins(peak.toLong()).msecs(), T.mins(delay.toLong()).msecs())
 
     override val comment
         get(): String {
