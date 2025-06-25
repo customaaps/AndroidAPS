@@ -10,6 +10,7 @@ import app.aaps.core.interfaces.aps.AutosensResult
 import app.aaps.core.interfaces.aps.CurrentTemp
 import app.aaps.core.interfaces.aps.GlucoseStatus
 import app.aaps.core.interfaces.aps.IobTotal
+import app.aaps.core.interfaces.aps.LoopKitProfile
 import app.aaps.core.interfaces.aps.MealData
 import app.aaps.core.interfaces.aps.OapsProfile
 import app.aaps.core.interfaces.aps.OapsProfileAutoIsf
@@ -82,6 +83,7 @@ class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector)
     override var currentTemp: CurrentTemp? = null
     override var oapsProfile: OapsProfile? = null
     override var oapsProfileAutoIsf: OapsProfileAutoIsf? = null
+    override var loopKitProfile: LoopKitProfile? = null
     override var mealData: MealData? = null
 
     lateinit var result: RT

@@ -237,4 +237,7 @@
     <string name="smb_bg_threshold_title">SMB BG Threshold</string>
     <string name="smb_bg_threshold_summary">When BG is below this value, SMBs would be disabled.</string>
 
+    <string name="loopaps_name">LoopKit</string>
+    <string name="loopaps_desc">The port of LoopKit algorithm. Highly experimental.</string>
+
 </resources>
