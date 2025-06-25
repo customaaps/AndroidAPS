@@ -109,7 +109,7 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
         if (state !== PumpDeviceState.PumpUnreachable) medtronicPumpStatus.pumpDeviceState = PumpDeviceState.WakingUp
         for (retry in 0..4) {
             aapsLogger.debug(LTag.PUMPCOMM, "isDeviceReachable. Waking pump... " + if (retry != 0) " (retry $retry)" else "")
-            val connected = connectToDevice()
+            val connected = connectToDevice(retry)
             if (connected) return true
             SystemClock.sleep(1000)
         }
@@ -123,14 +123,14 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
         return false
     }
 
-    private fun connectToDevice(): Boolean {
+    private fun connectToDevice(retry: Int): Boolean {
         val state = medtronicPumpStatus.pumpDeviceState
 
         // check connection
         val pumpMsgContent = createPumpMessageContent(RLMessageType.ReadSimpleData) // simple
         val rfSpyResponse = rfspy.transmitThenReceive(
-            RadioPacket(injector, pumpMsgContent), 0.toByte(), 200.toByte(),
-            0.toByte(), 0.toByte(), 25000, 0.toByte()
+            RadioPacket(injector, pumpMsgContent), 0.toByte(), retry.toByte(),
+            0.toByte(), 0.toByte(), 5000, 0.toByte()
         )
         aapsLogger.info(LTag.PUMPCOMM, "wakeup: raw response is " + ByteUtil.shortHexString(rfSpyResponse.raw))
         if (rfSpyResponse.wasTimeout()) {
