@@ -151,8 +151,8 @@ public abstract class RileyLinkCommunicationManager<T extends RLMessage> {
             aapsLogger.info(LTag.PUMPBTCOMM, "Waking pump...");
 
             byte[] pumpMsgContent = createPumpMessageContent(RLMessageType.ReadSimpleData); // simple
-            RFSpyResponse resp = rfspy.transmitThenReceive(new RadioPacket(injector, pumpMsgContent), (byte) 0, (byte) 200,
-                    (byte) 0, (byte) 0, 25000, (byte) 0);
+            RFSpyResponse resp = rfspy.transmitThenReceive(new RadioPacket(injector, pumpMsgContent), (byte) 0, (byte) 4,
+                    (byte) 0, (byte) 0, 5000, (byte) 0);
             aapsLogger.info(LTag.PUMPBTCOMM, "wakeup: raw response is " + ByteUtil.INSTANCE.shortHexString(resp.getRaw()));
 
             // FIXME wakeUp successful !!!!!!!!!!!!!!!!!!
