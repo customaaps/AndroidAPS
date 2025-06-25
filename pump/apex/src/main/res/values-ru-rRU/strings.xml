@@ -109,4 +109,6 @@
     <string name="action_checking_pump">Проверка помпы</string>
     <string name="action_heartbeat">Обработка heartbeat</string>
     <string name="action_fallback_getting_obj">Получение %1$s</string>
+    <string name="pump_special_mode">Особый режим</string>
+    <string name="bolus_error_pump_special_mode">Помпа находится в особом режиме (приостановлена, либо в состоянии заправки). Пожалуйста, отключайте помпу в AAPS ПЕРЕД входом в такие режимы. Болюс не может быть подан.</string>
 </resources>
