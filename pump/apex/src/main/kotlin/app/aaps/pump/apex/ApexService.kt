@@ -450,6 +450,12 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             return false
         }
 
+        if (response.code == CommandResponse.Code.Invalid) {
+            aapsLogger.error(LTag.PUMPCOMM, "[caller=$caller] Cannot begin bolus while in special mode")
+            createSpecialModeAlarm()
+            return false
+        }
+
         if (response.code != CommandResponse.Code.Accepted) {
             aapsLogger.error(LTag.PUMPCOMM, "[caller=$caller] Failed to begin bolus: ${response.code.name}")
             return false
@@ -469,6 +475,7 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             requestedDose = dbi.insulin,
             temporaryId = temporaryId,
             detailedBolusInfo = dbi,
+            lockHistory = true,
             treatment = EventOverviewBolusProgress.Treatment(
                 insulin = dbi.insulin,
                 carbs = dbi.carbs.toInt(),
@@ -1394,6 +1401,14 @@ class ApexService: DaggerService(), ApexBluetoothCallback {
             }
 
         if (!manualDisconnect) spawnLoop()
+    }
+
+    private fun createSpecialModeAlarm() {
+        uiInteraction.runAlarm(
+            rh.gs(R.string.bolus_error_pump_special_mode),
+            rh.gs(R.string.pump_special_mode),
+            app.aaps.core.ui.R.raw.boluserror
+        )
     }
 
     private var isGetThreadRunning = false
