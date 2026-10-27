@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_connector_label">Группа условий</string>
+    <string name="map_current_location">Текущее местоположение</string>
+    <string name="map_selected_location">Выбранное местоположение</string>
+</resources>

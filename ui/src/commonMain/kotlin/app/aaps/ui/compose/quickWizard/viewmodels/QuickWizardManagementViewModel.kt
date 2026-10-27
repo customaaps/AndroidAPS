@@ -19,6 +19,7 @@ import app.aaps.core.objects.wizard.QuickWizardEntry
 import app.aaps.core.objects.wizard.QuickWizardMode
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.ScreenMode
+import app.aaps.ui.UiStrings
 import app.aaps.ui.events.EventQuickWizardChange
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
@@ -121,7 +122,7 @@ class QuickWizardManagementViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load QuickWizard entries", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Failed to load entries", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.load_entries_failed), EventShowSnackbar.Type.Error))
             }
         }
     }
@@ -324,14 +325,14 @@ class QuickWizardManagementViewModel(
                 when (mode) {
                     QuickWizardMode.WIZARD, QuickWizardMode.CARBS -> {
                         if (currentState.editorCarbs <= 0 && (!currentState.editorUseEcarbs || currentState.editorCarbs2 <= 0)) {
-                            rxBus.send(EventShowSnackbar("Carbs must be greater than 0", EventShowSnackbar.Type.Error))
+                            rxBus.send(EventShowSnackbar(rh.gs(UiStrings.carbs_must_be_positive), EventShowSnackbar.Type.Error))
                             return@launch
                         }
                     }
 
                     QuickWizardMode.INSULIN                       -> {
                         if (currentState.editorInsulin <= 0.0) {
-                            rxBus.send(EventShowSnackbar("Insulin must be greater than 0", EventShowSnackbar.Type.Error))
+                            rxBus.send(EventShowSnackbar(rh.gs(UiStrings.insulin_must_be_positive), EventShowSnackbar.Type.Error))
                             return@launch
                         }
                     }
@@ -384,7 +385,7 @@ class QuickWizardManagementViewModel(
                 }
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to save QuickWizard entry", e)
-                rxBus.send(EventShowSnackbar(e.message ?: "Failed to save entry", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.save_entry_failed), EventShowSnackbar.Type.Error))
             }
         }
     }
@@ -406,7 +407,7 @@ class QuickWizardManagementViewModel(
                 _sideEffect.emit(SideEffect.ScrollToEntry(newIndex))
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to add QuickWizard entry", e)
-                rxBus.send(EventShowSnackbar(e.message ?: "Failed to add entry", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.add_entry_failed), EventShowSnackbar.Type.Error))
             }
         }
     }
@@ -440,7 +441,7 @@ class QuickWizardManagementViewModel(
                 _sideEffect.emit(SideEffect.ScrollToEntry(newIndex))
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to clone QuickWizard entry", e)
-                rxBus.send(EventShowSnackbar(e.message ?: "Failed to clone entry", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.clone_entry_failed), EventShowSnackbar.Type.Error))
             }
         }
     }
@@ -459,7 +460,7 @@ class QuickWizardManagementViewModel(
                 rxBus.send(EventQuickWizardChange())
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to delete QuickWizard entry", e)
-                rxBus.send(EventShowSnackbar(e.message ?: "Failed to delete entry", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.delete_entry_failed), EventShowSnackbar.Type.Error))
             }
         }
     }

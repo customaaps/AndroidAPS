@@ -101,7 +101,7 @@ fun TriggerEditor(
             is TriggerWifiSsid           -> TriggerWifiSsidEditor(trigger, onChange)
             is TriggerBTDevice           -> TriggerBTDeviceEditor(trigger, bondedDevices, onChange)
             is TriggerLocation           -> TriggerLocationEditor(trigger, onChange, tick, onUseCurrentLocation, onPickLocationFromMap)
-            is TriggerConnector          -> Text("Connector")
+            is TriggerConnector          -> Text(stringResource(AutomationStrings.automation_connector_label))
             is TriggerUnknown            -> Text(trigger.friendlyDescription())
             else                         -> Text(trigger::class.simpleName.orEmpty())
         }

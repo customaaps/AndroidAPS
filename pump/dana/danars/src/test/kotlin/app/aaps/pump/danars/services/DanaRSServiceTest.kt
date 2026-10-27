@@ -7,6 +7,7 @@ import app.aaps.core.interfaces.pump.DetailedBolusInfoStorage
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.dana.DanaPump
 import app.aaps.pump.dana.comm.RecordTypes
 import app.aaps.pump.danars.DanaRSPlugin
@@ -144,7 +145,7 @@ class DanaRSServiceTest : TestBaseWithProfile() {
         val result = danaRSService.loadEvents()
 
         assertThat(result.success).isFalse()
-        assertThat(result.comment).isEqualTo("pump not initialized")
+        assertThat(result.comment).isEqualTo(baseText.gs(TextRef.AndroidRes(app.aaps.pump.dana.R.string.localization_pump_not_initialized)))
     }
 
     @Test

@@ -10,7 +10,7 @@
     <string name="openaps_no_as_data">Данные autosens недоступны</string>
     <string name="dynisf_shortname">ДинISF</string>
     <string name="openapsama">Помощник болюса OpenAPS AMA</string>
-    <string name="array_of_elements">Массив %1$d элементов. \nActual актуальная величина:</string>
+    <string name="array_of_elements">Массив %1$d элементов.\nТекущее значение:</string>
     <string name="description_ama">Состояние алгоритма в 2017 году</string>
     <string name="description_smb">Самый новый алгоритм для опытных пользователей</string>
     <string name="description_smb_dynamic_isf">Последний алгоритм для опытных пользователей с динамическим/автоматическим ISF</string>
@@ -96,4 +96,10 @@
     <string name="autotune_peak">Пик действия</string>
     <string name="openapsboost">Boost V6</string>
     <string name="description_boost">Алгоритм APS Boost V6.</string>
+
+    <!-- Russian coverage for current interface -->
+    <string name="zero_basal_not_set">Помпа не приняла нулевую временную базальную скорость. Возможно, подача базального инсулина продолжается. Проверьте помпу.</string>
+    <string name="loop_notification_channel_name">Предложения замкнутого цикла</string>
+    <string name="open_loop_suggestion_too_old">Это предложение устарело. Команда не была отправлена помпе. Дождитесь следующего предложения.</string>
+    <string name="boost_night_mode_smb_disabled">"Ночной режим Boost: SMB отключены; "</string>
 </resources>

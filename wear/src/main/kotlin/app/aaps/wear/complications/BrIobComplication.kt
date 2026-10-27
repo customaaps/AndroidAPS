@@ -32,7 +32,7 @@ class BrIobComplication : ModernBaseComplicationProviderService() {
 
                 ShortTextComplicationData.Builder(
                     text = PlainComplicationText.Builder(text = iob).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "IOB, Basal Rate").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_iob_basal)).build()
                 )
                     .setTitle(PlainComplicationText.Builder(text = displayFormat.basalRateSymbol().trimEnd() + statusData.currentBasal.replaceFirst(" ", "")).build())
                     .setTapAction(complicationPendingIntent)

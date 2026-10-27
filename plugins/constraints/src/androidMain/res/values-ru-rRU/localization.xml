@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="objectives_fake_progress">Включить имитацию времени и прогресса</string>
+    <string name="bg_quality_clean">Данные без ошибок</string>
+    <string name="bg_doubled_max_iob">Максимальный IOB ограничен до 0 U из-за дублирующихся значений источника BG</string>
+</resources>

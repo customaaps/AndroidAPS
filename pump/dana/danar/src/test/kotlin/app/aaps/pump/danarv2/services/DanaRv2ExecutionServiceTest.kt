@@ -6,6 +6,7 @@ import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.dana.DanaPump
 import app.aaps.pump.danarv2.DanaRv2Plugin
 import app.aaps.pump.danarv2.comm.MessageHashTableRv2
@@ -64,7 +65,7 @@ class DanaRv2ExecutionServiceTest : TestBaseWithProfile() {
 
         assertThat(result).isNotNull()
         assertThat(result.success).isFalse()
-        assertThat(result.comment).contains("pump not initialized")
+        assertThat(result.comment).isEqualTo(baseText.gs(TextRef.AndroidRes(app.aaps.pump.dana.R.string.localization_pump_not_initialized)))
     }
 
     @Test

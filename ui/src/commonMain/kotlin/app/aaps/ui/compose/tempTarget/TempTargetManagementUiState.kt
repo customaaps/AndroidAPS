@@ -68,4 +68,4 @@ data class TempTargetManagementUiState(
  *
  * No resolver needed any more - `withDisplayName` has already translated it.
  */
-fun TTPreset.getDisplayName(): String = displayName ?: name ?: "Unknown"
+fun TTPreset.getDisplayName(unknownName: String): String = displayName ?: name ?: unknownName

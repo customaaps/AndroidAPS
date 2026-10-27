@@ -64,6 +64,8 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.IntKey
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
+import kotlin.math.abs
+import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -71,8 +73,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlin.math.abs
-import kotlin.math.max
 
 @ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
 @PumpDriver
@@ -522,7 +522,7 @@ class DiaconnG8Plugin(
             34   -> result.comment = rh.gs(R.string.diaconn_g8_errorcode_34)
             35   -> result.comment = rh.gs(R.string.diaconn_g8_errorcode_35)
             36   -> result.comment = rh.gs(R.string.diaconn_g8_errorcode_36)
-            else -> result.comment = "not defined Error code: $errorCode"
+            else -> result.comment(TextRef.AndroidRes(app.aaps.pump.diaconn.R.string.localization_undefined_error_code, listOf(errorCode)))
         }
     }
 

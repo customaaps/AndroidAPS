@@ -105,8 +105,12 @@ import app.aaps.pump.omnipod.eros.util.OmnipodAlertUtil
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.IntKey as MetroIntKey
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
+import java.util.Optional
+import java.util.function.Supplier
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -122,10 +126,6 @@ import kotlinx.coroutines.runBlocking
 import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.joda.time.Instant
-import java.util.Optional
-import java.util.function.Supplier
-import kotlin.math.roundToInt
-import dev.zacsweers.metro.IntKey as MetroIntKey
 
 /**
  * Created by andy on 23.04.18.
@@ -518,7 +518,7 @@ class OmnipodErosPumpPlugin(
     override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult {
         // No pod yet — deferred, not a genuine error; the profile is applied when a pod is activated (see
         // isThisProfileSet). success=true keeps it out of the central failure alarm; enacted=false => no OK.
-        if (!podStateManager.hasPodState()) return pumpEnactResultProvider().enacted(false).success(true).comment("Null pod state")
+        if (!podStateManager.hasPodState()) return pumpEnactResultProvider().enacted(false).success(true).comment(TextRef.AndroidRes(app.aaps.pump.omnipod.eros.R.string.localization_missing_pod_state))
         val result: PumpEnactResult = executeCommand(OmnipodCommandType.SET_BASAL_PROFILE) { aapsOmnipodErosManager.setBasalProfile(profile) }!!
 
         aapsLogger.info(LTag.PUMP, "Basal Profile was set: " + result.success)
@@ -635,7 +635,7 @@ class OmnipodErosPumpPlugin(
     }
 
     override fun executeCustomCommand(customCommand: CustomCommand): PumpEnactResult? {
-        if (!podStateManager.hasPodState()) return pumpEnactResultProvider().enacted(false).success(false).comment("Null pod state")
+        if (!podStateManager.hasPodState()) return pumpEnactResultProvider().enacted(false).success(false).comment(TextRef.AndroidRes(app.aaps.pump.omnipod.eros.R.string.localization_missing_pod_state))
         if (customCommand is CommandSilenceAlerts) {
             return executeCommand<PumpEnactResult?>(OmnipodCommandType.ACKNOWLEDGE_ALERTS) { aapsOmnipodErosManager.acknowledgeAlerts() }
         }

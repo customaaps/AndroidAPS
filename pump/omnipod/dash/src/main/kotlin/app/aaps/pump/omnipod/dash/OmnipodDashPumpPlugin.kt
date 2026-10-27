@@ -32,7 +32,6 @@ import app.aaps.core.interfaces.pump.PumpProfile
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.defs.fillFor
-import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.queue.Command
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.queue.CustomCommand
@@ -43,11 +42,13 @@ import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.interfaces.rx.events.EventProfileChangeRequested
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.ui.compose.icons.IcPluginOmnipod
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.core.utils.DateTimeUtil
+import app.aaps.pump.omnipod.common.R as CommonR
 import app.aaps.pump.omnipod.common.bledriver.pod.definition.ActivationProgress
 import app.aaps.pump.omnipod.common.bledriver.pod.definition.AlertConfiguration
 import app.aaps.pump.omnipod.common.bledriver.pod.definition.AlertTrigger
@@ -62,6 +63,9 @@ import app.aaps.pump.omnipod.common.bledriver.pod.response.ResponseType
 import app.aaps.pump.omnipod.common.bledriver.pod.state.CommandConfirmed
 import app.aaps.pump.omnipod.common.bledriver.pod.state.OmnipodDashPodStateManager
 import app.aaps.pump.omnipod.common.definition.OmnipodCommandType
+import app.aaps.pump.omnipod.common.history.data.BasalValuesRecord
+import app.aaps.pump.omnipod.common.history.data.BolusRecord
+import app.aaps.pump.omnipod.common.history.data.TempBasalRecord
 import app.aaps.pump.omnipod.common.keys.DashBooleanPreferenceKey
 import app.aaps.pump.omnipod.common.keys.DashStringNonPreferenceKey
 import app.aaps.pump.omnipod.common.keys.OmnipodBooleanPreferenceKey
@@ -77,9 +81,6 @@ import app.aaps.pump.omnipod.common.queue.command.CommandUpdateAlertConfiguratio
 import app.aaps.pump.omnipod.common.util.mapProfileToBasalProgram
 import app.aaps.pump.omnipod.dash.driver.OmnipodDashManager
 import app.aaps.pump.omnipod.dash.history.DashHistory
-import app.aaps.pump.omnipod.common.history.data.BasalValuesRecord
-import app.aaps.pump.omnipod.common.history.data.BolusRecord
-import app.aaps.pump.omnipod.common.history.data.TempBasalRecord
 import app.aaps.pump.omnipod.dash.history.database.DashHistoryDatabase
 import app.aaps.pump.omnipod.dash.ui.compose.OmnipodDashComposeContent
 import app.aaps.pump.omnipod.dash.util.Constants
@@ -91,6 +92,12 @@ import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
+import java.time.Duration
+import java.time.ZonedDateTime
+import java.util.concurrent.CountDownLatch
+import kotlin.concurrent.thread
+import kotlin.math.ceil
+import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -104,13 +111,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.rx3.await
 import kotlinx.coroutines.rx3.rxCompletable
-import java.time.Duration
-import java.time.ZonedDateTime
-import java.util.concurrent.CountDownLatch
-import kotlin.concurrent.thread
-import kotlin.math.ceil
-import kotlin.time.Duration.Companion.hours
-import app.aaps.pump.omnipod.common.R as CommonR
 
 @ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
 @PumpDriver
@@ -534,7 +534,7 @@ class OmnipodDashPumpPlugin(
     private fun deliverBasalCorrection(): PumpEnactResult {
         if (!podStateManager.needsBasalCorrection()) {
             aapsLogger.info(LTag.PUMP, "Basal correction no longer appropriate")
-            return pumpEnactResultProvider().success(true).enacted(false).comment("Basal correction no longer appropriate")
+            return pumpEnactResultProvider().success(true).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_basal_correction_no_longer_needed))
         }
 
         // Set cooldown to prevent duplicate corrections
@@ -548,11 +548,11 @@ class OmnipodDashPumpPlugin(
         val availableInsulin = reservoirLevel.value.cU
         if (requestedInsulinAmount > availableInsulin) {
             aapsLogger.info(LTag.PUMP, "Basal correction skipped: not enough insulin in reservoir ($requestedInsulinAmount > $availableInsulin)")
-            return pumpEnactResultProvider().success(false).enacted(false).comment("Not enough insulin in reservoir")
+            return pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_not_enough_insulin))
         }
         if (podStateManager.deliveryStatus?.bolusDeliveringActive() == true) {
             aapsLogger.info(LTag.PUMP, "Basal correction skipped: bolus already in progress")
-            return pumpEnactResultProvider().success(false).enacted(false).comment("Bolus already in progress")
+            return pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_bolus_in_progress))
         }
         try {
             bolusDeliveryInProgress = true
@@ -1027,7 +1027,7 @@ class OmnipodDashPumpPlugin(
     override suspend fun setExtendedBolus(insulin: Double, durationInMinutes: Int): PumpEnactResult {
         // TODO i18n
         return pumpEnactResultProvider().success(false).enacted(false)
-            .comment("Omnipod Dash driver does not support extended boluses")
+            .comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_extended_bolus_not_supported))
     }
 
     private fun hasTempBasalBeepEnabled(): Boolean =
@@ -1080,7 +1080,7 @@ class OmnipodDashPumpPlugin(
     override suspend fun cancelExtendedBolus(): PumpEnactResult {
         // TODO i18n
         return pumpEnactResultProvider().success(false).enacted(false)
-            .comment("Omnipod Dash driver does not support extended boluses")
+            .comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_extended_bolus_not_supported))
     }
 
     override val pumpDescription: PumpDescription = Companion.pumpDescription
@@ -1091,7 +1091,7 @@ class OmnipodDashPumpPlugin(
 
     override suspend fun loadTDDs(): PumpEnactResult =
         pumpEnactResultProvider().success(false).enacted(false)
-            .comment("Omnipod Dash driver does not support TDD")
+            .comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_tdd_not_supported))
 
     override fun canHandleDST(): Boolean = false
     override fun executeCustomCommand(customCommand: CustomCommand): PumpEnactResult {
@@ -1139,7 +1139,7 @@ class OmnipodDashPumpPlugin(
                 historyEntry = history.createRecord(commandType = OmnipodCommandType.ACKNOWLEDGE_ALERTS),
                 command = omnipodManager.silenceAlerts(it).ignoreElements(),
             ).toPumpEnactResultImpl()
-        } ?: pumpEnactResultProvider().success(false).enacted(false).comment("No active alerts") // TODO i18n
+        } ?: pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_no_active_alerts)) // TODO i18n
     }
 
     private fun disableSuspendAlerts(): PumpEnactResult {
@@ -1181,7 +1181,7 @@ class OmnipodDashPumpPlugin(
                     level = NotificationLevel.IMPORTANT
                 )
             }.toPumpEnactResultImpl()
-        } ?: pumpEnactResultProvider().success(false).enacted(false).comment("No profile active") // TODO i18n
+        } ?: pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_no_active_profile)) // TODO i18n
     }
 
     private fun deactivatePod(): PumpEnactResult {
@@ -1207,7 +1207,7 @@ class OmnipodDashPumpPlugin(
     private suspend fun handleTimeChange(): PumpEnactResult {
         return pumpSync.expectedPumpState().profile?.let {
             setNewBasalProfile(it, OmnipodCommandType.SET_TIME)
-        } ?: pumpEnactResultProvider().success(false).enacted(false).comment("No profile active")
+        } ?: pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.omnipod.dash.R.string.localization_no_active_profile))
     }
 
     private fun updateAlertConfiguration(): PumpEnactResult {

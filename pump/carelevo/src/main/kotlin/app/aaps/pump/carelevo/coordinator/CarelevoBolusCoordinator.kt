@@ -47,15 +47,15 @@ import dev.zacsweers.metro.Provider
 import dev.zacsweers.metro.SingleIn
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.runBlocking
 
 @SingleIn(AppScope::class)
 class CarelevoBolusCoordinator @Inject constructor(
@@ -163,7 +163,7 @@ class CarelevoBolusCoordinator @Inject constructor(
                 result.success = false
                 result.enacted = false
                 result.bolusDelivered = 0.0
-                result.comment(if (leftover == LeftoverBolus.ADDED) rh.gs(R.string.carelevo_bolus_rejected_missed_bolus_recorded) else "Another bolus is in progress")
+                result.comment(if (leftover == LeftoverBolus.ADDED) rh.gs(R.string.carelevo_bolus_rejected_missed_bolus_recorded) else rh.gs(app.aaps.pump.carelevo.R.string.localization_another_bolus_in_progress))
                 return result
             }
         }
@@ -231,7 +231,7 @@ class CarelevoBolusCoordinator @Inject constructor(
     ): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         val hour = durationInMinutes / 60
         val min = durationInMinutes % 60
         val speed = insulin / (durationInMinutes.toDouble() / 60)
@@ -282,7 +282,7 @@ class CarelevoBolusCoordinator @Inject constructor(
     ): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking { bleSession.runSingle(address, ExtendBolusCancelCommand()) }
             val success = response.resultCode == RESULT_SUCCESS
@@ -339,7 +339,7 @@ class CarelevoBolusCoordinator @Inject constructor(
             result.success = false
             result.enacted = false
             result.bolusDelivered = 0.0
-            return result.comment("no patch address")
+            return result.comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         }
         return try {
             // The patch's bolus total before this bolus. It is needed only when the patch does not confirm a stop:

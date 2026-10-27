@@ -6,6 +6,7 @@ import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.wear.R
 import app.aaps.wear.interaction.utils.DisplayFormat
 import app.aaps.wear.interaction.utils.SmallestDoubleString
 import kotlin.math.max
@@ -37,7 +38,7 @@ class BrCobIobComplicationExt1 : ModernBaseComplicationProviderService() {
 
                 ShortTextComplicationData.Builder(
                     text = PlainComplicationText.Builder(text = displayFormat.basalRateSymbol() + statusData1.currentBasal).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "Basal Rate, COB, IOB").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_basal_cob_iob)).build()
                 )
                     .setTitle(PlainComplicationText.Builder(text = "$cob $iob").build())
                     .setTapAction(complicationPendingIntent)

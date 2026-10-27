@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_set_temp_basal_failed">Medtrum setTempBasalAbsolute failed</string>
+    <string name="localization_percentage_temp_basal_not_supported">Medtrum driver does not support percentage temp basals</string>
+    <string name="localization_extended_bolus_not_supported">Medtrum driver does not support extended boluses</string>
+    <string name="localization_cancel_temp_basal_failed">Medtrum cancelTempBasal failed</string>
+</resources>

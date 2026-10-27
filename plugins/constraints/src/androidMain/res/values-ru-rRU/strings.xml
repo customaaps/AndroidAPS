@@ -40,4 +40,11 @@
     <string name="doyouwantresetstart">Хотите сбросить начатую цель? Вы можете потерять весь прогресс по ней.</string>
     <string name="objectives_button_unfinish">Сбросить пройденные</string>
     <string name="objectives_button_unstart">Сбросить начатые</string>
+
+    <!-- Russian coverage for current interface -->
+    <string name="safety">Безопасность</string>
+    <string name="bg_doubled_lgs">Режим LGS из-за дублирующихся значений источника BG</string>
+    <string name="dst_plugin_name">Переход на летнее время</string>
+    <string name="storage">Ограничение хранилища</string>
+    <string name="signature_verifier">Проверка подписи</string>
 </resources>

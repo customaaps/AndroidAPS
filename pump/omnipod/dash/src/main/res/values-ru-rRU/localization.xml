@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_basal_correction_no_longer_needed">Базальная коррекция больше не требуется</string>
+    <string name="localization_not_enough_insulin">Недостаточно инсулина в резервуаре</string>
+    <string name="localization_bolus_in_progress">Болюс уже вводится</string>
+    <string name="localization_extended_bolus_not_supported">Драйвер Medtrum не поддерживает растянутые болюсы</string>
+    <string name="localization_tdd_not_supported">Драйвер Omnipod Dash не поддерживает TDD</string>
+    <string name="localization_no_active_alerts">Нет активных оповещений</string>
+    <string name="localization_no_active_profile">Нет активного профиля</string>
+</resources>

@@ -26,6 +26,7 @@ import app.aaps.pump.carelevo.domain.usecase.bolus.CarelevoStartImmeBolusInfusio
 import com.google.common.truth.Truth.assertThat
 import dev.zacsweers.metro.Provider
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
@@ -45,7 +46,6 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verifyBlocking
 import org.mockito.kotlin.whenever
 import org.mockito.quality.Strictness
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Direct unit tests for [CarelevoBolusCoordinator] targeting the branches NOT exercised through
@@ -200,7 +200,7 @@ internal class CarelevoBolusCoordinatorTest {
 
         assertThat(result.success).isFalse()
         assertThat(result.enacted).isFalse()
-        assertThat(result.comment).isEqualTo("no patch address")
+        assertThat(result.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
         verifyBlocking(bleSession, never()) { runSingle(any(), isA<ExtendBolusCommand>(), any()) }
     }
 
@@ -262,7 +262,7 @@ internal class CarelevoBolusCoordinatorTest {
 
         assertThat(result.success).isFalse()
         assertThat(result.enacted).isFalse()
-        assertThat(result.comment).isEqualTo("no patch address")
+        assertThat(result.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test

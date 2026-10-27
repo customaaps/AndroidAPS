@@ -4,6 +4,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.queue.CustomCommand
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.carelevo.ble.BleCommand
 import app.aaps.pump.carelevo.ble.CarelevoBleSession
 import app.aaps.pump.carelevo.ble.commands.AlarmClearCommand
@@ -37,12 +38,12 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.Provider
 import dev.zacsweers.metro.SingleIn
+import kotlin.jvm.optionals.getOrNull
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.runBlocking
-import kotlin.jvm.optionals.getOrNull
-import kotlin.time.Clock
 
 /**
  * Runs activation operations that are routed through the AAPS [app.aaps.core.interfaces.queue.CommandQueue]
@@ -117,9 +118,9 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runSetBasal(): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val profile = carelevoPatch.profile.value?.getOrNull()
-            ?: return result.success(false).enacted(false).comment("profile not set")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_profile_not_set))
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val plan = setBasalUseCase.buildBasalProgramPlan(profile)
             val programmed = runBlocking {
@@ -142,14 +143,14 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runPumpStop(durationMin: Int): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, PumpStopCommand(durationMinutes = durationMin, subId = STOP_RESUME_SUB_ID))
             }
             if (response.resultCode != RESULT_SUCCESS) {
                 aapsLogger.error(LTag.PUMPCOMM, "newBle.pumpStop rejected result=${response.resultCode}")
-                return result.success(false).enacted(false).comment("stop result ${response.resultCode}")
+                return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_stop_result, listOf(response.resultCode)))
             }
             val persisted = pumpStopUseCase.persistStopped(durationMin)
             aapsLogger.info(LTag.PUMPCOMM, "newBle.pumpStop OK durationMin=$durationMin persisted=$persisted")
@@ -163,14 +164,14 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runPumpResume(): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, PumpResumeCommand(mode = RESUME_MODE, subId = STOP_RESUME_SUB_ID))
             }
             if (response.resultCode != RESULT_SUCCESS) { // 0 = BY_REQ
                 aapsLogger.error(LTag.PUMPCOMM, "newBle.pumpResume rejected result=${response.resultCode}")
-                return result.success(false).enacted(false).comment("resume result ${response.resultCode}")
+                return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_resume_result, listOf(response.resultCode)))
             }
             val persisted = pumpResumeUseCase.persistResumed()
             aapsLogger.info(LTag.PUMPCOMM, "newBle.pumpResume OK persisted=$persisted")
@@ -188,7 +189,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runUpdateBuzzer(on: Boolean): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, BuzzModeCommand(use = on))
@@ -216,7 +217,7 @@ class CarelevoActivationExecutor @Inject constructor(
             return result.success(persisted).enacted(persisted)
         }
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, InfusionThresholdCommand(isMaxVolume = true, value = value))
@@ -241,7 +242,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runUpdateLowInsulinNotice(amountUnits: Int): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, NoticeThresholdCommand(thresholdType = NoticeThresholdCommand.TYPE_LOW_INSULIN, value = amountUnits))
@@ -265,7 +266,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runUpdateExpiredThreshold(hours: Int): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, NoticeThresholdCommand(thresholdType = NoticeThresholdCommand.TYPE_EXPIRY, value = hours))
@@ -287,7 +288,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runSingleWrite(label: String, command: () -> BleCommand<SimpleResultResponse>): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, command())
@@ -304,7 +305,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runAdditionalPriming(): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runAdditionalPriming(address)
@@ -328,7 +329,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runDiscard(): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         val stopped = try {
             val response = runBlocking {
                 bleSession.runSingle(address, PatchDiscardCommand())
@@ -359,7 +360,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runNeedleCheck(): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, NeedleStatusCommand(), timeoutMs = NEEDLE_CHECK_TIMEOUT_MS)
@@ -399,7 +400,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runSafetyCheck(): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         var success = false
         var progressEmitted = false
         return try {
@@ -442,7 +443,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runAlarmClear(command: CmdAlarmClear): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val alarmTypeByte = alarmClearRequestUseCase.commandAlarmType(command.alarmCause)
             val cause = command.alarmCause.code ?: 0
@@ -468,7 +469,7 @@ class CarelevoActivationExecutor @Inject constructor(
     private fun runAlarmClearPatchDiscard(command: CmdAlarmClearPatchDiscard): PumpEnactResult {
         val result = pumpEnactResultProvider()
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking {
                 bleSession.runSingle(address, PatchDiscardCommand())

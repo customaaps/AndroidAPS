@@ -79,7 +79,7 @@ class ConfigurationActivity : WearPreferenceActivity(), CustomWatchfaceSettingsH
         aapsLogger.debug(LTag.WEAR, "ConfigurationActivity::onCreate watchfaceComponentName = $watchfaceComponentName")
 
         super.onCreate(savedInstanceState)
-        title = "Watchface"
+        title = getString(R.string.localization_watchface_title)
 
         val view = window.decorView as ViewGroup
         removeBackgroundRecursively(view)

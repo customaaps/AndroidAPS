@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_basal_correction_no_longer_needed">Basal correction no longer appropriate</string>
+    <string name="localization_not_enough_insulin">Not enough insulin in reservoir</string>
+    <string name="localization_bolus_in_progress">Bolus already in progress</string>
+    <string name="localization_extended_bolus_not_supported">Medtrum driver does not support extended boluses</string>
+    <string name="localization_tdd_not_supported">Omnipod Dash driver does not support TDD</string>
+    <string name="localization_no_active_alerts">No active alerts</string>
+    <string name="localization_no_active_profile">No profile active</string>
+</resources>

@@ -34,7 +34,7 @@
     <string name="equil_unpair_alert">Вы уверены, что вы хотите отказаться от контроля над %1$s?</string>
     <string name="equil_record_basal">Базальная скорость%1$s ед/ч</string>
     <string name="equil_record_basal_temp">Временная базальная скорость%1$sU/H</string>
-    <string name="equil_record_bolus">Bolus%1$s ед</string>
+    <string name="equil_record_bolus">Болюс %1$s ед</string>
     <string name="equil_error_set_temp_basal_failed_validation">Продолжительность TBR должна быть больше нуля и кратной %1$s минутам.</string>
     <string name="equil_not_enough_insulin">В резервуаре недостаточно инсулина</string>
     <string name="equil_pump_not_run">Помпа не запущена</string>
@@ -124,4 +124,23 @@
     <string name="equil_pump_updated">Помпа обновлена</string>
     <string name="equil_replace_reservoir">Резервуар пуст. Замените резервуар</string>
     <string name="equil_removed_anyway">Ошибка при выполнении команды Разъединить. Помпа будет удалена в любом случае. Пароль, установленный при сопряжении, не удаляется из помпы.</string>
+    <string name="equil_name">Equil</string>
+    <string name="equil_title_assemble">Соберите помпу</string>
+    <string name="equil_title_serial">Сопряжение с устройством</string>
+    <string name="equil_bolus_speed_summary">Более быстрое введение болюса может чаще вызывать сигналы окклюзии.</string>
+    <string name="equil_bolus_speed_1_5">1.5 U/min (стандартная)</string>
+    <string name="equil_bolus_speed_3">3 U/min</string>
+    <string name="equil_bolus_speed_6">6 U/min</string>
+    <string name="equil_bolus_speed_12">12 U/min</string>
+    <string name="equil_new_infusion_set_question">Будете ли вы также устанавливать новый инфузионный набор (основание и канюлю)?</string>
+    <string name="equil_new_infusion_set_yes">Да, новый инфузионный набор</string>
+    <string name="equil_new_infusion_set_no">Нет, только резервуар или батарею</string>
+    <string name="equil_same_infusion_set_hint">Канюля не будет заполнена; запись о замене канюли не будет создана.</string>
+    <string name="equil_basal_exceeds_max">Базальная скорость профиля %1$s U/h превышает максимальную скорость помпы %2$s U/h. Увеличьте максимальную базальную скорость в настройках и подключите помпу заново.</string>
+    <string name="equil_low_battery_level">Низкий заряд батареи: %1$d%%</string>
+    <string name="equil_low_insulin_level">Недостаточно инсулина в резервуаре: %1$s</string>
+    <string name="equil_reservoir_empty">Резервуар пуст. Помпа больше не вводит инсулин.</string>
+    <string name="equil_bolus_stopped">Помпа остановилась во время болюса. Введено: %1$s из %2$s</string>
+    <string name="equil_password_tips">При необходимости задайте пароль для сопряжения с помпой Equil v5.3. Этот пароль также потребуется для удаления сопряжения, поэтому обязательно запомните его. Пароль должен состоять из 4 символов из набора ABCDEF0123456789.</string>
+    <string name="equil_pair_password_title">Введите пароль для %1$s</string>
 </resources>

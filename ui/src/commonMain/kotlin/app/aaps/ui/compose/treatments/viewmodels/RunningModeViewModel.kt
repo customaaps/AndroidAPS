@@ -21,6 +21,7 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.ui.clientcontrol.RecordRemoval
 import app.aaps.core.ui.compose.SelectableListToolbar
 import app.aaps.core.ui.compose.ToolbarConfig
+import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.treatments.viewmodels.TreatmentConstants.TREATMENT_HISTORY_DAYS
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.FlowPreview
@@ -88,7 +89,7 @@ class RunningModeViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load running modes", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Unknown error loading running modes", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.load_running_modes_failed), EventShowSnackbar.Type.Error))
             }
         }
     }

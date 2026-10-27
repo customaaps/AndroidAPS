@@ -52,14 +52,14 @@ import app.aaps.pump.danar.comm.MsgPCCommStart
 import app.aaps.pump.danar.comm.MsgPCCommStop
 import dev.zacsweers.metro.HasMemberInjections
 import dev.zacsweers.metro.Inject
+import java.io.IOException
+import kotlin.math.abs
+import kotlin.math.min
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import java.io.IOException
-import kotlin.math.abs
-import kotlin.math.min
 
 /**
  * Created by mike on 28.01.2018.
@@ -253,7 +253,7 @@ abstract class AbstractDanaRExecutionService : MetroService() {
         SystemClock.sleep(200)
         mSerialIOThread?.sendMessage(MsgPCCommStop(injector))
         if (completed) result.success(true).comment("OK")
-        else result.success(false).comment("Timeout waiting for history")
+        else result.success(false).comment(TextRef.AndroidRes(app.aaps.pump.dana.R.string.localization_history_timeout))
         return result
     }
 

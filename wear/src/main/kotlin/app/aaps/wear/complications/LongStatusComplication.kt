@@ -6,6 +6,7 @@ import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.LongTextComplicationData
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.wear.R
 
 /**
  * Long Status Complication
@@ -38,7 +39,7 @@ class LongStatusComplication : ModernBaseComplicationProviderService() {
                 LongTextComplicationData.Builder(
                     // Age + delta formatted like SgvComplication's title ("5m +0.1")
                     text = buildCountUpText(bgData.timeStamp, "$detailsLine$sep$glucose ^1 ${bgData.delta}"),
-                    contentDescription = PlainComplicationText.Builder(text = "Status: $detailsLine $glucose ${bgData.delta}").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_status_value, "$detailsLine $glucose ${bgData.delta}")).build()
                 )
                     .setTapAction(complicationPendingIntent)
                     .build()

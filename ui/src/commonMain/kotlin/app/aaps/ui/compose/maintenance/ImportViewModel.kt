@@ -29,11 +29,13 @@ import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.ui.UiRestart
 import app.aaps.core.ui.CoreUiStrings
+import app.aaps.ui.UiStrings
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +43,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.seconds
 
 enum class ImportSource { LOCAL, CLOUD, BOTH }
 
@@ -240,7 +241,7 @@ class ImportViewModel(
                         hasMoreCloud = false,
                         isLoadingMore = false,
                         isLoadingCloud = needsCloud,
-                        cloudLoadingProgress = if (needsCloud) "Connecting to cloud\u2026" else null,
+                        cloudLoadingProgress = if (needsCloud) rh.gs(UiStrings.connecting_to_cloud) else null,
                         source = source
                     )
 
@@ -250,7 +251,7 @@ class ImportViewModel(
                     }
                 } catch (e: Exception) {
                     aapsLogger.error(LTag.CORE, "Failed to load local files", e)
-                    _importStep.value = ImportStep.Error(e.message ?: "Failed to load files")
+                    _importStep.value = ImportStep.Error(e.message ?: rh.gs(UiStrings.load_files_failed))
                 }
             }
         } else {
@@ -260,7 +261,7 @@ class ImportViewModel(
                 hasMoreCloud = false,
                 isLoadingMore = false,
                 isLoadingCloud = true,
-                cloudLoadingProgress = "Connecting to cloud\u2026",
+                cloudLoadingProgress = rh.gs(UiStrings.connecting_to_cloud),
                 source = source
             )
             viewModelScope.launch { loadCloudFiles() }

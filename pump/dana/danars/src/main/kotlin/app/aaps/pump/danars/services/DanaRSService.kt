@@ -84,6 +84,9 @@ import app.aaps.pump.danars.comm.DanaRSPacketOptionSetPumpTime
 import app.aaps.pump.danars.comm.DanaRSPacketOptionSetPumpUTCAndTimeZone
 import app.aaps.pump.danars.comm.DanaRSPacketOptionSetUserOption
 import dev.zacsweers.metro.Inject
+import kotlin.math.abs
+import kotlin.math.min
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -92,9 +95,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
-import kotlin.math.abs
-import kotlin.math.min
-import kotlin.time.Duration.Companion.milliseconds
 
 class DanaRSService : MetroService() {
 
@@ -309,7 +309,7 @@ class DanaRSService : MetroService() {
     fun loadEvents(): PumpEnactResult {
         if (!danaRSPlugin.isInitialized()) {
             val result = pumpEnactResultProvider().success(false)
-            result.comment = "pump not initialized"
+            result.comment(TextRef.AndroidRes(app.aaps.pump.dana.R.string.localization_pump_not_initialized))
             return result
         }
         SystemClock.sleep(1000)

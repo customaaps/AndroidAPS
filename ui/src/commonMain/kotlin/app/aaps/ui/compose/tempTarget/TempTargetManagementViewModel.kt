@@ -35,11 +35,16 @@ import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.clientcontrol.failText
 import app.aaps.core.ui.compose.ScreenMode
 import app.aaps.core.ui.compose.navigation.icon
+import app.aaps.ui.UiStrings
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
@@ -57,10 +62,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.math.abs
-import kotlin.math.roundToInt
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
  * ViewModel for TempTargetManagementScreen managing TT presets and activation.
@@ -207,7 +208,7 @@ class TempTargetManagementViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load temp target presets", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Failed to load presets", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.load_presets_failed), EventShowSnackbar.Type.Error))
             }
         }
     }
@@ -409,7 +410,7 @@ class TempTargetManagementViewModel(
         } catch (e: Exception) {
             aapsLogger.error(LTag.UI, "Failed to persist reordered temp target presets", e)
             _reorderOrder.value = null
-            rxBus.send(EventShowSnackbar(e.message ?: "Failed to save presets", EventShowSnackbar.Type.Error))
+            rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.save_presets_failed), EventShowSnackbar.Type.Error))
             null
         }
     }
@@ -696,7 +697,7 @@ class TempTargetManagementViewModel(
 
                 val newPreset = TTPreset(
                     id = Uuid.random().toString(),
-                    name = "New Preset",
+                    name = rh.gs(UiStrings.new_preset),
                     reason = TT.Reason.CUSTOM,
                     targetValue = defaultTargetMgdl, // Always store in mg/dL
                     duration = 60L * 60L * 1000L, // 60 minutes

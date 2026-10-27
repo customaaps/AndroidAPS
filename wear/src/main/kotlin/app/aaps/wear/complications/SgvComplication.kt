@@ -7,6 +7,7 @@ import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.weardata.EventData
+import app.aaps.wear.R
 import dev.zacsweers.metro.HasMemberInjections
 
 /**
@@ -53,7 +54,7 @@ open class SgvComplication : ModernBaseComplicationProviderService() {
 
         return ShortTextComplicationData.Builder(
             text = PlainComplicationText.Builder(text = mainText).build(),
-            contentDescription = PlainComplicationText.Builder(text = "Glucose $mainText").build()
+            contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_glucose_value, mainText)).build()
         )
             .setTitle(titleText)
             .setTapAction(pendingIntent)

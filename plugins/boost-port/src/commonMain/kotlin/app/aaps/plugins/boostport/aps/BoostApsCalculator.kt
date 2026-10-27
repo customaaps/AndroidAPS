@@ -22,6 +22,10 @@ interface BoostApsCalculator {
         val pumpDisconnected: Boolean,
         val loopSuspended: Boolean,
         val profileSwitched: Boolean,
+        /** Null retains the source detector's five-minute fallback. */
+        val cycleSpacingMinutes: Double? = null,
+        /** Original profile target, before any temporary target or activity adjustment. */
+        val originalProfileTargetMgDl: Double? = null,
     )
 
     sealed interface Result {
@@ -29,6 +33,8 @@ interface BoostApsCalculator {
             val result: RT,
             val profile: OapsProfile,
             val autosens: AutosensResult,
+            /** Presentation translates this policy explanation without changing source engine traces. */
+            val nightModeActive: Boolean = false,
         ) : Result
         data class Rejected(val reason: String) : Result
     }

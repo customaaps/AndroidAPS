@@ -32,7 +32,7 @@ class TargetComplication : ModernBaseComplicationProviderService() {
                 val hasTT = statusData.tempTargetDuration >= 0
                 val builder = ShortTextComplicationData.Builder(
                     text = PlainComplicationText.Builder(text = statusData.tempTarget).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "Target").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.complication_target)).build()
                 )
 
                 if (hasTT) {

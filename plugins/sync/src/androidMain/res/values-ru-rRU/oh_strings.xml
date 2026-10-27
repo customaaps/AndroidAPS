@@ -5,7 +5,7 @@
     <string name="logout">Выход из системы</string>
     <string name="setup">Настройки</string>
     <string name="setup_completed_info">Open Humans настроен. Чтобы прекратить передачу данных, нажмите \'Выйти\'.</string>
-    <string name="not_setup_info">Open Humans неактивна. Чтобы начать загрузку данных, нажмите \'Setup\'.</string>
+    <string name="not_setup_info">Open Humans неактивна. Чтобы начать загрузку данных, нажмите «Настройка».</string>
     <string name="project_member_id">Идентификатор участника проекта: %1$s</string>
     <string name="open_humans_uploading">Идет передача данных в Open Humans…</string>
     <string name="open_humans_notifications">Уведомления Open Humans</string>
@@ -49,4 +49,5 @@
     <string name="we_re_done">Готово!</string>
     <string name="silently_upload_date_note">С этого момента ваш телефон будет иногда загружать данные в фоновом режиме.</string>
     <string name="close">Закрыть</string>
+    <string name="profile_switches">Переключения профиля</string>
 </resources>

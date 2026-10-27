@@ -54,8 +54,8 @@ import app.aaps.pump.danarv2.comm.MsgCheckValueV2
 import app.aaps.pump.danarv2.comm.MsgHistoryEventsV2
 import app.aaps.pump.danarv2.comm.MsgSetAPSTempBasalStartV2
 import dev.zacsweers.metro.Inject
-import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 class DanaRv2ExecutionService : AbstractDanaRExecutionService() {
 
@@ -310,7 +310,7 @@ class DanaRv2ExecutionService : AbstractDanaRExecutionService() {
     override fun loadEvents(): PumpEnactResult {
         if (!danaRv2Plugin.isInitialized()) {
             val result = pumpEnactResultProvider().success(false)
-            result.comment("pump not initialized")
+            result.comment(TextRef.AndroidRes(app.aaps.pump.dana.R.string.localization_pump_not_initialized))
             return result
         }
         if (!isConnected) return pumpEnactResultProvider().success(false)

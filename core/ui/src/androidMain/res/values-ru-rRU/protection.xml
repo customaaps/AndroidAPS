@@ -33,4 +33,7 @@
     <string name="current_master_password">Текущий главный пароль</string>
     <string name="master_password_not_set">Главный пароль не задан</string>
     <string name="aaps_directory_not_selected">Не выбрана папка AAPS</string>
+
+    <!-- Дополненный русский перевод интерфейса -->
+    <string name="aaps_directory_access_lost">Доступ к папке AAPS потерян, поэтому настройки больше не сохраняются на телефон. Выберите папку повторно.</string>
 </resources>

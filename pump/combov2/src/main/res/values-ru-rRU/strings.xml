@@ -101,7 +101,7 @@
     <string name="combov2_ignoring_redundant_100_tbr">Игнорирование избыточного запроса на 100% TBR</string>
     <string name="combov2_hit_unexpected_tbr_limit">При настройке ВБС: обнаружен непредвиденный предел: целевой процент %1$d%%, достиг предела %2$d%%</string>
     <string name="combov2_cannot_set_absolute_tbr_if_basal_zero">Невозможно установить абсолютный TBR, если базовая скорость равна нулю</string>
-    <string name="combov2_unpair_pump_summary">Отключить AndroidAPS и AndroidAPS от помпы Accu-Chek Combo</string>
+    <string name="combov2_unpair_pump_summary">Удалить сопряжение помпы Accu-Chek Combo с AndroidAPS и Android</string>
     <string name="combov2_unknown_tbr_detected">Обнаружена и остановлена неизвестная временная базальная скоростьTBR; в процентах: %1$d%%; оставшаяся продолжительность: %2$s</string>
     <string name="combov2_connection_error">Ошибка соединения: %1$s</string>
     <string name="combov2_short_status_alert">Предупреждение: %s</string>
@@ -117,4 +117,11 @@
     <string name="combov2_cannot_pair_driver_not_initialized_explanation">Невозможно выполнить сопряжение, т. к. драйвер не инициализирован. Обычно это происходит, потому что не были предоставлены необходимые разрешения Bluetooth. Вернитесь назад, предоставьте разрешения Bluetooth, а затем попробуйте еще раз.</string>
     <string name="combov2_bluetooth_disabled">Невозможно запустить драйвер - Bluetooth отключен</string>
     <string name="combov2_bluetooth_not_supported">Драйвер не может запуститься - это устройство не поддерживает Bluetooth</string>
+    <string name="combov2_bolus_outcome_unknown">Соединение с помпой потеряно во время болюса. К этому моменту помпа ввела %1$s и может продолжать вводить оставшуюся дозу. Не вводите повторный болюс. AAPS прочитает фактическую дозу из помпы при следующем подключении.</string>
+    <string name="combov2_bolus_stopped_history_unknown">Помпа остановила болюс после введения %1$s. Затем соединение было потеряно, и AAPS не смогла прочитать историю помпы. AAPS прочитает фактическую дозу при следующем подключении. Проверьте помпу перед следующим болюсом.</string>
+    <string name="combov2_bolus_stopped_after_error">Болюс остановлен из-за ошибки после введения %1$s. Проверьте помпу перед следующим болюсом.</string>
+    <string name="combov2_bolus_request_outcome_unknown">Соединение с помпой потеряно при отправке команды болюса из AAPS; неизвестно, получила ли её помпа. Проверьте историю болюсов на помпе перед следующим болюсом. AAPS прочитает фактическую дозу из помпы при следующем подключении.</string>
+    <string name="combov2_unknown_bolus_in_history">В истории помпы есть болюс, ранее неизвестный AAPS. Запрошенный болюс не введён, поскольку он рассчитан без учёта этого инсулина. Проверьте историю болюсов на помпе и IOB в AAPS. Если болюс всё ещё нужен, рассчитайте его заново.</string>
+    <string name="combov2_bolus_given_other_boluses_found">Болюс введён, но в истории помпы также обнаружены другие болюсы, ранее неизвестные AAPS. Теперь они записаны. Проверьте IOB перед следующим болюсом.</string>
+    <string name="combov2_post_bolus_checks">Болюс завершён, выполняются проверки после болюса</string>
 </resources>

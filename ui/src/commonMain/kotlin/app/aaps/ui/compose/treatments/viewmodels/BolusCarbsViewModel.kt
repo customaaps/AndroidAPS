@@ -25,6 +25,7 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.ui.clientcontrol.RecordRemoval
 import app.aaps.core.ui.compose.SelectableListToolbar
 import app.aaps.core.ui.compose.ToolbarConfig
+import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.treatments.MealLink
 import app.aaps.ui.compose.treatments.viewmodels.TreatmentConstants.TREATMENT_HISTORY_DAYS
 import dev.zacsweers.metro.Inject
@@ -116,7 +117,7 @@ class BolusCarbsViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load bolus/carbs data", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Unknown error loading bolus/carbs data", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.load_bolus_carbs_failed), EventShowSnackbar.Type.Error))
             }
         }
     }

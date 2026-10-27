@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="boost_integration_diagnostics">Диагностика интеграции Boost V6</string>
+    <string name="boost_integration_diagnostics_summary">Технический параметр переноса; не включает дозирование инсулина.</string>
+    <string name="boost_integration_pending">Boost V6 (интеграция не завершена)</string>
+    <string name="boost_inspection_description">Промежуточная реализация алгоритма; без дозирования APS и управления помпой.</string>
+    <string name="boost_offline_diagnostics_title">Boost — автономная диагностика</string>
+    <string name="boost_offline_diagnostics_no_control">Boost не управляет введением инсулина. Активный APS Дмитрия не изменяется.</string>
+    <string name="boost_offline_diagnostics_read_only">Режим: только просмотр / без решений по терапии</string>
+    <string name="boost_offline_diagnostics_no_data">Проверенное автономное воспроизведение недоступно.</string>
+    <string name="boost_offline_diagnostics_invalid">Автономное воспроизведение не прошло проверку. Результаты не отображаются.</string>
+    <string name="boost_offline_diagnostics_review">При автономном воспроизведении выявлено условие защиты по глюкозе, требующее проверки.</string>
+    <string name="boost_offline_diagnostics_available">Диагностика автономного воспроизведения доступна; терапия не включена.</string>
+    <string name="boost_offline_diagnostics_no_acquisition">Этот экран не получает данные сенсора, питания или введения инсулина.</string>
+</resources>

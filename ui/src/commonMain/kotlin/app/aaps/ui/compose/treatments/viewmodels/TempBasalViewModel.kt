@@ -25,6 +25,7 @@ import app.aaps.core.objects.extensions.toTemporaryBasal
 import app.aaps.core.ui.clientcontrol.RecordRemoval
 import app.aaps.core.ui.compose.SelectableListToolbar
 import app.aaps.core.ui.compose.ToolbarConfig
+import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.treatments.viewmodels.TreatmentConstants.TREATMENT_HISTORY_DAYS
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.FlowPreview
@@ -115,7 +116,7 @@ class TempBasalViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load temp basals", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Unknown error loading temp basals", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.load_temp_basals_failed), EventShowSnackbar.Type.Error))
             }
         }
     }

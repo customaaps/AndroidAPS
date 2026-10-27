@@ -1,5 +1,6 @@
 package app.aaps.plugins.boostport
 
+import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.keys.PreferenceType
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
 import app.aaps.core.keys.interfaces.TextRef
@@ -17,8 +18,8 @@ enum class BoostPortKey(
     AuditRequested(
         key = "boost_port_audit_requested",
         defaultValue = false,
-        title = TextRef.Literal("Boost V6 integration diagnostics"),
-        summary = TextRef.Literal("Engineering-only migration flag; never enables insulin dosing.")
+        title = InterfacesStrings.boost_integration_diagnostics,
+        summary = InterfacesStrings.boost_integration_diagnostics_summary
     );
 
     override val preferenceType: PreferenceType get() = PreferenceType.SWITCH

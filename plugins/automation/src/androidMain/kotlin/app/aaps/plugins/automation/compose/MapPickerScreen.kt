@@ -119,7 +119,7 @@ private fun OsmdroidMapView(
                     val currentMarker = Marker(this)
                     currentMarker.position = point
                     currentMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    currentMarker.title = "Current Location"
+                    currentMarker.title = context.getString(R.string.map_current_location)
                     currentMarker.icon = ContextCompat.getDrawable(context, R.drawable.ic_my_location)
                     overlays.add(currentMarker)
                 }
@@ -134,7 +134,7 @@ private fun OsmdroidMapView(
                             mapViewRef.overlays.add(selectedMarker)
                         }
                         selectedMarker.position = p
-                        selectedMarker.title = "Selected Location"
+                        selectedMarker.title = context.getString(R.string.map_selected_location)
                         mapViewRef.invalidate()
 
                         currentOnLocationSelected(p.latitude, p.longitude)

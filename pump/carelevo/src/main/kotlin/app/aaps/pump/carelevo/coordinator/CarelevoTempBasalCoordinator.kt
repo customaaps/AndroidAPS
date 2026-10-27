@@ -8,6 +8,7 @@ import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.carelevo.ble.CarelevoBleSession
 import app.aaps.pump.carelevo.ble.commands.TempBasalCancelCommand
 import app.aaps.pump.carelevo.ble.commands.TempBasalCommand
@@ -64,7 +65,7 @@ class CarelevoTempBasalCoordinator @Inject constructor(
             return result
         }
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         val hour = durationInMinutes / 60
         val min = durationInMinutes % 60
         return try {
@@ -98,7 +99,7 @@ class CarelevoTempBasalCoordinator @Inject constructor(
                     .isPercent(false)
                     .isTempCancel(false)
             } else {
-                result.success(false).enacted(false).comment("Internal error")
+                result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_internal_error))
             }
         } catch (e: Exception) {
             aapsLogger.error(LTag.PUMPCOMM, "newBle.setTempBasalAbsolute FAILED", e)
@@ -126,7 +127,7 @@ class CarelevoTempBasalCoordinator @Inject constructor(
             return result
         }
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         val hour = durationInMinutes / 60
         val min = durationInMinutes % 60
         return try {
@@ -160,7 +161,7 @@ class CarelevoTempBasalCoordinator @Inject constructor(
                 result.isTempCancel = false
                 result
             } else {
-                result.success(false).enacted(false).comment("Internal error")
+                result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_internal_error))
             }
         } catch (e: Exception) {
             aapsLogger.error(LTag.PUMPCOMM, "newBle.setTempBasalPercent FAILED", e)
@@ -184,7 +185,7 @@ class CarelevoTempBasalCoordinator @Inject constructor(
             return result
         }
         val address = carelevoPatch.getPatchInfoAddress()
-            ?: return result.success(false).enacted(false).comment("no patch address")
+            ?: return result.success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address))
         return try {
             val response = runBlocking { bleSession.runSingle(address, TempBasalCancelCommand()) }
             val success = response.resultCode == RESULT_SUCCESS

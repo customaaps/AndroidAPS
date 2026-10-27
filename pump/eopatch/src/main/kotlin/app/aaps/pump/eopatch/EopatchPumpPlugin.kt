@@ -41,6 +41,7 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.keys.interfaces.TextRef.Companion.withArgs
 import app.aaps.core.keys.interfaces.withEntries
+import app.aaps.core.ui.R as CoreUiR
 import app.aaps.core.ui.compose.icons.IcPluginEopatch
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.pump.eopatch.alarm.IAlarmManager
@@ -58,12 +59,14 @@ import app.aaps.pump.eopatch.vo.TempBasal
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.IntKey as MetroIntKey
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.functions.Consumer
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.subjects.BehaviorSubject
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -77,9 +80,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
-import kotlin.math.abs
-import app.aaps.core.ui.R as CoreUiR
-import dev.zacsweers.metro.IntKey as MetroIntKey
 
 @ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
 @PumpDriver
@@ -428,7 +428,7 @@ class EopatchPumpPlugin(
                 .map { pumpEnactResultProvider().success(true).enacted(true).duration(durationInMinutes).absolute(absoluteRate).isPercent(false).isTempCancel(false) }
                 .onErrorReturnItem(
                     pumpEnactResultProvider().success(false).enacted(false)
-                        .comment("Internal error")
+                        .comment(TextRef.AndroidRes(app.aaps.pump.eopatch.R.string.localization_internal_error))
                 )
                 .blockingGet()
         } else {
@@ -463,7 +463,7 @@ class EopatchPumpPlugin(
                 .map { pumpEnactResultProvider().success(true).enacted(true).duration(durationInMinutes).percent(percent).isPercent(true).isTempCancel(false) }
                 .onErrorReturnItem(
                     pumpEnactResultProvider().success(false).enacted(false)
-                        .comment("Internal error")
+                        .comment(TextRef.AndroidRes(app.aaps.pump.eopatch.R.string.localization_internal_error))
                 )
                 .blockingGet()
         } else {

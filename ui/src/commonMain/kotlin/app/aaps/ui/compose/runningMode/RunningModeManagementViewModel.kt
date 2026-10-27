@@ -32,6 +32,7 @@ import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.clientcontrol.failText
+import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.overview.chips.toIcon
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
@@ -115,7 +116,7 @@ class RunningModeManagementViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load running mode state", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Failed to load running mode state", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.load_running_mode_failed), EventShowSnackbar.Type.Error))
             }
         }
     }

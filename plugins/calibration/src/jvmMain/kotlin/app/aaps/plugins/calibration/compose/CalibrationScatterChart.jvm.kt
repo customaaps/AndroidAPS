@@ -11,6 +11,8 @@ import androidx.compose.ui.text.style.TextAlign
 import app.aaps.core.data.model.CAL
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.plugins.calibration.CalibrationFit
+import app.aaps.plugins.calibration.CalibrationStrings
+import app.aaps.core.ui.compose.stringResource
 
 /**
  * Says it is missing rather than drawing nothing: an empty box looks exactly like a chart that failed
@@ -22,8 +24,7 @@ import app.aaps.plugins.calibration.CalibrationFit
  * that with `TextMeasurer` moves the labels unless the baseline arithmetic is redone and compared
  * against the real chart side by side. That comparison needs someone who can look at both.
  *
- * The text is deliberately not translated: it is a developer placeholder that should never reach a
- * user, and adding it to `strings.xml` would push it to every translator.
+ * The platform placeholder uses the same localized presentation as the rest of the screen.
  */
 @Composable
 internal actual fun CalibrationScatterChart(
@@ -39,7 +40,7 @@ internal actual fun CalibrationScatterChart(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Calibration chart is not implemented on this platform yet",
+            text = stringResource(CalibrationStrings.cal_chart_platform_unavailable),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

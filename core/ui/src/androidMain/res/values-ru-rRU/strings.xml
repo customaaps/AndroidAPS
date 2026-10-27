@@ -337,7 +337,7 @@
     <string name="uel_automation_removed">АВТОМАТИЗАЦИЯ УДАЛЕНА</string>
     <string name="uel_bg_removed">ГК УДАЛЕНА</string>
     <string name="uel_careportal_removed">ПОРТАЛ ТЕРАПИИ УДАЛЕН</string>
-    <string name="uel_bolus_removed">BOLUS УДАЛЕН</string>
+    <string name="uel_bolus_removed">БОЛЮС УДАЛЁН</string>
     <string name="uel_carbs_removed">УГЛЕВОДЫ УДАЛЕНЫ</string>
     <string name="uel_temp_basal_removed">ВРЕМ БАЗАЛ УДАЛЕН</string>
     <string name="uel_extended_bolus_removed">ПРОЛОНГИРОВАННЫЙ БОЛЮС УДАЛЕН</string>
@@ -422,8 +422,8 @@
     <string name="temp_basal_percent">ВРЕМ БАЗА %1$d%% %2$d мин</string>
     <string name="insight_set_tbr_over_notification">ВРЕМ БАЗА TBR INSIGHT ЧЕРЕЗ УВЕДОМЛЕНИЕ</string>
     <string name="read_status" comment="10 characters max for READSTATUS translation">ЧИТСТАТУС %1$s</string>
-    <string name="keepalive_status_outdated" comment="26 characters max for translation">Статус KeepAlive устарел.</string>
-    <string name="keepalive_basal_outdated" comment="26 characters max for translation">KeepAlive Базал устарел.</string>
+    <string name="keepalive_status_outdated" comment="26 characters max for translation">Проверка: статус устарел.</string>
+    <string name="keepalive_basal_outdated" comment="26 characters max for translation">Проверка: базал устарел.</string>
     <string name="sms" comment="26 characters max for translation">SMS</string>
     <string name="formatPercent">%1$.0f%%</string>
     <string name="basal">Базал</string>
@@ -560,7 +560,7 @@
     <!-- About -->
     <string name="cta_dont_kill_my_app_info">Не останавливать приложение?</string>
     <string name="fabric_upload_disabled">Загрузка журналов сбоя на сервер отключена!</string>
-    <string name="about_link_urls">\n\nDocumentation:\nhttps://wiki.aaps.app\n\nFacebook:\nhttps://www.facebook.com/groups/AndroidAPSUsers</string>
+    <string name="about_link_urls">\n\nДокументация:\nhttps://wiki.aaps.app\n\nFacebook:\nhttps://www.facebook.com/groups/AndroidAPSUsers</string>
     <plurals name="days">
         <item quantity="one">%1$d день</item>
         <item quantity="few">%1$d дня</item>
@@ -637,4 +637,583 @@
     <string name="cr_profile">CR профиля: %1$.1f г/Ед</string>
     <string name="cr_used">Использованный CR: %1$.1f г/Ед</string>
     <string name="overview_profile_to_used">%1$s: в профиле %2$s; использовано %3$s</string>
+
+    <!-- Дополненный русский перевод интерфейса -->
+    <string name="error_field_must_not_be_empty">Поле не должно быть пустым</string>
+    <string name="authorized_clients_manage_label">Авторизованные клиенты</string>
+    <string name="authorized_clients_manage_desc">Управление сопряжёнными клиентскими устройствами, управляющими этим основным устройством.</string>
+    <string name="pair_with_master_manage_label">Сопряжение с основным устройством</string>
+    <string name="pair_with_master_manage_desc">Введите PIN сопряжения основного устройства, чтобы этот клиент мог отправлять подписанные команды.</string>
+    <string name="treatments">Терапия</string>
+    <string name="treatments_history">История терапии</string>
+    <string name="treatments_desc">Просмотр и управление историей терапии</string>
+    <string name="nav_configuration">Конфигурация</string>
+    <string name="nav_configuration_desc">Настройте конфигурацию (CGM, помпу и другое) и включите нужные функции</string>
+    <string name="delete">Удалить</string>
+    <string name="show_invalidated">Показать недействительные</string>
+    <string name="hide_invalidated">Скрыть недействительные</string>
+    <string name="more_options">Дополнительные действия</string>
+    <string name="no_history_records">Записи не найдены</string>
+    <string name="error">Ошибка</string>
+    <string name="navigation_error_screen_not_found">Не удалось открыть экран (недоступен в этой конфигурации)</string>
+    <string name="invalid_number">Недопустимое число</string>
+    <string name="constraint_applied">Применено ограничение!</string>
+    <string name="pump_driver_not_responding" comment="%1$s=the pump command that is stuck, for example: Bolus: 1.00 U. %2$d=minutes">Драйвер помпы не отвечает. Команда «%1$s» выполняется уже %2$d min, и другие команды не могут достичь помпы. Проверьте помпу, затем перезапустите AAPS.</string>
+    <string name="pump_base_basal_rate_dynamic">%1$s U/h</string>
+    <string name="loop_disabled_by_user">Замкнутый контур отключён пользователем</string>
+    <string name="bg_mgdl">%1$d mg/dL</string>
+    <string name="bg_mmol">%1$.1f mmol/L</string>
+    <string name="skip">Пропустить</string>
+    <string name="switch_to_edit">Редактировать</string>
+    <string name="snooze_15m">Отложить на 15 min</string>
+    <string name="snooze_30m">Отложить на 30 min</string>
+    <string name="snooze_60m">Отложить на 60 min</string>
+    <string name="open_plugin">Открыть модуль</string>
+    <string name="configbuilder_pick_one_hint">Выберите один вариант. Одновременно может быть активен только один.</string>
+    <string name="configbuilder_pick_many_hint">Выберите все подходящие варианты.</string>
+    <string name="configbuilder_no_selection_warning">В этой категории не выбран ни один модуль.</string>
+    <string name="configbuilder_switch_confirmation_title">Сменить модуль?</string>
+    <string name="configbuilder_switch_confirmation">Это отключит %1$s и включит %2$s.</string>
+    <string name="expand">Развернуть</string>
+    <string name="collapse">Свернуть</string>
+    <string name="state_completed" comment="Spoken state of a checklist task that is finished, said after the task name. The only other sign of it is a tick icon, so a screen reader needs this to tell done from still to do.">Завершено</string>
+    <string name="state_expanded" comment="Spoken STATE of a section that is currently open, said after its name: Pump settings, expanded. Not the Expand button, which is the action - this is an adjective, and some languages word the two differently.">Развёрнуто</string>
+    <string name="state_collapsed" comment="Spoken STATE of a section that is currently closed, said after its name: Pump settings, collapsed. Not the Collapse button, which is the action - this is an adjective, and some languages word the two differently.">Свёрнуто</string>
+    <string name="no_compose_preferences">Для этого модуля нет настроек</string>
+    <string name="confirm_password_hint">Подтвердите пароль</string>
+    <string name="confirm_pin_hint">Подтвердите PIN</string>
+    <string name="preference_range_summary" comment="%1$s=current value, %2$s=unit label, %3$s=minimum, %4$s=maximum. Example: 5.0 U (0.0 – 10.0)">%1$s%2$s (%3$s – %4$s)</string>
+    <string name="configbuilder_calibration">Калибровка</string>
+    <string name="configbuilder_sensitivity">Определение чувствительности</string>
+    <string name="configbuilder_sync">Связь</string>
+    <string name="confirm">Подтвердить</string>
+    <string name="pump_management">Помпа</string>
+    <string name="running">Выполняется</string>
+    <string name="carbs_not_saved_after_bolus">Болюс введён, но углеводы не удалось сохранить. Введите углеводы повторно.</string>
+    <string name="format_carbs_split" comment="Compact carbs summary when a food type splits the entry into immediate + extended carbs. %1$d=immediate carbs (g), %2$d=extended (eCarbs) carbs (g). Example: 9+2 g">%1$d+%2$d g</string>
+    <string name="format_mins">%1$d min</string>
+    <string name="temp_target_description" comment="Short text of a temporary target. %1$s=target or target range, %2$s=BG unit, %3$s=duration with unit, %4$s=reason. Example: 7.0mmol/L@60 min(Activity)">%1$s%2$s@%3$s(%4$s)</string>
+    <string name="value_question" comment="Asks if this should be done. %1$s=what will be done. Example: Send logs?">%1$s?</string>
+    <string name="value_with_unit" comment="A numeric value followed by its unit, when no dedicated value template exists. %1$s = value, %2$s = unit. Example: 120 mg/dl">%1$s %2$s</string>
+    <string name="value_in_parentheses" comment="A value shown in brackets after another value. %1$s = the value with its unit. Example: (4 min)">(%1$s)</string>
+    <string name="value_with_plus_sign" comment="A value that is added, or a time later than now. %1$s = the value with its unit. Example: +15 min">+%1$s</string>
+    <string name="value_with_minus_sign" comment="A time earlier than now. %1$s = the value with its unit. Example: -15 min">-%1$s</string>
+    <string name="value_with_remaining_time" comment="A short fact followed by how long something still runs. %1$s=the fact, %2$s=the remaining time with unit. Example: 110% +2h · 2 h 40 min">%1$s · %2$s</string>
+    <string name="stop_pressed">НАЖАТА ОСТАНОВКА</string>
+    <string name="profile_switch_no_insulin">Невозможно сменить профиль: инсулин не используется и не выбран.</string>
+    <string name="scene_no_profile_before">До запуска сценария ни один профиль не использовался.</string>
+    <string name="scene_profile_not_restored" comment="%1$s=scene name, %2$s=why, a complete sentence that already ends with its own full stop. Example: Scene Sick day has ended, but its profile is still in use. No profile was in use before the scene started. Activate a profile by hand.">Сценарий %1$s завершён, но его профиль всё ещё используется. %2$s Активируйте профиль вручную.</string>
+    <string name="profile_switch_insulin_not_permanent" comment="%1$s=insulin of the temporary profile switch, %2$s=insulin of the permanent profile under it. Example: This temporary switch has Fiasp, but the permanent profile under it has Novorapid. Activate the insulin that is in the pump in Insulin settings first.">Для этого временного переключения выбран %1$s, а в постоянном профиле под ним — %2$s. Сначала активируйте инсулин, находящийся в помпе, в настройках инсулина.</string>
+    <string name="profile_switch_time_too_far" comment="%1$d = how many hours before or after the current time a profile switch may be set. Example: The profile switch time must be within 24 hours of now.">Время переключения профиля должно быть в пределах %1$d часов от текущего момента.</string>
+    <string name="temp_target_time_too_far" comment="%1$d = how many hours before or after the current time a temporary target may start. Example: The temporary target must start within 24 hours of now.">Временная цель должна начаться в пределах %1$d часов от текущего момента.</string>
+    <string name="profile_switch_select_insulin_hint">Инсулин ещё не используется. Выберите используемый инсулин, чтобы записать его при переключении профиля.</string>
+    <string name="insulin_activation_failed">Инсулин не переключён. Продолжает использоваться предыдущий инсулин.</string>
+    <string name="insulin_activation_failed_reason" comment="%1$s=localized failure reason, a complete sentence that already ends with its own full stop, so do not add one after the placeholder. Example: The insulin was not switched: The master is offline. Your previous insulin is still in use.">Инсулин не переключён: %1$s Продолжает использоваться предыдущий инсулин.</string>
+    <string name="insulin_activation_unconfirmed">Не удалось подтвердить переключение инсулина. Перед введением дозы проверьте, какой инсулин активен в профиле.</string>
+    <string name="insulin_not_switched_reason" comment="%1$s=why the switch was refused, a sentence the user reads as it is. Example: The insulin was not switched. Your previous insulin is still in use. (empty line) Basal rate is not compatible with the current pump and cannot be activated.">Инсулин не переключён. Продолжает использоваться предыдущий инсулин.\n\n%1$s</string>
+    <string name="fill_prime_failed_insulin_not_switched" comment="%1$s=the delivery error message from the failed prime. Shown as one message because the insulin switch was chained to the prime succeeding.">%1$s\n\nИнсулин также не был переключён.</string>
+    <string name="insulin_nickname_label">Название инсулина</string>
+    <string name="concentration_label">Концентрация</string>
+    <string name="peak_label">Пик действия</string>
+    <string name="waiting_for_pump">Ожидание помпы…</string>
+    <string name="initialization_failed">Не удалось выполнить инициализацию</string>
+    <string name="cal_reject_delta_too_high" comment="%1$s = how fast BG changes now, %2$s = the limit, %3$s = BG unit. Example: (Δ 0.5 mmol/L per 5 min, limit 0.3)">Калибровка не сохранена: BG меняется слишком быстро (Δ %1$s %3$s за 5 min, предел %2$s). Повторите при стабильной глюкозе.</string>
+    <string name="bolus_reminder">Напомнить о болюсе, когда BG восстановится</string>
+    <string name="shortgramm">g</string>
+    <string name="a11y_arrow_triple_down">снижается очень быстро</string>
+    <string name="a11y_arrow_triple_up">растёт очень быстро</string>
+    <string name="a11y_min_button_description" comment="Screen-reader label for the minus button of a number field. %1$s = the field label, %2$s = the step it changes by. Example: decrement Carbs by 5">уменьшить %1$s на %2$s</string>
+    <string name="a11y_plus_button_description" comment="Screen-reader label for the plus button of a number field. %1$s = the field label, %2$s = the step it changes by. Example: increment Carbs by 5">увеличить %1$s на %2$s</string>
+    <string name="a11y_expand_button_description" comment="Screen-reader label for the button that opens a number field for typing. %1$s = the field label. Example: open Carbs for typing">открыть %1$s для ввода</string>
+    <string name="a11y_collapse_button_description" comment="Screen-reader label for the button that closes a number field again. %1$s = the field label. Example: close Carbs">закрыть %1$s</string>
+    <string name="a11y_move_up" comment="Screen-reader action to move an item one place up in a list that is otherwise reordered by dragging.">Переместить вверх</string>
+    <string name="a11y_move_down" comment="Screen-reader action to move an item one place down in a list that is otherwise reordered by dragging.">Переместить вниз</string>
+    <string name="a11y_wizard_step" comment="Screen-reader text for the step dots of a pump pairing or activation wizard, said again on every new step. %1$d=current step, %2$d=number of steps. Example: Step 3 of 7">Шаг %1$d из %2$d</string>
+    <string name="remove_label">Удалить</string>
+    <string name="activate_profile">Активировать профиль</string>
+    <string name="activate_insulin">Активировать инсулин</string>
+    <string name="pump_wizard_profile_gate_title">Требуется профиль</string>
+    <string name="pump_wizard_profile_gate_pick">Выберите профиль для применения при активации.</string>
+    <string name="pump_wizard_profile_gate_no_store">Профили не заданы. Создайте профиль в разделе управления профилями, затем повторите активацию.</string>
+    <string name="reset">Сброс</string>
+    <string name="profileswitch_ismissing">Нет переключения профиля. Переключите профиль или нажмите «Активировать профиль» в локальном профиле.</string>
+    <string name="remove_not_on_master" comment="Shown on a client when removing records. %1$d = number of records the master does not have. Example: The master does not have 2 of these entries. They are not removed.">На основном устройстве отсутствуют %1$d из этих записей. Они не удалены.</string>
+    <string name="wear_wizard_settings">Настройки калькулятора Wear</string>
+    <string name="prime_not_available">Эта помпа самостоятельно заполняется и выполняет заправку при активации. Заправка/заполнение из AAPS недоступны.</string>
+    <string name="btn_status_cannula_change" comment="Button on the Cannula row of the overview status section. Opens the Prime/Fill dialog.">Изменить</string>
+    <string name="btn_status_insulin_fill" comment="Button on the Insulin row of the overview status section. Opens the Prime/Fill dialog.">Заполнить</string>
+    <string name="select_arrow">Выберите направление</string>
+    <string name="site_filter_info">Выберите типы событий терапии для отображения: смена канюли и/или смена сенсора</string>
+    <string name="selected_location">Выбрано: %1$s</string>
+    <string name="last_site_location">Последнее место: %1$s</string>
+    <string name="pick_site">Выберите место</string>
+    <string name="select_site_location">Выберите место установки</string>
+    <string name="site_location">Место установки</string>
+    <string name="pump_suspend">Приостановить помпу</string>
+    <string name="pump_resume">Возобновить работу помпы</string>
+    <string name="select_insulin">Выберите инсулин</string>
+    <string name="ic_short">IC</string>
+    <string name="not_implemented_yet">Эта функция ещё не готова на данной платформе</string>
+    <string name="not_available_on_platform">Эта функция недоступна на данной платформе</string>
+    <string name="back">Назад</string>
+    <string name="pref_syncs_with_main_phone">Синхронизируется с основным телефоном</string>
+    <string name="startprofile">Запустить профиль %1$d%% на %2$d min</string>
+    <string name="ins_concentration_confirmed">Инсулин %1$s подтверждён</string>
+    <string name="current_insulin">Активен сейчас</string>
+    <string name="insulin_will_be_activated" comment="Small caption above the name of an insulin the user picked that is not active yet. It becomes active when the user goes on.">Будет активирован</string>
+    <string name="change_insulin">Сменить</string>
+    <string name="select_insulin_description">Выберите инсулин, которым заполняете помпу. После активации/заправки будет выполнено переключение профиля.</string>
+    <string name="pump_insulin_cu">%1$.2f\u00a0CU</string>
+    <string name="pump_insulin_cu1">%1$.1f\u00a0CU</string>
+    <string name="selected_insulin">Выбранный инсулин: %1$s</string>
+    <string name="record_insulin_hint">Если вы записываете инсулин, введённый шприц-ручкой, выберите ниже правильный тип инсулина. Доза всегда указывается в международных единицах.</string>
+    <string name="tir">Время в диапазоне</string>
+    <string name="veryLow" comment="below 3.1">Очень низкая</string>
+    <string name="seven_days_short">7d</string>
+    <string name="thirty_days_short">30d</string>
+    <string name="careportal">Дневник терапии</string>
+    <string name="careportal_pump_site_change_message" comment="Automation action that records a pump site change. %1$s = the note the user entered, may be empty. Example: Pump Site Change : new reservoir">Смена места установки помпы: %1$s</string>
+    <string name="cgm_sensor_insert">Установка сенсора</string>
+    <string name="careportal_cgmsensorstart">Запуск сенсора</string>
+    <string name="careportal_cgm_sensor_stop">Остановка сенсора</string>
+    <string name="profile_management">Профиль</string>
+    <string name="temporary_targets">Временные цели</string>
+    <string name="running_mode_desc">Замкнуть или разомкнуть контур, приостановить его или отключить помпу</string>
+    <string name="running_mode_change_not_allowed">Изменение режима работы недоступно</string>
+    <string name="pump_reconnect">Повторно подключить помпу</string>
+    <string name="scene">Сценарий</string>
+    <string name="scenes">Сценарии</string>
+    <string name="scene_desc">Наборы действий для разных ситуаций — запускайте несколько действий сразу</string>
+    <string name="scene_activate">Активировать</string>
+    <string name="scene_deactivate">Завершить сценарий</string>
+    <string name="scene_active">Активен</string>
+    <string name="scene_ended">Сценарий завершён</string>
+    <string name="scene_end_active">Завершить активный сценарий</string>
+    <string name="scene_skip_to_label" comment="Confirmation line shown above the name of the follow-up scene that will start instead">Перейти к</string>
+    <string name="scene_end_follow_up_not_started" comment="%1$s=name of the follow-up scene. Shown when ending a scene without starting its follow-up">Следующий сценарий %1$s не запустится</string>
+    <string name="scene_confirm_activate">Активировать сценарий «%1$s»?</string>
+    <string name="scene_confirm_deactivate">Завершить сценарий «%1$s» и отменить изменения?</string>
+    <string name="scene_conflict_active_tt">Активная временная цель будет заменена</string>
+    <string name="scene_conflict_active_profile">Активное переключение профиля будет заменено</string>
+    <string name="scene_conflict_active_running_mode">Активный режим работы будет заменён</string>
+    <string name="scene_conflict_active_scene">Сначала будет завершён активный сценарий «%1$s»</string>
+    <string name="scene_action_tt">Временная цель: %1$s</string>
+    <string name="scene_action_profile" comment="%1$s=profile name, %2$d=percentage. Example: Profile: Default 150%">Профиль: %1$s %2$d%%</string>
+    <string name="scene_action_profile_pct_only" comment="%1$d=percentage, used when no specific named profile. Example: Profile: 150%">Профиль: %1$d%%</string>
+    <string name="scene_action_smb_on">Включить SMB</string>
+    <string name="scene_action_smb_off">Отключить SMB</string>
+    <string name="scene_action_running_mode">Режим работы: %1$s</string>
+    <string name="scene_action_careportal">Запись: %1$s</string>
+    <string name="scene_management">Сценарии</string>
+    <string name="scene_management_desc">Создание, редактирование и управление сценариями</string>
+    <string name="scene_start_from_template">Начать с шаблона</string>
+    <string name="scene_editor_target">Цель</string>
+    <string name="scene_editor_tt_preset">Предустановка TT</string>
+    <string name="scene_editor_no_tt_presets">Предустановки TT не настроены</string>
+    <string name="scene_editor_select_tt_preset">Выберите предустановку</string>
+    <string name="scene_editor_percentage">Процент</string>
+    <string name="scene_editor_profile">Профиль</string>
+    <string name="scene_editor_keep_current_profile">-- Сохранить текущий --</string>
+    <string name="scene_editor_mode">Режим</string>
+    <string name="scene_editor_event_type">Тип события</string>
+    <string name="scene_editor_note">Заметка</string>
+    <string name="scene_icon">Значок</string>
+    <string name="scene_editor_enabled">Включён</string>
+    <string name="scene_editor_disabled">Отключён</string>
+    <string name="scene_summary">%1$d действий, %2$s</string>
+    <string name="scene_summary_with_chain" comment="%1$s=scene summary, %2$s=name of the scene that starts when this one ends. Example: 3 actions, 2 hours → Cooldown">%1$s → %2$s</string>
+    <string name="quicklaunch_tt_description" comment="Temp target preset on a QuickLaunch button. %1$s=target with unit, %2$s=duration. Example: 5.0 mmol/L, 45 min">%1$s, %2$s</string>
+    <string name="scene_duration_indefinite">Бессрочно (завершение вручную)</string>
+    <string name="scene_some_actions_failed">Некоторые действия не выполнены</string>
+    <string name="scene_no_active">Нет активного сценария</string>
+    <string name="scene_some_reverts_failed">Не удалось отменить некоторые действия</string>
+    <string name="scene_no_profile_store">Хранилище профилей недоступно</string>
+    <string name="scene_no_actions">В сценарии нет действий</string>
+    <string name="scene_profile_not_found">Профиль «%1$s» не найден</string>
+    <string name="scene_lock_banner_master_offline">Основное устройство недоступно. Управление сценариями возобновится после восстановления связи.</string>
+    <string name="scene_lock_banner_control_disabled">На основном устройстве отключено удалённое управление. Управление сценариями возобновится после его включения на основном устройстве.</string>
+    <string name="master_offline_banner">Основное устройство недоступно. Редактирование отключено до восстановления связи.</string>
+    <string name="master_control_disabled_banner">На основном устройстве отключено удалённое управление. Редактирование недоступно до его включения на основном устройстве.</string>
+    <string name="hardened_mode_on">Защищённый режим включён</string>
+    <string name="hardened_mode_title">Защищённый режим</string>
+    <string name="hardened_mode_info_open">О защищённом режиме</string>
+    <string name="client_role_read_only" comment="Short label of a client role on a segmented button: the phone may only show data">Только просмотр</string>
+    <string name="client_role_meal_assistant" comment="Short label of a client role on a segmented button: may give boluses and enter carbs">Приёмы пищи</string>
+    <string name="client_role_caregiver" comment="Short label of a client role on a segmented button: may use everything but not change settings">Помощник</string>
+    <string name="client_role_admin" comment="Short label of a client role on a segmented button: may also change settings and presets">Администратор</string>
+    <string name="client_role_title">Роль</string>
+    <string name="client_role_line" comment="%1$s = the role of this phone on the main phone, e.g. Meals">Роль: %1$s</string>
+    <string name="client_roles_info_open">О ролях</string>
+    <string name="client_roles_info">У каждого сопряжённого телефона есть роль. Основной телефон проверяет её для каждой команды, а клиент показывает только разрешённые действия. Новая роль действует сразу, без повторного сопряжения.\n\nТолько просмотр: телефон остаётся сопряжённым, но лишь показывает данные.\n\nПриёмы пищи: болюс, калькулятор болюса, быстрый калькулятор и углеводы. Можно остановить текущий болюс. Введённые здесь углеводы могут привести к увеличению подачи инсулина алгоритмом.\n\nПомощник: все обычные действия пользователя AAPS — временные цели, переключения профиля и инсулина, режим контура, временный базал, растянутый болюс, сценарии, события дневника терапии, калибровки и удаление записей. Изменять настройки и предустановки нельзя.\n\nАдминистратор: все действия, включая настройки и предустановки (быстрый калькулятор, временные цели, сценарии, профили, автоматизация, инсулин).</string>
+    <string name="client_read_only_banner">Этот телефон настроен на основном телефоне в режиме только для просмотра.</string>
+    <string name="hardened_mode_info">Основной телефон принимает изменения только от сопряжённых клиентов. Он не принимает терапию, временные цели, изменения профиля и режима работы или удаления, сделанные прямо в Nightscout, например на сайте или в других приложениях. В защищённом режиме настройки приёма данных из Nightscout скрыты. На SMS-команды это не влияет.\n\nОсновной телефон продолжает загружать все данные в Nightscout, включая BG. Если он получает BG из Nightscout, получение продолжается.\n\nЧтобы загрузить историю на новый основной телефон, используйте полную синхронизацию в NSClient. Она принимает всё содержимое Nightscout, включая профили.\n\nУдалённое управление с клиентов требует работающего соединения WebSocket с Nightscout на основном и сопряжённых телефонах. Простой режим всегда включает защищённый режим. Чтобы отключить его, выйдите из простого режима и отключите управление клиентами на основном телефоне.</string>
+    <string name="scene_lock_reason_master_offline">Основное устройство отключено</string>
+    <string name="scene_lock_reason_control_disabled">Удалённое управление отключено</string>
+    <string name="scene_lock_reason_scene_active">Сначала остановите текущий сценарий</string>
+    <string name="clientcontrol_action_set_temp_target">Задать временную цель</string>
+    <string name="clientcontrol_action_cancel_temp_target">Отменить временную цель</string>
+    <string name="clientcontrol_action_activate_scene">Активировать сценарий %1$s</string>
+    <string name="clientcontrol_action_deactivate_scene">Завершить сценарий</string>
+    <string name="clientcontrol_action_update_settings">Обновить настройки</string>
+    <string name="clientcontrol_action_deliver_bolus">Ввести болюс</string>
+    <string name="clientcontrol_action_eat_reminder">Изменить напоминание о еде</string>
+    <string name="clientcontrol_fail_not_paired">Это устройство не сопряжено с основным.</string>
+    <string name="clientcontrol_fail_not_reachable">Основное устройство не в сети.</string>
+    <string name="clientcontrol_pump_out_of_sync" comment="Shown when a follower relays a temp basal / extended bolus but its cached pump type no longer matches the master\&#x27;s pump">Конфигурация помпы не синхронизирована с основным устройством. Повторите попытку.</string>
+    <string name="clientcontrol_fail_no_reply">Основное устройство не ответило вовремя.</string>
+    <string name="clientcontrol_fail_expired">Время действия команды истекло до её выполнения основным устройством.</string>
+    <string name="clientcontrol_fail_busy">Другое действие уже выполняется.</string>
+    <string name="clientcontrol_fail_send_failed">Не удалось связаться с Nightscout.</string>
+    <string name="clientcontrol_fail_no_active_profile">На основном устройстве нет активного профиля для применения действия.</string>
+    <string name="clientcontrol_fail_scene_not_found">Сценарий больше не существует.</string>
+    <string name="clientcontrol_fail_site_entry_not_found">Запись о месте установки больше не существует.</string>
+    <string name="clientcontrol_fail_scene_disabled">Сценарий отключён.</string>
+    <string name="clientcontrol_fail_partial">Некоторые действия не удалось применить.</string>
+    <string name="clientcontrol_fail_execution">Основное устройство не смогло применить действие.</string>
+    <string name="clientcontrol_fail_cancelled">Команда отменена до выполнения. В помпу ничего не отправлено.</string>
+    <string name="bolus_cancelled_no_insulin" comment="%1$s=why the command was dropped, e.g. the settings import message. Shown when a bolus was removed from the queue before it reached the pump.">Болюс отменён. Инсулин не введён.\n%1$s</string>
+    <string name="command_cancelled_title" comment="Dialog title when a command was dropped before it reached the pump. Used instead of an error title, because nothing failed.">Отменено</string>
+    <string name="smb_paused_for_bolus" comment="Loop status: why no SMB was given. The user is confirming a bolus that was calculated without this SMB.">SMB не подаются, пока болюс ожидает подтверждения</string>
+    <string name="smb_being_delivered_confirm_later" comment="Shown above the disabled OK button of the bolus dialogs. SMB = super micro bolus, given by the loop.">Сейчас вводится SMB. Подтверждение будет доступно после завершения.</string>
+    <string name="clientcontrol_fail_control_disabled">На основном устройстве отключено удалённое управление.</string>
+    <string name="clientcontrol_fail_not_allowed_for_role">Роль этого телефона на основном устройстве не разрешает это действие.</string>
+    <string name="clientcontrol_fail_other_token">Основное устройство отклонило команду: этот телефон записывает данные в Nightscout с другим токеном. Удалите этот телефон на основном устройстве и добавьте снова.</string>
+    <string name="clientcontrol_fail_no_pending_bolus">Подготовленный болюс устарел или заменён. Нажмите кнопку повторно.</string>
+    <string name="clientcontrol_fail_bolus_compute">Основное устройство не смогло рассчитать болюс (нет глюкозы/профиля или помпа не готова).</string>
+    <string name="clientcontrol_fail_internal">Произошла ошибка.</string>
+    <string name="clientcontrol_fail_unknown">Не удалось выполнить команду.</string>
+    <string name="clientcontrol_unconfirmed_wear">Состояние неизвестно — проверьте телефон/Nightscout перед повторным болюсом.</string>
+    <string name="clientcontrol_bolus_progress_stalled_title">Связь потеряна — состояние введения неизвестно</string>
+    <string name="clientcontrol_bolus_progress_stalled_body">Этот телефон перестал получать обновления от основного устройства. Болюс может ещё вводиться или уже завершиться. Закрытие лишь скроет окно здесь — помпа не остановится. Проверьте фактически введённую дозу на основном телефоне.</string>
+    <string name="scene_revert_tt">Отменить временную цель</string>
+    <string name="scene_revert_profile">Отменить смену профиля</string>
+    <string name="scene_revert_smb_on">Снова включить SMB</string>
+    <string name="scene_revert_smb_off">Отключить SMB</string>
+    <string name="scene_revert_loop_mode">Отменить изменение режима работы</string>
+    <string name="scene_careportal_no_revert">Записи дневника терапии не будут отменены</string>
+    <string name="careportal_sickness">Болезнь</string>
+    <string name="careportal_stress">Стресс</string>
+    <string name="careportal_pre_period">Перед менструацией</string>
+    <string name="careportal_alcohol">Алкоголь</string>
+    <string name="careportal_cortisone">Кортизон</string>
+    <string name="careportal_feeling_low">Ощущение низкого сахара</string>
+    <string name="careportal_feeling_high">Ощущение высокого сахара</string>
+    <string name="careportal_falling_asleep">Засыпание</string>
+    <string name="careportal_waking_up">Пробуждение</string>
+    <string name="treatment_desc">Записать инсулин и углеводы вместе</string>
+    <string name="treatment_insulin_desc">Ввести болюс вручную</string>
+    <string name="treatment_carbs_desc">Записать углеводы без инсулина</string>
+    <string name="treatment_calculator_desc">Рассчитать болюс</string>
+    <string name="insulin_management" comment="Name of the screen for editing insulin types (DIA, peak). Must NOT translate to the same word as overview_insulin_label, which names the bolus action - both can sit next to each other on the quick launch toolbar, and one of them delivers insulin.">Настройки инсулина</string>
+    <string name="manage_insulin_desc">Управление и активация конфигураций инсулина</string>
+    <string name="concentration_disable_blocked">Нельзя отключить поддержку концентраций, пока существуют инсулины, отличные от U100. Сначала удалите все такие конфигурации и переключитесь на профиль U100.</string>
+    <string name="simple_mode_blocked_by_concentration">Нельзя включить простой режим при использовании инсулина, отличного от U100. Сначала переключитесь на инсулин U100.</string>
+    <string name="manage_profile_desc">Управление и активация профилей</string>
+    <string name="manage_temp_target_desc">Управление и установка временных целей</string>
+    <string name="manage_temp_basal_desc">Запустить временный базал</string>
+    <string name="manage_extended_bolus_desc">Начать введение растянутого болюса</string>
+    <string name="manage_site_rotation_desc">Учёт и чередование мест установки</string>
+    <string name="manage_quickwizard_desc">Управление предустановками быстрого калькулятора</string>
+    <string name="treatment_note_desc">Добавить заметку в дневник</string>
+    <string name="treatment_question_desc">Записать вопрос для лечащей команды</string>
+    <string name="treatment_cgm_desc">Открыть приложение CGM</string>
+    <string name="treatment_calibration_desc">Откалибровать сенсор CGM</string>
+    <string name="treatment_bg_check_desc">Записать измерение глюкозы крови</string>
+    <string name="treatment_exercise_desc">Записать физическую нагрузку</string>
+    <string name="treatment_announcement_desc">Опубликовать объявление</string>
+    <string name="treatment_sensor_insert_desc">Записать установку сенсора CGM</string>
+    <string name="treatment_battery_change_desc">Записать смену батареи помпы</string>
+    <string name="treatment_cannula_change_desc">Записать смену канюли/инфузионной системы</string>
+    <string name="treatment_fill_desc">Выполнить заправку и заполнить канюлю</string>
+    <string name="temp_basal">Временный базал</string>
+    <string name="tbr_state_above_profile" comment="Spoken state of the temp basal chip when the running rate is higher than the profile basal. Said after the chip name: Temp basal, above profile.">Выше профиля</string>
+    <string name="tbr_state_below_profile" comment="Spoken state of the temp basal chip when the running rate is lower than the profile basal. Said after the chip name: Temp basal, below profile.">Ниже профиля</string>
+    <string name="tbr_state_none" comment="Spoken state of the temp basal chip when no temp basal is running, or the running one equals the profile basal.">Отсутствует</string>
+    <string name="aaps">AAPS</string>
+    <string name="unknown">Неизвестно</string>
+    <string name="automation_management_desc">Создание правил для автоматического выполнения действий по условиям</string>
+    <string name="preset_settings">Настройки предустановок</string>
+    <string name="activation">Активация</string>
+    <string name="temp_target_management">Врем. цель</string>
+    <string name="revert_to_defaults">Восстановить значения по умолчанию</string>
+    <string name="location_back_right_lower_back">Поясница справа</string>
+    <string name="location_back_left_lower_back">Поясница слева</string>
+    <string name="command_replaced">Заменено более новой командой</string>
+    <string name="pump_not_configured">Помпа не настроена</string>
+    <string name="smb_shortname">SMB</string>
+    <string name="tdd_short">TDD</string>
+    <string name="tdd">Общая суточная доза</string>
+    <string name="uel_superbolus_tbr">СУПЕРБОЛЮС TBR</string>
+    <string name="uel_temp_basal">ВРЕМЕННЫЙ БАЗАЛ</string>
+    <string name="uel_calibration_removed">КАЛИБРОВКА УДАЛЕНА</string>
+    <string name="uel_new_insulin">НОВЫЙ ИНСУЛИН</string>
+    <string name="uel_change_pump_insulin">СМЕНА ИНСУЛИНА В ПОМПЕ</string>
+    <string name="uel_store_insulin">СОХРАНЕНИЕ ИНСУЛИНА</string>
+    <string name="uel_change_insulin_concentration">ИЗМЕНЕНИЕ КОНЦЕНТРАЦИИ ИНСУЛИНА</string>
+    <string name="uel_insulin_removed">ИНСУЛИН УДАЛЁН</string>
+    <string name="uel_scene_activated">СЦЕНАРИЙ АКТИВИРОВАН</string>
+    <string name="uel_scene_deactivated">СЦЕНАРИЙ ЗАВЕРШЁН</string>
+    <string name="uel_remote_config_changed">УДАЛЁННАЯ КОНФИГУРАЦИЯ ИЗМЕНЕНА</string>
+    <string name="temp_target_low_target">Нижнее значение временной цели</string>
+    <string name="insulin_dia">Значение DIA инсулина</string>
+    <string name="insulin_peak">Значение пика инсулина</string>
+    <string name="no_profile_selected">Профиль не выбран</string>
+    <string name="profile_not_saved_activate">Профиль не сохранён. Сохраните профиль перед активацией.</string>
+    <string name="profile_basal_not_compatible_with_pump">Базальная скорость несовместима с текущей помпой, поэтому активация невозможна. Уменьшите процент или измените базальную скорость.</string>
+    <string name="profile_basal_below_pump_minimum">Базальная скорость ниже минимума текущей помпы, поэтому активация невозможна. Увеличьте процент или измените базальную скорость.</string>
+    <string name="profile_pump_incompatible_label">Ограничение помпы</string>
+    <string name="carbs_g">УГЛЕВОДЫ %1$d g</string>
+    <string name="autosens_state_off" comment="Spoken state of the sensitivity chip when autosens is switched off. The chip still shows a percentage, so without this a screen reader cannot tell that the figure is not being applied. Said after the chip name: Sensitivity, autosens off, 112%.">Autosens отключён</string>
+    <string name="isf_for_carbs">Средний ISF для калькулятора и усвоения углеводов: %1$.1f</string>
+    <string name="isf_profile">ISF профиля: %1$.1f</string>
+    <string name="isf_variable">Переменный ISF: %1$.1f</string>
+    <string name="isf_effective">Эффективный ISF: %1$.1f</string>
+    <string name="autosens_short">%.0f%%</string>
+    <string name="info">ИНФОРМАЦИЯ</string>
+    <string name="wizard_bg_label">BG</string>
+    <string name="wizard_correction">Коррекция</string>
+    <string name="wizard_subtotal">Промежуточный итог</string>
+    <string name="carbs_type_bread">Хлеб, несладкая выпечка, йогурт, фрукты (яблоко, банан, груша), картофель, рис, гречка, овсянка, продукты с медленными углеводами и низким содержанием углеводов, овощи</string>
+    <string name="carbs_type_cake">Пельмени, макароны, азиатская кухня с большим количеством углеводов и жиров, сладкая и дрожжевая выпечка, хлопья, каши, мёд, варенье</string>
+    <string name="carbs_type_pizza">Лазанья, пицца, гамбургеры, картофель фри, печёный картофель, чипсы и похожие закуски</string>
+    <string name="wizard_total">Итого</string>
+    <string name="wizard_carb_time">Время углеводов</string>
+    <string name="carb_time_now">Сейчас</string>
+    <string name="change">Изменить</string>
+    <string name="label_with_colon" comment="A field name shown before its value, which follows on the same line. %1$s = field name. Example: Carb time:">%1$s:</string>
+    <string name="grant">Предоставить</string>
+    <string name="wizard_set_alarm">Установить напоминание</string>
+    <string name="eat_reminder_title">Пора есть</string>
+    <string name="eat_reminder_countdown" comment="Time left until it is time to eat, as minutes:seconds. %1$d=minutes, %2$02d=seconds with two digits. Example: 12:05">%1$d:%2$02d</string>
+    <string name="eat_reminder_set_duration" comment="The length of the eat reminder the user set. %1$s=length with unit. Example: Set: 20 min">Установлено: %1$s</string>
+    <string name="eat_reminder_rung">Время вышло</string>
+    <string name="eat_reminder_extend" comment="Button that moves the eat reminder later. %1$d=minutes. Example: +5 min">+%1$d min</string>
+    <string name="eat_reminder_not_set">Не удалось установить напоминание о еде. Разрешите AAPS устанавливать будильники и напоминания в настройках Android.</string>
+    <string name="wizard_use_percentage">Использовать процент</string>
+    <string name="wizard_include_bg">Учитывать BG</string>
+    <string name="wizard_include_tt">Учитывать временную цель</string>
+    <string name="wizard_include_trend">Учитывать тенденцию</string>
+    <string name="wizard_include_iob">Учитывать IOB</string>
+    <string name="wizard_include_cob">Учитывать COB</string>
+    <string name="no_action_selected">Действие не выбрано, ничего не произойдёт.</string>
+    <string name="carbs_removal_cob_limit" comment="Shown under the carbs field when removing carbs (a negative value). %1$d = grams of carbs currently on board, the maximum removable. Example: Max removal: 30 g (carbs on board)">Максимум для удаления: %1$d g (активные углеводы)</string>
+    <string name="wizard_no_insulin_required">Инсулин не требуется</string>
+    <string name="wizard_trend_detail">Тенденция за 15 min (%1$s %2$s)</string>
+    <string name="quickwizard_managemnt">Быстрый калькулятор</string>
+    <string name="tempbasal_label">Временный базал</string>
+    <string name="connecting">Подключение</string>
+    <string name="clicked_connect_to_pump" comment="26 characters max for translation">Нажато подключение к помпе</string>
+    <string name="max_daily_units">Максимальная суточная доза</string>
+    <string name="warning" comment="Generic warning dialog title">Внимание</string>
+    <string name="critical" comment="Spoken severity of a status value that needs attention now, such as a cannula past its change day or a nearly empty reservoir. Said after the value: Cannula, 3 days, Critical.">Критично</string>
+    <string name="alert" comment="Generic alert dialog title">Тревога</string>
+    <string name="retry" comment="Button label to retry a failed operation">Повторить</string>
+    <string name="finish" comment="Button label to complete a wizard/setup flow">Завершить</string>
+    <string name="firmware" comment="Pump firmware version label">Прошивка</string>
+    <string name="bolusspeed" comment="Speed at which bolus is delivered">Скорость ввода болюса</string>
+    <string name="history" comment="Tab/screen title for viewing past events">История</string>
+    <string name="overview_reservoir_concentration_value_over">Осталось более %1$s</string>
+    <string name="percent_rate_recalculated" comment="A temp basal in percent is checked as an absolute rate. %1$d=percentage, %2$s=absolute rate, %3$s=current basal rate. Example: Percent rate 150% recalculated to 1.50 U/h with current basal 1.00 U/h">Процентная скорость %1$d%% пересчитана в %2$s U/h при текущем базале %3$s U/h</string>
+    <string name="dismiss">Закрыть</string>
+    <string name="export_ok">OK</string>
+    <string name="master_password_missing">Основной пароль не задан!\n\nСначала задайте основной пароль и повторите попытку.</string>
+    <string name="export_cloud_success">Экспорт в облако выполнен</string>
+    <string name="export_cloud_failed">ОШИБКА экспорта в облако!</string>
+    <string name="csv_exported">Записи пользователя экспортированы</string>
+    <string name="csv_export_failed">ОШИБКА экспорта записей пользователя!</string>
+    <string name="logs_sent">Журналы отправлены по электронной почте</string>
+    <string name="logs_send_failed">Не удалось отправить журналы</string>
+    <string name="chip_local">Локально</string>
+    <string name="chip_cloud">Облако</string>
+    <string name="chip_email">Эл. почта</string>
+    <string name="send_logs">Отправить журналы</string>
+    <string name="file_management">Управление файлами</string>
+    <string name="database_management">Управление базой данных</string>
+    <string name="maintenance_log_settings_desc">Настроить подробность журналирования</string>
+    <string name="maintenance_send_logs_desc">Поделиться журналами для устранения неполадок</string>
+    <string name="maintenance_delete_logs_desc">Удалить старые файлы журналов</string>
+    <string name="maintenance_aaps_directory_desc">Выбрать папку локального хранилища</string>
+    <string name="maintenance_cloud_directory_desc">Настроить облачное хранилище (Google Drive)</string>
+    <string name="maintenance_export_desc">Сохранить зашифрованную резервную копию настроек</string>
+    <string name="maintenance_import_desc">Восстановить настройки из резервной копии</string>
+    <string name="maintenance_export_csv_desc">Экспортировать историю терапии в таблицу</string>
+    <string name="maintenance_cleanup_db_desc">Удалить старые записи из базы данных</string>
+    <string name="maintenance_reset_aps_results_desc">Очистить сохранённые результаты алгоритма</string>
+    <string name="maintenance_reset_db_desc">Очистить все базы данных и загрузить заново</string>
+    <string name="select_storage_type">Выберите тип хранилища</string>
+    <string name="clear_cloud_action">Очистить настройки</string>
+    <string name="cloud_revoke_incomplete">Облачные настройки очищены на этом устройстве, но связаться с учётной записью для полного отзыва доступа не удалось. При необходимости удалите доступ вручную в настройках учётной записи.</string>
+    <string name="authorization_status">Статус авторизации</string>
+    <string name="format_hour_minute" comment="%1$d=hours, %2$d=minutes. Example: 1 h 23 min">%1$d h %2$d min</string>
+    <string name="format_hours_only" comment="%1$d=hours, when minutes are zero. Example: 4 h">%1$d h</string>
+    <string name="pump_pair">Сопряжение</string>
+    <string name="pump_unpair">Разъединение</string>
+    <string name="pump_unpair_confirm_title">Отменить сопряжение с помпой?</string>
+    <string name="ble_permissions_missing">Разрешения Bluetooth не предоставлены. Предоставьте их в настройках приложения.</string>
+    <string name="nav_about">О приложении</string>
+    <string name="nav_about_desc">Версия и информация о приложении</string>
+    <string name="nav_history_browser_desc">Просмотр графиков за прошлые периоды</string>
+    <string name="appearance">Внешний вид</string>
+    <string name="manage">Управление</string>
+    <string name="localprofile">Профиль</string>
+    <string name="nav_setupwizard_desc">Пошаговая настройка AAPS</string>
+    <string name="statistics_desc">Просмотр статистики и отчётов</string>
+    <string name="tdd_cycle_pattern">Циклические изменения TDD</string>
+    <string name="tdd_cycle_pattern_desc">Наложение суточных доз инсулина в 28-дневных циклах для выявления повторяющихся закономерностей</string>
+    <string name="nav_profile_helper_desc">Создание профиля по весу или TDD</string>
+    <string name="quick_launch_configure">Настроить быстрый запуск</string>
+    <string name="quick_launch_configure_desc">Настроить кнопки быстрых действий на экране обзора</string>
+    <string name="localalertsettings_title">Локальные оповещения</string>
+    <string name="add">Добавить</string>
+    <string name="remove">Удалить</string>
+    <string name="reorder">Изменить порядок</string>
+    <string name="carousel_move_earlier" comment="Content description of the button that moves the centred carousel card one position towards the start of the list. Order-relative wording (not left/right) so it stays correct in right-to-left languages.">Переместить раньше</string>
+    <string name="carousel_move_later" comment="Content description of the button that moves the centred carousel card one position towards the end of the list. Order-relative wording (not left/right) so it stays correct in right-to-left languages.">Переместить позже</string>
+    <string name="carousel_show_card" comment="Screen-reader label for any control that only reveals more detail about the item next to it - a carousel card that shows its details below, or an info button that opens a tooltip. It never activates or applies anything.">Показать подробности</string>
+    <string name="presets_changed_reorder_aborted">Предустановки изменены на другом устройстве. Новый порядок не сохранён.</string>
+    <string name="carousel_position" comment="Compact position readout shown between the reorder buttons. %1$d=position of the centred card starting at 1, %2$d=total cards. Example: 3 / 7">%1$d / %2$d</string>
+    <string name="carousel_position_description" comment="Spoken form of carousel_position, read out by screen readers after each move. %1$d=position of the centred card starting at 1, %2$d=total cards. Example: Position 3 of 7">Позиция %1$d из %2$d</string>
+    <string name="status">Статус</string>
+    <string name="pump_actions">Действия с помпой</string>
+    <string name="tempbasal_button">Временный базал</string>
+    <string name="device_maintenance">Обслуживание устройства</string>
+    <string name="from_label">От</string>
+    <string name="to_label">До</string>
+    <string name="select_location">Нажмите ниже, чтобы выбрать место установки</string>
+    <string name="format_insulin_units_signed">%1$+.2f U</string>
+    <string name="basal_short">BAS</string>
+    <string name="edit_profile_name">Изменить имя профиля</string>
+    <string name="unsaved_changes">Несохранённые изменения</string>
+    <string name="unsaved_changes_message">Есть несохранённые изменения. Что вы хотите сделать?</string>
+    <string name="discard">Отменить изменения</string>
+    <string name="add_time_block">Добавить временной интервал</string>
+    <string name="remove_entry">Удалить запись</string>
+    <string name="target_low_label">Нижняя</string>
+    <string name="target_high_label">Верхняя</string>
+    <string name="search">Поиск</string>
+    <string name="clear">Очистить</string>
+    <string name="search_category_categories">Категории настроек</string>
+    <string name="search_category_preferences">Настройки</string>
+    <string name="search_category_dialogs">Диалоги</string>
+    <string name="search_category_plugins">Модули</string>
+    <string name="search_category_wiki">Документация</string>
+    <string name="wiki_search_offline">Для поиска в документации требуется интернет</string>
+    <string name="no_search_results">Ничего не найдено</string>
+    <string name="search_plugin_disabled">Модуль %1$s отключён</string>
+    <string name="food_management">Еда</string>
+    <string name="food_deleted">Продукт удалён</string>
+    <string name="edit_food">Изменить продукт</string>
+    <string name="add_food">Добавить продукт</string>
+    <string name="name">Название</string>
+    <string name="portion">Порция</string>
+    <string name="unit_label">Единица измерения</string>
+    <string name="undo">Отменить</string>
+    <string name="no_data">Нет данных</string>
+    <string name="manage_food_desc">Управление записями базы продуктов</string>
+    <string name="label_carbs_g">Углеводы (g)</string>
+    <string name="label_fat_g">Жиры (g)</string>
+    <string name="label_protein_g">Белки (g)</string>
+    <string name="label_energy_kj">Энергия (kJ)</string>
+    <string name="nav_logsettings">Настройки журналирования</string>
+    <string name="logs_deleted">Журналы удалены</string>
+    <string name="import_decrypt_review">Расшифровать и проверить</string>
+    <string name="import_decrypt">Расшифровать</string>
+    <string name="import_master_password">Главный пароль</string>
+    <string name="import_decryption_password">Пароль расшифровки</string>
+    <string name="import_different_password_hint">Файл зашифрован другим паролем</string>
+    <string name="import_wrong_password">Неверный пароль</string>
+    <string name="import_btn">Импортировать</string>
+    <string name="import_anyway_btn">Всё равно импортировать</string>
+    <string name="import_apply_title">Применить импортированные настройки?</string>
+    <string name="import_apply_message" comment="%1$d=how many settings change. Example: Settings to change: 34.">Будет изменено настроек: %1$d. Изменённые модули будут перезапущены.</string>
+    <string name="import_apply_message_pump_kept" comment="%1$d=how many settings change, %2$d=how many pump settings are left untouched. Example: Settings to change: 34. Pump settings kept: 6.">Будет изменено настроек: %1$d. Сохранено настроек помпы: %2$d, чтобы помпа продолжала работать.</string>
+    <string name="import_pump_fell_back" comment="%1$s=name of the pump driver now active, e.g. Virtual pump. Shown when an import left no pump selected.">В импортированных настройках не выбрана доступная на этом телефоне помпа. Сейчас активна %1$s — проверьте настройки помпы.</string>
+    <string name="import_applying">Применение настроек…</string>
+    <string name="import_replace_pump_settings">Также заменить настройки помпы</string>
+    <string name="import_replace_pump_settings_summary">Оставьте выключенным, чтобы сохранить сопряжение этого телефона с помпой. Включите при восстановлении на новый телефон с той же помпой.</string>
+    <string name="import_apply_waiting">Ожидание помпы…</string>
+    <string name="import_apply_pump_busy">Помпа всё ещё занята, поэтому настройки не применены.</string>
+    <string name="import_apply_retry_question">Повторить сейчас?</string>
+    <string name="import_applied_title">Настройки применены</string>
+    <string name="import_applied_message">Импортированные настройки теперь используются.</string>
+    <string name="import_apply_pump_changed">Отменено: помпа изменена при импорте настроек</string>
+    <string name="import_source_local">Локально</string>
+    <string name="import_source_cloud">Облако</string>
+    <string name="import_load_more">Загрузить ещё</string>
+    <string name="import_no_files">Файлы настроек не найдены</string>
+    <string name="import_decrypt_ok">Расшифровка выполнена. Можно импортировать.</string>
+    <string name="import_decrypt_warn">Расшифровка выполнена, но есть предупреждения.</string>
+    <string name="import_decrypt_error">Расшифровка выполнена, но импорт невозможен.</string>
+    <string name="step_ble_scan">Найти помпу</string>
+    <string name="ble_scan_select_pump">Выберите помпу из списка ниже</string>
+    <string name="ble_scan_scanning">Поиск устройств…</string>
+    <string name="graph_add">Добавить график</string>
+    <string name="graph_new">Новый график</string>
+    <string name="graph_number">График %1$d</string>
+    <string name="graph_bg">График BG</string>
+    <string name="graph_height">Высота графика [dp]</string>
+    <string name="predictions_shortname" comment="Short label for Predictions graph series">PRED</string>
+    <string name="basal_shortname" comment="Short label for Basal, used in graph labels">BAS</string>
+    <string name="deviation_shortname" comment="Short label for Deviations graph series">DEV</string>
+    <string name="activity_shortname" comment="Short label for Activity graph series">ACT</string>
+    <string name="bgi_shortname" comment="Short label for Blood Glucose Impact graph series">-BGI</string>
+    <string name="abs_insulin_shortname" comment="Short label for Absolute Insulin graph series">ABS</string>
+    <string name="devslope_shortname" comment="Short label for Deviation Slope graph series">DEVSLOPE</string>
+    <string name="heartRate_shortname" comment="Short label for Heart Rate graph series">HR</string>
+    <string name="sensitivity_shortname" comment="Short label for Sensitivity/Autosens graph series">SENS%</string>
+    <string name="variable_sensitivity_shortname" comment="Short label for Variable Sensitivity graph series">VSENS</string>
+    <string name="steps_shortname" comment="Short label for Steps graph series">ШАГИ</string>
+    <string name="graph_series_iob">Активный инсулин</string>
+    <string name="graph_series_abs_insulin" comment="IOB including the scheduled basal, not only the difference to it">Абсолютное количество инсулина</string>
+    <string name="graph_series_cob">Активные углеводы</string>
+    <string name="graph_series_bgi">Влияние инсулина на глюкозу крови</string>
+    <string name="graph_series_deviations">Отклонения</string>
+    <string name="graph_series_sensitivity" comment="Graph of the autosens ratio: how sensitive to insulin the user is now compared to the profile">Изменение чувствительности</string>
+    <string name="graph_series_variable_sens">Переменная чувствительность</string>
+    <string name="graph_series_deviation_slope">Наклон отклонений</string>
+    <string name="graph_series_heart_rate">Частота сердечных сокращений</string>
+    <string name="graph_series_steps">Шаги</string>
+    <string name="graph_series_activity" comment="Insulin activity: how fast insulin is working now. Not physical exercise.">Нагрузка</string>
+    <string name="graph_series_predictions">Прогнозы</string>
+    <string name="units_days">дни</string>
+    <string name="units_format_days">%1$d дней</string>
+    <string name="units_format_days_range">%1$d дней (%2$d - %3$d)</string>
+    <string name="units_format_double">%1$.1f</string>
+    <string name="units_format_double_2">%1$.2f</string>
+    <string name="units_format_double_2_range">%1$.2f (%2$.2f - %3$.2f)</string>
+    <string name="units_format_double_3">%1$.3f</string>
+    <string name="units_format_double_3_range">%1$.3f (%2$.3f - %3$.3f)</string>
+    <string name="units_format_double_range">%1$.1f (%2$.1f - %3$.1f)</string>
+    <string name="units_format_grams">%1$d g</string>
+    <string name="units_format_grams_range">%1$d g (%2$d - %3$d)</string>
+    <string name="units_format_hours">%1$d h</string>
+    <string name="units_format_hours_double">%1$.1f h</string>
+    <string name="units_format_hours_double_range">%1$.1f h (%2$.1f - %3$.1f)</string>
+    <string name="units_format_hours_range">%1$d h (%2$d - %3$d)</string>
+    <string name="units_format_insulin">%1$.1f U</string>
+    <string name="units_format_insulin_int">%1$d U</string>
+    <string name="units_format_insulin_int_range">%1$d U (%2$d - %3$d)</string>
+    <string name="units_format_insulin_range">%1$.1f U (%2$.1f - %3$.1f)</string>
+    <string name="units_format_insulin_rate">%1$.1f U/h</string>
+    <string name="units_format_insulin_rate_range">%1$.1f U/h (%2$.1f - %3$.1f)</string>
+    <string name="units_format_mgdl">%1$s mg/dL</string>
+    <string name="units_format_mgdl_range">%1$s mg/dL (%2$s - %3$s)</string>
+    <string name="units_format_min">%1$d min</string>
+    <string name="units_format_min_range">%1$d min (%2$d - %3$d)</string>
+    <string name="units_format_percent">%1$d%%</string>
+    <string name="units_format_percent_value" comment="A percentage. %1$s=the number, already formatted, can have decimals. Example: 52.3%">%1$s%%</string>
+    <string name="units_format_percent_range">%1$d%% (%2$d - %3$d)</string>
+    <string name="units_format_sec">%1$d sec</string>
+    <string name="units_format_sec_range">%1$d sec (%2$d - %3$d)</string>
+    <string name="units_grams">g</string>
+    <string name="units_hours">h</string>
+    <string name="units_insulin">U</string>
+    <string name="units_insulin_rate">U/h</string>
+    <string name="units_kg">kg</string>
+    <string name="units_mgdl">mg/dL</string>
+    <string name="units_min">min</string>
+    <string name="units_mmol">mmol/L</string>
+    <string name="units_percent">%</string>
+    <string name="units_sec">sec</string>
+    <string name="units_years">y</string>
 </resources>

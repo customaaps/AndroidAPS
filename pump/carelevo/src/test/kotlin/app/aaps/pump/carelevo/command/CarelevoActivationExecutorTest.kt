@@ -35,6 +35,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.zacsweers.metro.Provider
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.BehaviorSubject
+import java.util.Optional
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -55,7 +56,6 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyBlocking
 import org.mockito.kotlin.whenever
 import org.mockito.quality.Strictness
-import java.util.Optional
 
 /**
  * JVM unit tests for [CarelevoActivationExecutor]. Every op is driven through the public [CarelevoActivationExecutor.execute]
@@ -181,7 +181,7 @@ internal class CarelevoActivationExecutorTest {
         val result = sut.execute(CmdSetBasal())
         assertThat(result?.success).isFalse()
         assertThat(result?.enacted).isFalse()
-        assertThat(result?.comment).isEqualTo("profile not set")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_profile_not_set).toString())
     }
 
     @Test fun `setBasal returns no-patch-address when profile present but address missing`() {
@@ -189,7 +189,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdSetBasal())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `setBasal success when programmed and persisted`() {
@@ -237,14 +237,14 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdPumpStop(durationMin = 60))
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `pumpStop rejected when pump returns non-zero result`() {
         stubRunSingle(SimpleResultResponse(resultCode = 3))
         val result = sut.execute(CmdPumpStop(durationMin = 60))
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("stop result 3")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_stop_result, listOf(3)).toString())
         verify(pumpStopUseCase, never()).persistStopped(any())
     }
 
@@ -278,14 +278,14 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdPumpResume())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `pumpResume rejected when pump returns non-zero result`() {
         stubRunSingle(PumpResumeResponse(resultCode = 5, mode = 1, subId = 0))
         val result = sut.execute(CmdPumpResume())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("resume result 5")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_resume_result, listOf(5)).toString())
         verify(pumpResumeUseCase, never()).persistResumed()
     }
 
@@ -319,7 +319,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdUpdateBuzzer(on = true))
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `buzzer success when pump accepts`() {
@@ -366,7 +366,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdUpdateMaxBolus(maxBolusDose = 10.0))
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `maxBolus success when pushed and persisted`() {
@@ -408,7 +408,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdUpdateLowInsulinNotice(amountUnits = 30))
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `lowInsulinNotice success when arrival persisted`() {
@@ -442,7 +442,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdUpdateExpiredThreshold(hours = 48))
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `expiryThreshold success when the frame arrives`() {
@@ -467,7 +467,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdDiscard())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `discard deletes the stored patch, tears down and succeeds when the stop write is accepted`() {
@@ -511,7 +511,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdNeedleCheck())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `needleCheck success when inserted and persisted`() {
@@ -590,7 +590,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdAdditionalPriming())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `additionalPriming success when accepted`() {
@@ -642,7 +642,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(CmdSafetyCheck())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `safetyCheck emits progress then success and returns success`() {
@@ -724,7 +724,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(alarmClearCmd())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `alarmClear success when cleared and persisted`() {
@@ -777,7 +777,7 @@ internal class CarelevoActivationExecutorTest {
         whenever(carelevoPatch.getPatchInfoAddress()).thenReturn(null)
         val result = sut.execute(alarmDiscardCmd())
         assertThat(result?.success).isFalse()
-        assertThat(result?.comment).isEqualTo("no patch address")
+        assertThat(result?.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test fun `alarmClearPatchDiscard success when discarded and persisted`() {

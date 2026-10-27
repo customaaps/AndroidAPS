@@ -35,7 +35,7 @@ class BrTtComplication : ModernBaseComplicationProviderService() {
 
                 ShortTextComplicationData.Builder(
                     text = PlainComplicationText.Builder(text = targetText).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "Basal Rate, Target").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_basal_target)).build()
                 )
                     .setTitle(PlainComplicationText.Builder(text = basalText).build())
                     .setTapAction(complicationPendingIntent)

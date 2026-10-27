@@ -28,6 +28,22 @@ class BoostApsBoundaryTest {
         var failWrites = false
         val store = Proxy.newProxyInstance(KeyValueStore::class.java.classLoader, arrayOf(KeyValueStore::class.java)) { _, m, a ->
             when {
+                m.name == "edit" -> {
+                    val pending = values.toMutableMap()
+                    val editor = Proxy.newProxyInstance(KeyValueStore.Editor::class.java.classLoader,
+                        arrayOf(KeyValueStore.Editor::class.java)) { _, method, args ->
+                        check(method.name == "putString")
+                        pending[args[0] as String] = args[1]
+                        null
+                    } as KeyValueStore.Editor
+                    @Suppress("UNCHECKED_CAST")
+                    val block = a[1] as KeyValueStore.Editor.() -> Unit
+                    editor.block()
+                    if (failWrites) error("state write failed")
+                    values.clear()
+                    values.putAll(pending)
+                    null
+                }
                 m.name.startsWith("get") -> values[a[0] as String] ?: a[1]
                 m.name.startsWith("put") -> {
                     if (failWrites) error("state write failed")
@@ -37,11 +53,11 @@ class BoostApsBoundaryTest {
             }
         } as KeyValueStore
     }
-    private fun calculator(disk: Disk, cancel: Boolean = false): BoostApsCalculator {
+    private fun calculator(disk: Disk, cancel: Boolean = false, zone: java.time.ZoneId? = null): BoostApsCalculator {
         val db = proxy<PersistenceLayer> { name, _ ->
             if (cancel) throw CancellationException("query cancelled")
             when (name) {
-                "getBgReadingsDataFromTimeToTime", "getBolusesFromTimeToTime", "getStepsCountFromTimeToTime", "getHeartRatesFromTime" -> emptyList<Any>()
+                "getBgReadingsDataFromTimeToTime", "getBolusesFromTimeToTime", "getStepsCountFromTimeToTime", "getHeartRatesFromTime", "getHeartRatesFromTimeToTime" -> emptyList<Any>()
                 else -> error("Unexpected DB query $name")
             }
         }
@@ -54,8 +70,12 @@ class BoostApsBoundaryTest {
             (args[0] as DoublePreferenceKey).defaultValue
         }
         val date = proxy<DateUtil> { name, args -> when (name) {
-            "beginOfDay" -> (args[0] as Long).let { it - it % 86_400_000L }
-            "getTimeZoneOffsetMinutes" -> 0
+            "beginOfDay" -> (args[0] as Long).let { at ->
+                if (zone == null) at - at % 86_400_000L else
+                    java.time.Instant.ofEpochMilli(at).atZone(zone).toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
+            }
+            "getTimeZoneOffsetMinutes" -> if (zone == null) 0 else
+                zone.rules.getOffset(java.time.Instant.ofEpochMilli(args[0] as Long)).totalSeconds / 60
             else -> error("Unexpected clock call $name")
         } }
         val util = proxy<ProfileUtil> { name, args -> when (name) {
@@ -98,14 +118,114 @@ class BoostApsBoundaryTest {
         assertFalse(disk.values.containsKey(BoostApsSettingKeys.Session.key))
     }
 
+    @Test fun calculatorCompletesSleepAfterProducingTheCycleAndRestoresOnNewOwner() {
+        val disk = Disk()
+        val initial = input()
+        val nightLead = initial.atMs / 86_400_000L * 86_400_000L + 21 * 3_600_000L
+        val glucose = object : GlucoseStatus by initial.glucose { override val date = nightLead }
+        val request = initial.copy(atMs = nightLead, glucose = glucose)
+        assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk).calculate(request) })
+        val raw = disk.values[BoostApsSettingKeys.ApsBoostSleepState.key] as String
+        assertEquals(app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector.SleepState.PRE_SLEEP,
+            app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector.State.deserialize(raw).state)
+        assertIs<BoostApsCalculator.Result.Calculated>(immediate {
+            calculator(disk).calculate(request.copy(atMs = nightLead + 60_000L))
+        })
+    }
+
+    @Test fun invalidSleepHistoryRejectsBeforeCreatingAnEngineSession() {
+        val disk = Disk().apply { values[BoostApsSettingKeys.ApsBoostSleepHistory.key] = """{"sessions":"invalid"}""" }
+        assertIs<BoostApsCalculator.Result.Rejected>(immediate { calculator(disk).calculate(input()) })
+        assertFalse(disk.values.containsKey(BoostApsSettingKeys.Session.key))
+    }
+
     @Test fun failedStateWriteAndPendingContextAreExplicitRejections() {
         val failedDisk = Disk().apply { failWrites = true }
         assertIs<BoostApsCalculator.Result.Rejected>(immediate { calculator(failedDisk).calculate(input()) })
         for (key in listOf(BoostApsSettingKeys.ApsBoostPostExerciseRecoveryEnabled,
-            BoostApsSettingKeys.ApsBoostNightModeEnabled, BoostApsSettingKeys.ApsBoostHealthConnectHrEnabled)) {
+            BoostApsSettingKeys.ApsBoostHealthConnectHrEnabled)) {
             val pending = Disk().apply { values[key.key] = true }
             assertIs<BoostApsCalculator.Result.Rejected>(immediate { calculator(pending).calculate(input()) })
             assertFalse(pending.values.containsKey(BoostApsSettingKeys.Session.key))
+        }
+    }
+
+    private fun nightRequest(allowed: Boolean = true): BoostApsCalculator.Input {
+        val base = input(allowed)
+        val at = base.atMs / 86_400_000L * 86_400_000L + 22 * 3_600_000L
+        val glucose = object : GlucoseStatus by base.glucose { override val date = at }
+        return base.copy(atMs = at, glucose = glucose, originalProfileTargetMgDl = 180.0,
+            profile = base.profile.copy(temptargetSet = true))
+    }
+
+    @Test fun nightPolicyBlocksTheRealV1V5V6SmbWithoutChangingPredictionOrProfileTargets() {
+        val request = nightRequest()
+        val off = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(Disk()).calculate(request) })
+        assertTrue((off.result.units ?: 0.0) > 0.0, "fixture must exercise an actual SMB")
+        val disk = Disk().apply { values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true }
+        val on = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk).calculate(request) })
+        assertEquals(0.0, on.result.units ?: 0.0)
+        assertEquals(off.profile.target_bg, on.profile.target_bg)
+        assertEquals(off.result.predBGs, on.result.predBGs)
+        assertEquals(off.result.variable_sens, on.result.variable_sens)
+        assertTrue(on.nightModeActive)
+        assertFalse(off.nightModeActive)
+    }
+
+    @Test fun nightPolicyCannotOverrideIncomingSmbDenialEvenOutsideTheWindow() {
+        val request = nightRequest(false).let {
+            val at = it.atMs - 10 * 3_600_000L
+            val glucose = object : GlucoseStatus by it.glucose { override val date = at }
+            it.copy(atMs = at, glucose = glucose)
+        }
+        val disk = Disk().apply { values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true }
+        val result = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk).calculate(request) })
+        assertEquals(0.0, result.result.units ?: 0.0)
+    }
+
+    @Test fun enabledNightPolicyRequiresOriginalTargetBeforeCreatingOrRestoringState() {
+        for (target in listOf(null, Double.NaN, 0.0, Double.POSITIVE_INFINITY)) {
+            val disk = Disk().apply { values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true }
+            val rejected = assertIs<BoostApsCalculator.Result.Rejected>(immediate {
+                calculator(disk).calculate(nightRequest().copy(originalProfileTargetMgDl = target))
+            })
+            assertTrue(rejected.reason.contains("original Boost night target"))
+            assertTrue(disk.values.keys.none { it == BoostApsSettingKeys.Session.key })
+        }
+    }
+
+    @Test fun disabledNightModeDoesNotReadUnusedCorruptOffset() {
+        val disk = Disk().apply { values[BoostApsSettingKeys.ApsBoostNightModeBgOffset.key] = Double.NaN }
+        assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk).calculate(input()) })
+    }
+
+    @Test fun storedNightSettingsUseIndependentSwitchesAndCanonicalMgdl() {
+        for (flags in 0..7) {
+            val disk = Disk().apply {
+                values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true
+                values[BoostApsSettingKeys.ApsBoostNightModeAutoBySleep.key] = flags and 1 != 0
+                values[BoostApsSettingKeys.ApsBoostNightModeDisableWithCob.key] = flags and 2 != 0
+                values[BoostApsSettingKeys.ApsBoostNightModeDisableWithLowTt.key] = flags and 4 != 0
+                values[BoostApsSettingKeys.ApsBoostNightModeStart.key] = "7:00"
+                values[BoostApsSettingKeys.ApsBoostNightModeEnd.key] = "24:00"
+                values[BoostApsSettingKeys.ApsBoostNightModeBgOffset.key] = 27.5
+            }
+            assertEquals(BoostNightModePolicy.Settings(true, 7 * 3_600_000L, 0L,
+                flags and 1 != 0, flags and 2 != 0, flags and 4 != 0, 27.5),
+                BoostApsRuntimeSettings(disk.store).night())
+        }
+    }
+
+    @Test fun nightWindowFollowsSourceWallClockOnSpringAndAutumnDstDays() {
+        val zone = java.time.ZoneId.of("America/New_York")
+        for ((local, expectedActive) in listOf("2026-03-08T07:30" to false, "2026-11-01T06:30" to true)) {
+            val at = java.time.LocalDateTime.parse(local).atZone(zone).toInstant().toEpochMilli()
+            val base = nightRequest()
+            val glucose = object : GlucoseStatus by base.glucose { override val date = at }
+            val request = base.copy(atMs = at, glucose = glucose)
+            val disk = Disk().apply { values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true }
+            val result = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk, zone = zone).calculate(request) })
+            assertEquals(expectedActive, result.nightModeActive, local)
         }
     }
 

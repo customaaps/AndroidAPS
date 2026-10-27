@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.widget.Toast
 import app.aaps.wear.BuildConfig
+import app.aaps.wear.R
 
 /**
  * Preference for displaying the app version
@@ -16,7 +17,7 @@ class VersionPreference(context: Context, attrs: AttributeSet?) : WearListPrefer
     }
 
     override fun onPreferenceClick(context: Context) {
-        Toast.makeText(context, "Build version:" + BuildConfig.BUILDVERSION, Toast.LENGTH_LONG).show()
+        Toast.makeText(context, context.getString(R.string.localization_build_version, BuildConfig.BUILDVERSION), Toast.LENGTH_LONG).show()
     }
 
     init {

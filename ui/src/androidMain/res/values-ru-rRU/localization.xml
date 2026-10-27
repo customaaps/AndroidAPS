@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="load_user_entries_failed">"Не удалось загрузить записи пользователя."</string>
+    <string name="load_temp_targets_failed">"Не удалось загрузить временные цели."</string>
+    <string name="load_temp_basals_failed">"Не удалось загрузить временные базальные скорости."</string>
+    <string name="load_running_modes_failed">"Не удалось загрузить режимы работы."</string>
+    <string name="load_profile_switches_failed">"Не удалось загрузить переключения профиля."</string>
+    <string name="load_extended_boluses_failed">"Не удалось загрузить растянутые болюсы."</string>
+    <string name="load_therapy_events_failed">"Не удалось загрузить события терапии."</string>
+    <string name="load_bolus_carbs_failed">"Не удалось загрузить болюсы и углеводы."</string>
+    <string name="load_presets_failed">"Не удалось загрузить предустановки."</string>
+    <string name="save_presets_failed">"Не удалось сохранить предустановки."</string>
+    <string name="new_preset">"Новая предустановка"</string>
+    <string name="load_running_mode_failed">"Не удалось загрузить режим работы."</string>
+    <string name="load_entries_failed">"Не удалось загрузить записи."</string>
+    <string name="carbs_must_be_positive">"Количество углеводов должно быть больше 0."</string>
+    <string name="insulin_must_be_positive">"Количество инсулина должно быть больше 0."</string>
+    <string name="save_entry_failed">"Не удалось сохранить запись."</string>
+    <string name="add_entry_failed">"Не удалось добавить запись."</string>
+    <string name="clone_entry_failed">"Не удалось скопировать запись."</string>
+    <string name="delete_entry_failed">"Не удалось удалить запись."</string>
+    <string name="connecting_to_cloud">"Подключение к облаку…"</string>
+    <string name="load_files_failed">"Не удалось загрузить файлы."</string>
+    <string name="extended_bolus_delivery_error">"Ошибка введения растянутого болюса"</string>
+    <string name="app_icon">"Значок приложения"</string>
+    <string name="about_build">"Сборка: %1$s\nРевизия: %2$s\n"</string>
+    <string name="about_flavor">"Вариант: %1$s\n"</string>
+    <string name="about_platform">"Платформа: %1$s\n"</string>
+</resources>

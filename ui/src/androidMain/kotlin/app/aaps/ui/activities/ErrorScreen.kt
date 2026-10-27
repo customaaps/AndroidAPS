@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import app.aaps.core.interfaces.alerts.EatReminder
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.stringResource
+import app.aaps.ui.UiStrings
 
 /**
  * Modal-style screen rendered over a scrim by [ErrorActivity] when an urgent alarm fires.
@@ -107,7 +108,7 @@ fun ErrorScreen(
                     ) {
                         Image(
                             painter = painterResource(id = appIcon),
-                            contentDescription = "App icon",
+                            contentDescription = stringResource(UiStrings.app_icon),
                             modifier = Modifier.size(20.dp)
                         )
                     }

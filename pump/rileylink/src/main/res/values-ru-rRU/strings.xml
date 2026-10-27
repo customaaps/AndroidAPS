@@ -54,7 +54,7 @@
     <string name="rileylink_error_unreachable">RileyLink недоступен</string>
     <string name="rileylink_error_bt_disabled">Bluetooth выключен</string>
     <string name="rileylink_error_no_bt_adapter">Нет Bluetooth-адаптера</string>
-    <string name="rileylink_error_tuneup_failed">Ошибка TuneUp</string>
+    <string name="rileylink_error_tuneup_failed">Ошибка настройки частоты</string>
     <string name="rileylink_error_pod_unreachable">POD недоступен</string>
     <!-- RileyLink - Common -->
     <string name="rileylink_target_device_medtronic">Помпа Medtronic</string>

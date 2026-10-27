@@ -15,7 +15,7 @@
     <string name="objectives_maxbasal_gate">На основе накопленного опыта, определяем максимальную величину базала и задаем ее в помпе и в настройках AAPS</string>
     <string name="objectives_maxbasal">Выполните рекомендуемое действие</string>
     <string name="objectives_maxbasal_learned">Примите меры предосторожности и корректируйте, если необходимо, параметры безопасности.</string>
-    <string name="objectives_maxiobzero_objective">Начинаем замыкать цикл с прекращением подачи инсулина при низких значениях ГК (режим Low Glucose Suspend)</string>
+    <string name="objectives_maxiobzero_objective">Начало работы в замкнутом цикле с приостановкой подачи инсулина при низкой глюкозе (LGS)</string>
     <string name="objectives_maxiobzero_gate">Запускать в замкнутом цикле в режиме приостановки на низкой ГК (макс. IOB = 0 устанавливается автоматически) на несколько дней при отсутствии множества таких событий.</string>
     <string name="objectives_maxiobzero_learned">Установка MaxIOB на нуль предотвращает гипо и не добавит инсулина выше базальной скорости (за исключением отрицательных значений IOB)</string>
     <string name="objectives_maxiob_objective">Настройка замкнутого цикла с поднятием величины maxIOB выше 0 и постепенным понижением целевой ГК</string>
@@ -60,7 +60,7 @@
     <string name="objectives_exam_learned_objectives2">Всегда храните экспортированные настройки и самостоятельно собранные APK вне вашего телефона. Телефон может быть утерян, поврежден и т.д. Хорошим местом может быть любое облачное хранилище, доступное с телефона. В этом случае можно восстановить AAPS на другом устройстве в течение нескольких минут. Хорошая практика также хранить мастер-пароль в безопасном месте. Без него ваша резервная копия бесполезна. То же самое верно для ключа подписи (файл с расширением.jks) и паролей к сборке AAPS. Остальное не важно - его можно загрузить снова из интернета.</string>
     <string name="objectives_exam_learned_wrongcarbs">Если введены неверные данные в AAPS или данные не соответствуют реальности, решайте этот вопрос безотлагательно. Игнорирование может привести к передозировке. AAPS всегда должен иметь точную информацию об углеводах, инсулине и т. д.</string>
     <string name="objectives_exam_learned_breadgrams">Ввод углеводов допускается только в граммах.</string>
-    <string name="objectives_exam_learned_ecarbs">E-carbs - это эквивалент пролонгированного болюса на помпах.</string>
+    <string name="objectives_exam_learned_ecarbs">Растянутые углеводы — это аналог растянутого болюса на помпах.</string>
     <string name="answerdisabledto">Ответы отключены до: %1$s</string>
     <string name="wronganswer">Неверный ответ!</string>
     <string name="unfinshed_button">Следующий незавершенный</string>
@@ -83,4 +83,26 @@
     <string name="objectives_exam_next">Следующий</string>
     <string name="objectives_exam_next_unanswered">Следующий неотвеченный</string>
     <string name="objectives_show_hint">Подсказка</string>
+
+    <!-- Russian coverage for current interface -->
+    <string name="objectives_autosens_learned">Если результат autosens не колеблется около 100%, вероятно, профиль настроен неверно.</string>
+    <string name="objectives_usage_learned">Вы изучили основы AAPS. Большинство элементов управления находится на экране «Обзор». Дополнительные действия доступны в меню «Терапия» и «Управление» внизу экрана, а также в боковом меню.</string>
+    <string name="objectives_usescale">Используйте прокрутку или масштабирование графика BG</string>
+    <string name="objectives_exam_gate">Изучите вопросы. У каждого вопроса несколько вариантов ответа, и правильных ответов может быть несколько. Отметьте все правильные ответы и нажмите «ПРОВЕРИТЬ».</string>
+    <string name="objectives_exam_learned_prerequisites">Вам не нужно быть разработчиком. Для прохождения целей обучения нужны Nightscout или Tidepool, совместимая помпа и способ сборки AAPS (в браузере или Android Studio) для первой установки и каждого обновления.</string>
+    <string name="objectives_exam_learned_profileswitch">Изменение процента профиля не влияет на целевые значения BG, но корректирует базал, ISF и IC для подачи большего (выше 100%) или меньшего (ниже 100%) количества инсулина.</string>
+    <string name="objectives_exam_learned_insulin">AAPS должен знать, какой инсулин используется в помпе, поскольку это влияет на расчёт IOB.</string>
+    <string name="objectives_exam_learned_iob">При оценке работы AAPS график IOB может дать много полезной информации.</string>
+    <string name="objectives_exam_learned_cob">Расчёт COB зависит от соотношения ISF и IC. Увеличение ISF или уменьшение IC увеличивает время усвоения углеводов. Однако изменение процента профиля меняет оба значения одновременно, и время усвоения остаётся прежним.</string>
+    <string name="objectives_exam_learned_nsclient">За AAPS можно наблюдать удалённо через AAPSClient или Nightscout. Когда AAPSClient сопряжён с основным телефоном, можно также управлять AAPS удалённо.</string>
+    <string name="objectives_exam_learned_concentration1">При использовании U200 с профилем 50% необходим постоянный пересчёт внешних болюсов со шприц-ручек. Все стандартные отчёты AAPS или NS становятся неверными, и их значения нужно пересчитывать в IU для медицинских специалистов.</string>
+    <string name="objectives_exam_learned_concentration2">Для перехода с U200 и профиля 50% на функцию концентрации инсулина U200 нужно создать более сильный профиль, отключить DynISF на неделю и привыкнуть мыслить в международных единицах.</string>
+    <string name="objectives_exam_learned_concentration3">Концентрацию инсулина можно менять только при замене инсулина или патча. Самое важное: особенно для трубочных помп, никогда не вводите болюсы напрямую через интерфейс помпы.</string>
+    <string name="failedretrievetime">Не удалось получить время</string>
+    <string name="objectives_no_learned">Для этой цели обучения уроки не записаны.</string>
+    <string name="objectives_state_done">Выполнено</string>
+    <string name="objectives_state_in_progress">В процессе</string>
+    <string name="objectives_state_not_started">Не начато</string>
+    <string name="objectives_state_locked">Заблокировано</string>
+    <string name="objectives_exam_correct_answer">правильный ответ</string>
 </resources>

@@ -21,6 +21,7 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventShowSnackbar
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.ui.clientcontrol.RecordRemoval
+import app.aaps.plugins.source.SourceStrings
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
@@ -104,7 +105,7 @@ class BgSourceViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load BG data", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Unknown error loading BG data", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(rh.gs(SourceStrings.bg_data_load_error), EventShowSnackbar.Type.Error))
             }
         }
     }

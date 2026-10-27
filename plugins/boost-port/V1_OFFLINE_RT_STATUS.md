@@ -2,6 +2,9 @@
 
 `BoostV1OfflineRtEnvelope` now gathers the existing immutable ISF, BGI,
 eventual-BG, IOB/COB/ZT/UAM and LGS/SMB-condition reports in one place.
+It can also attach the prediction-safety timeline and the subsequent
+[carbohydrate-requirement comparison](V1_CARB_REQUIREMENT_SHADOW_20261027.md),
+with consistency checks against the same cycle's inputs.
 
 This is deliberately NOT the legacy RT or AndroidAPS APSResult. It does not
 contain an actionable temp basal, insulin request, bolus size or pump command.

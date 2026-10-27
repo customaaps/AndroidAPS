@@ -42,6 +42,29 @@ internal class BoostApsRuntimeSettings(private val store: KeyValueStore) {
     fun d(k: DoubleValue) = store.getDouble(k.key, k.defaultValue).also { require(it.isFinite()) }
     fun s(k: StringValue) = store.getString(k.key, k.defaultValue)
 
+    fun night(): BoostNightModePolicy.Settings {
+        if (!b(ApsBoostNightModeEnabled)) return BoostNightModePolicy.Settings()
+        return BoostNightModePolicy.Settings(
+            enabled = true,
+            // isNightModeActiveImpl uses parseTimeToMillis: malformed clocks
+            // fall back to midnight, unlike the independent activity guard.
+            startOfDayMs = clock(s(ApsBoostNightModeStart)),
+            endOfDayMs = clock(s(ApsBoostNightModeEnd)),
+            autoBySleep = b(BoostApsSettingKeys.ApsBoostNightModeAutoBySleep),
+            disableWithCob = b(BoostApsSettingKeys.ApsBoostNightModeDisableWithCob),
+            disableWithLowTempTarget = b(BoostApsSettingKeys.ApsBoostNightModeDisableWithLowTt),
+            bgOffsetMgDl = d(BoostApsSettingKeys.ApsBoostNightModeBgOffset),
+        )
+    }
+
+    fun sleep(): BoostSleepCycleOwner.Settings = BoostSleepCycleOwner.Settings(
+        (clock(s(ApsBoostNightModeStart), "22:00") / 60_000L).toInt(),
+        (clock(s(ApsBoostNightModeEnd), "07:00") / 60_000L).toInt(),
+        i(ApsBoostHrRestingBpm), i(BoostApsSettingKeys.ApsBoostPreSleepLeadMin),
+        i(ApsBoostSleepHysteresisMin), i(BoostApsSettingKeys.ApsBoostWakeHrHysteresisMin),
+        i(ApsBoostSleepInSteps), (d(ApsBoostSleepInHours) * 60.0).toInt(),
+    )
+
     fun activity(): BoostActivitySettings = BoostActivitySettings(
         s(ApsBoostStartTime), s(ApsBoostEndTime), clock(s(ApsBoostStartTime)), clock(s(ApsBoostEndTime)),
         d(ApsBoostSleepInHours), i(ApsBoostSleepInSteps), b(ApsBoostAllowWithHighTt), d(ApsBoostDynIsfNormalTarget),
@@ -56,7 +79,7 @@ internal class BoostApsRuntimeSettings(private val store: KeyValueStore) {
     fun unsupportedEnabledFeatures(): List<String> = listOf(
         ApsBoostPostExerciseRecoveryEnabled, ApsBoostV6PreMealTarget, ApsBoostPostRescueTightRampTrial,
         ApsBoostV5ComposedFloorActive, ApsBoostV5VelocityBudgetActive,
-        ApsBoostNightModeEnabled, ApsBoostHealthConnectHrEnabled,
+        ApsBoostHealthConnectHrEnabled,
     ).filter(::b).map { it.key }
 
     companion object {

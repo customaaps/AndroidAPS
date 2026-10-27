@@ -75,7 +75,7 @@
     <string name="troubleshooting_hint3">https://discord.gg/4fQUWHZ4Mw</string>
     <string name="troubleshooting_hint4">https://github.com/nightscout/AndroidAPS/issues
  
-Context | Edit Context</string>
+Контекст | Изменить контекст</string>
     <string name="insulin_fiasp">Fiasp®</string>
     <string name="insulin_novorapid">Novoapid ® /Novolog ®</string>
     <string name="insulin_humalog">Хумалог®</string>
@@ -108,10 +108,10 @@ Context | Edit Context</string>
     <string name="breadgrams_hint1">https://wiki.aaps.app/ru/latest/DailyLifeWithAaps/AapsScreens.html#aaps-screens-bolus-wizard</string>
     <string name="breadgrams_hint2">https://wiki.aaps.app/ru/latest/SettingUpAaps/YourAapsProfile.html</string>
     <string name="extendedcarbs_label">Растянутые углеводы</string>
-    <string name="extendedcarbs_handling">Для чего можно использовать e-carbs (растянутые углеводы)?</string>
+    <string name="extendedcarbs_handling">Для чего можно использовать растянутые углеводы?</string>
     <string name="extendedcarbs_future">Запланировать углеводы в будущем, возможно, распределить в течение определенного времени (по аналогии с растянутым болюсом на определенный интервал времени).</string>
     <string name="extendedcarbs_free">Для внесения «свободных» углеводов при физнагрузке, чтобы скрыть их от AAPS.</string>
-    <string name="extendedcarbs_fat">Растянутые углеводы e-carbs (распределяемые в будущем) могут помочь AAPS в работе с пищей с высоким содержанием жиров/белков.</string>
+    <string name="extendedcarbs_fat">Растянутые углеводы (распределяемые в будущем) могут помочь AAPS в работе с пищей с высоким содержанием жиров/белков.</string>
     <string name="extendedcarbs_rescue">Для записи «компенсаторных» углеводов на подъем низкой ГК.</string>
     <string name="extendedcarbs_hint1">https://wiki.aaps.app/ru/latest/DailyLifeWithAaps/ExtendedCarbs.html</string>
     <string name="nsclient_hint1">https://wiki.aaps.app/ru/latest/RemoteFeatures/RemoteMonitoring.html</string>
@@ -145,7 +145,7 @@ Context | Edit Context</string>
     <string name="profileswitchtime_iwant">Если вы проснулись на 2 часа раньше обычного, как следует уведомить AAPS об изменении режима?</string>
     <string name="profileswitchtime_2">Выполнить переключение профиля со сдвигом времени 2</string>
     <string name="profileswitchtime__2">Выполнить переключение профиля со сдвигом времени -2</string>
-    <string name="profileswitchtime_tt">Установить временную цель \"Eating Soon\" (Ожидаемый прием пищи).</string>
+    <string name="profileswitchtime_tt">Установить временную цель «Скоро приём пищи».</string>
     <string name="profileswitchtime_100">Переключить на профиль выше 100%.</string>
     <string name="profileswitchtime_hint1">https://wiki.aaps.app/ru/latest/DailyLifeWithAaps/ProfileSwitch-ProfilePercentage.html</string>
     <string name="profileswitch4_label">Изменения в профилях</string>
@@ -156,4 +156,66 @@ Context | Edit Context</string>
     <string name="other_medication_label">Прочие препараты. Прочтите заявление ниже, а затем отметьте галочку, чтобы принять условия.</string>
     <string name="other_medication_text">AAPS понижает базальную скорость или приостанавливает ввод инсулина для повышения уровня ГК. Препараты из класса ингибиторов SGLT2 (глифлозины) могут предотвращать повышение уровня ГК и, следовательно, вызывать опасную нехватку инсулина, приводящую к диабетическому кетоацидозу DKA.
 \nРаспространенными торговыми наименованиями являются: Invokana®, Forxiga®, Jardiance®, Steglatro®, Suglat®, Apleway®, Deberza®, Synjardy®, Vokanamet®, Xigduo®.\n\nЯ подтверждаю, что не буду принимать такие препараты, при использовании AAPS или отключу цикл перед их применением.</string>
+
+    <!-- Russian coverage for current interface -->
+    <string name="dia_profile">Значение DIA следует задавать в настройках инсулина (Управление → Настройки инсулина), а не в профиле.</string>
+    <string name="dia_minimumis5h">Минимально допустимое значение — 5 часов.</string>
+    <string name="hypott_wrongbasal">Для устранения гипогликемии, вызванной неверно заданной базальной скоростью.</string>
+    <string name="hypott_exercise">Для устранения гипогликемии, вызванной физической нагрузкой.</string>
+    <string name="objectives_howtosave">Как правильно создавать резервные копии настроек?</string>
+    <string name="objectives_afterobjective">Экспортируйте настройки после выполнения каждой цели обучения.</string>
+    <string name="objectives_afterinitialsetup">Экспортируйте настройки после завершения первоначальной настройки приложения.</string>
+    <string name="objectives2_maintenance">Экспортируйте настройки локально через меню «Обслуживание».</string>
+    <string name="objectives2_internalstorage">Файл настроек сохраняется в папке «preferences» внутри папки AAPS, выбранной на телефоне.</string>
+    <string name="objectives2_cloud">Скопируйте файл настроек в безопасное место вне телефона (например, в облачное хранилище, на компьютер по кабелю, по электронной почте и т. п.).</string>
+    <string name="noisycgm_checksmoothing">Убедитесь, что данные глюкозы сглаживаются приложением CGM или модулем сглаживания в AAPS.</string>
+    <string name="exerciseprofile_label">Физическая нагрузка и профили</string>
+    <string name="exerciseprofile_whattodo">Как использовать профили, чтобы система лучше справлялась с аэробной нагрузкой?</string>
+    <string name="prerequisites_nightscout">Nightscout или Tidepool для ведения истории данных.</string>
+    <string name="prerequisites2_profile">Проверенные значения параметров профиля (базальные скорости, ISF, соотношение I:C) и инсулина (DIA).</string>
+    <string name="update_git">Для сборки в Android Studio на компьютере должен быть установлен и настроен Git. Для сборки в браузере Git не требуется.</string>
+    <string name="update_keys">При сборке в Android Studio сохраните хранилище ключей, запомните его расположение и используйте для обновлений тот же ключ подписи, что и для предыдущей установки.</string>
+    <string name="troubleshooting_github">Об ошибках и предложениях по новым функциям можно сообщать на GitHub.</string>
+    <string name="insulin_plugins">Настройки инсулина</string>
+    <string name="insulin_ultrarapid">Для каких из этих инсулинов в настройках инсулина следует выбирать сверхбыстрый пик действия 55 минут?</string>
+    <string name="wrongcarbs_label">Ошибки ввода углеводов</string>
+    <string name="wrongcarbs_whattodo">Что делать, если вы неверно ввели углеводы?</string>
+    <string name="wrongcarbs_treatmentstab">Удалить ошибочную запись из истории терапии и ввести правильное количество углеводов.</string>
+    <string name="wrongcarbs_addinsulin">Ввести болюс инсулина через меню «Прокачка/Заполнение».</string>
+    <string name="wrongcarbs_bolus">Ввести болюс инсулина кнопкой «Инсулин» в меню «Терапия».</string>
+    <string name="cob_question">Как изменение ISF влияет на расчёт COB в AAPS?</string>
+    <string name="cob_longer">Увеличение ISF увеличивает расчётное время усвоения углеводов.</string>
+    <string name="cob_shorter">Увеличение ISF уменьшает расчётное время усвоения углеводов.</string>
+    <string name="cob_no_effect">Увеличение ISF не влияет на расчёт усвоения углеводов.</string>
+    <string name="cob2_question">Как изменение IC влияет на расчёт COB?</string>
+    <string name="cob2_longer">Увеличение IC увеличивает расчётное время усвоения углеводов.</string>
+    <string name="cob2_shorter">Увеличение IC уменьшает расчётное время усвоения углеводов.</string>
+    <string name="cob2_no_effect">Увеличение IC не влияет на расчёт усвоения углеводов.</string>
+    <string name="cob3_question">Как изменение процента профиля влияет на расчёт COB?</string>
+    <string name="cob3_longer">Профиль 150% увеличивает расчётное время усвоения углеводов.</string>
+    <string name="cob3_shorter">Профиль 150% уменьшает расчётное время усвоения углеводов.</string>
+    <string name="cob3_no_effect">Профиль 150% не влияет на расчёт усвоения углеводов.</string>
+    <string name="nsclient_label">Удалённое наблюдение и управление</string>
+    <string name="nsclient_howcanyou">Как удалённо наблюдать за AAPS и управлять им (например, у ребёнка)?</string>
+    <string name="nsclient_nightscout">AAPSClient, приложение Nightscout и веб-страница Nightscout позволяют удалённо наблюдать за AAPS.</string>
+    <string name="nsclient_dexcomfollow">Другие приложения (например, Dexcom Follow или xDrip+ в режиме ведомого) позволяют удалённо просматривать часть данных, например значения глюкозы. Они могут не показывать IOB или COB либо рассчитывать их иначе.</string>
+    <string name="nsclient_data">Для удалённого наблюдения за AAPS или управления им оба телефона должны иметь доступ в Интернет (например, через Wi-Fi или мобильную сеть).</string>
+    <string name="nsclient_fullcontrol">Когда AAPSClient сопряжён с основным телефоном, можно также удалённо управлять AAPS: вводить болюсы и углеводы, задавать временные цели, переключать профиль и режим цикла.</string>
+    <string name="blank"></string>
+    <string name="concentration_feature_label">Управление концентрацией инсулина</string>
+    <string name="u200_with_profile">До появления поддержки концентрации инсулина в AAPS для U200 использовали профиль 50%, уменьшающий все значения вдвое. Какие ответы верны для такой настройки?</string>
+    <string name="u200_with_profile_reports">Моя база данных AAPS и отчёты NS становятся неверными. Все значения (болюсы, скорости, TDD) нужно умножать на 2, чтобы получить действительные значения, особенно для врачей и медицинских специалистов.</string>
+    <string name="u200_with_profile_pens">Мне не нужно ничего пересчитывать между AAPS и шприц-ручкой, если для внешнего болюса я использую шприц-ручку U200.</string>
+    <string name="u200_with_profile_pens2">Независимо от шприц-ручки (U100 или U200) при каждом внешнем болюсе нужно пересчитывать дозу, рассчитанную AAPS, в значение, устанавливаемое на шприц-ручке.</string>
+    <string name="concentration_hint1">https://wiki.aaps.app/en/dev/AdvancedOptions/InsulinConcentration.html</string>
+    <string name="switch_u200_profile">Вы использовали обходной вариант с профилем 50% для U200 и хотите перейти на функцию концентрации инсулина. Какие ответы верны?</string>
+    <string name="switch_u200_profile_any_time">Я могу перейти в любое время, поскольку в моей помпе уже правильный инсулин U200.</string>
+    <string name="switch_u200_profile_ps">Нужно подготовить профиль вдвое сильнее (200% от текущего профиля по умолчанию) и синхронизировать его после следующей замены патча или резервуара, выбрав инсулин U200.</string>
+    <string name="switch_u200_profile_dynisf">Нужно отключить DynISF как минимум на неделю, чтобы TDD полностью соответствовала фактическому значению, рассчитанному в международных единицах.</string>
+    <string name="switch_u200_profile_mental">После перехода несколько недель нужно быть особенно внимательным, чтобы привыкнуть мыслить в международных единицах при расчёте болюсов, базальных скоростей и TDD.</string>
+    <string name="switch_u100_u200">Сейчас вы используете U100 и планируете перейти на другую концентрацию с помощью функции концентрации инсулина. Какие ответы верны?</string>
+    <string name="switch_u100_u200_profile">Мне нужно изменить свой профиль.</string>
+    <string name="switch_u100_u200_tube">Никогда не следует вводить болюсы через интерфейс самой помпы (для трубочных помп).</string>
+    <string name="switch_u100_u200_pen">После перехода всё ещё нужно пересчитывать дозы между AAPS и внешними болюсами, вводимыми шприц-ручкой.</string>
+    <string name="switch_u100_u200_change">Концентрацию инсулина можно менять только при замене инсулина в резервуаре либо при замене патча или Pod.</string>
 </resources>

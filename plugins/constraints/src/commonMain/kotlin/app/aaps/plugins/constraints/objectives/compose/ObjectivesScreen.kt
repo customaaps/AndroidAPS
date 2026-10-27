@@ -150,7 +150,7 @@ private fun DebugControls(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Enable fake time and progress",
+                text = stringResource(ConstraintsStrings.objectives_fake_progress),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -161,7 +161,7 @@ private fun DebugControls(
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Reset")
+            Text(stringResource(CoreUiStrings.reset))
         }
     }
     HorizontalDivider()

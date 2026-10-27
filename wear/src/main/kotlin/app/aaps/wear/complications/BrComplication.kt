@@ -6,6 +6,7 @@ import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.wear.R
 
 /**
  * Basal Rate (BR) Complication
@@ -27,7 +28,7 @@ class BrComplication : ModernBaseComplicationProviderService() {
             ComplicationType.SHORT_TEXT      -> {
                 ShortTextComplicationData.Builder(
                     text = PlainComplicationText.Builder(text = displayFormat.basalRateSymbol() + statusData.currentBasal).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "Basal Rate").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.complication_br)).build()
                 )
                     .setTapAction(complicationPendingIntent)
                     .build()

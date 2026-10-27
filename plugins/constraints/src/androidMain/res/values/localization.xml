@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="objectives_fake_progress">Enable fake time and progress</string>
+    <string name="bg_quality_clean">Data is clean</string>
+    <string name="bg_doubled_max_iob">Limiting max IOB to 0 U due to doubled values in BG Source</string>
+</resources>

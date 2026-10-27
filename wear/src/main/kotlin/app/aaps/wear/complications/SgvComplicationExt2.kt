@@ -9,6 +9,7 @@ import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.data.TimeDifferenceComplicationText
 import androidx.wear.watchface.complications.data.TimeDifferenceStyle
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.wear.R
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
@@ -44,7 +45,7 @@ class SgvComplicationExt2 : ModernBaseComplicationProviderService() {
 
                 ShortTextComplicationData.Builder(
                     text = PlainComplicationText.Builder(text = shortText).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "Glucose $shortText").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_glucose_value, shortText)).build()
                 )
                     .setTitle(shortTitle)
                     .setTapAction(complicationPendingIntent)

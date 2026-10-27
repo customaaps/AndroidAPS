@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_profile_not_set">profile not set</string>
+    <string name="localization_missing_patch_address">no patch address</string>
+    <string name="localization_another_bolus_in_progress">Another bolus is in progress</string>
+    <string name="localization_internal_error">Internal error</string>
+    <string name="localization_stop_result">stop result %1$d</string>
+    <string name="localization_resume_result">resume result %1$d</string>
+</resources>

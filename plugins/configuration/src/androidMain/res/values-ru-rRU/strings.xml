@@ -24,7 +24,7 @@
     <string name="profile">Профиль</string>
     <string name="doprofileswitch">Переключить профиль</string>
     <string name="exitwizard">Пропустить Мастер настройки</string>
-    <string name="setupwizard_sensitivity_description">Плагин чувствительности Sensitivity применяется для определения чувствительности к инсулину и вычисления активных углеводов COB. Дополнительная информация:</string>
+    <string name="setupwizard_sensitivity_description">Модуль чувствительности применяется для определения чувствительности к инсулину и вычисления активных углеводов COB. Дополнительная информация:</string>
     <string name="setupwizard_sensitivity_url">https://wiki.aaps.app/ru/latest/DailyLifeWithAaps/SensitivityDetectionAndCob.html</string>
     <string name="setupwizard_aps_description">Выберите один из доступных алгоритмов. Они отсортированы от старых к новым. Обычно, чем новее алгоритм, тем он мощнее. Не забудьте перед использованием прочитать документацию OpenAPS и сделать необходимые настройки.</string>
     <string name="setupwizard_pump_waiting_for_riley_link_connection">Сконфигурируйте RileyLink. После выбора RileyLink можно будет продолжить установку если состояние RileyLink \"Соединено\". Это может занять минуту.\n</string>
@@ -62,4 +62,21 @@
     <!-- Google Drive error messages (used by GoogleDriveManager) -->
     <!-- Provider-agnostic cloud storage strings -->
     <!-- Authorization status strings -->
+
+    <!-- Russian coverage for current interface -->
+    <string name="status_label">Статус:</string>
+    <string name="setupwizard_client_control_title">Управление с клиентских устройств</string>
+    <string name="setupwizard_client_control_info">Выполните сопряжение клиентских устройств, чтобы они могли отправлять подписанные команды этому основному устройству через Nightscout. Это новый рекомендуемый способ удалённого управления AAPS.</string>
+    <string name="setupwizard_ns_receive_info">Приём данных и записей о терапии напрямую из Nightscout (менее безопасный способ) теперь по умолчанию отключён. Открывайте настройки ниже, только если он всё ещё нужен. Этот способ необходим для ввода данных через NS или сторонние приложения.</string>
+    <string name="setupwizard_open_ns_receive_settings">Приём данных Nightscout</string>
+    <string name="setupwizard_pair_with_master_info">Выполните сопряжение этого клиента с основным AAPS для отправки команд по защищённому каналу. После сопряжения настройка будет завершена.</string>
+    <string name="setupwizard_setup_from_master_title">Настройка с основного устройства</string>
+    <string name="setupwizard_setup_from_master_info">На основном устройстве откройте раздел «Авторизованные клиенты» и добавьте этот телефон с помощью QR-кода. Сканирование настроит Nightscout с собственным токеном и может также выполнить сопряжение телефона. После сканирования настройка будет завершена. Если QR-кода нет, пропустите этот шаг и настройте Nightscout самостоятельно.</string>
+    <string name="setupwizard_scan_master_qr">Сканировать QR-код</string>
+    <string name="setupwizard_pairing_ws_warning">Для сопряжения необходимо подключение Nightscout WebSocket. Вернитесь на предыдущий шаг и сначала включите его.</string>
+    <string name="setupwizard_pairing_status_master">Сопряжённых клиентов: %1$d</string>
+    <string name="setupwizard_pairing_status_master_none">Сопряжённых клиентов пока нет</string>
+    <string name="setupwizard_pairing_status_client_paired">Сопряжено с основным устройством</string>
+    <string name="setupwizard_pairing_status_client_not_paired">Сопряжение ещё не выполнено</string>
+    <string name="setupwizard_instance_name_title">Кто пользуется этим телефоном?</string>
 </resources>

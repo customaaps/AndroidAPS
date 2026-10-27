@@ -215,7 +215,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT TEMP_START ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Ratio: $param1% Duration: ${param2}min"
                 )
-                status = "TEMP_START " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_temp_start) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.TEMP_STOP           -> {
@@ -231,7 +231,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT TEMP_STOP ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime)"
                 )
-                status = "TEMP_STOP " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_temp_stop) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.EXTENDED_START      -> {
@@ -250,7 +250,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT EXTENDED_START ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Amount: ${param1 / 100.0}U Duration: ${param2}min"
                 )
-                status = "EXTENDED_START " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_extended_start) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.EXTENDED_STOP       -> {
@@ -266,7 +266,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT EXTENDED_STOP ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Delivered: ${param1 / 100.0}U RealDuration: ${param2}min"
                 )
-                status = "EXTENDED_STOP " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_extended_stop) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.BOLUS               -> {
@@ -289,7 +289,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     // detailedInfo can be from another similar record. Reinsert
                     detailedBolusInfoStorage.add(detailedBolusInfo)
                 }
-                status = "BOLUS " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_bolus) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.DUAL_BOLUS          -> {
@@ -312,7 +312,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     // detailedInfo can be from another similar record. Reinsert
                     detailedBolusInfoStorage.add(detailedBolusInfo)
                 }
-                status = "DUAL_BOLUS " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_dual_bolus) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.DUAL_EXTENDED_START -> {
@@ -331,7 +331,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT DUAL_EXTENDED_START ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Amount: ${param1 / 100.0}U Duration: ${param2}min"
                 )
-                status = "DUAL_EXTENDED_START " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_dual_extended_start) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.DUAL_EXTENDED_STOP  -> {
@@ -347,7 +347,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT DUAL_EXTENDED_STOP ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Delivered: ${param1 / 100.0}U RealDuration: ${param2}min"
                 )
-                status = "DUAL_EXTENDED_STOP " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_dual_extended_stop) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.SUSPEND_ON          -> {
@@ -355,7 +355,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] EVENT SUSPEND_ON ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime)"
                 )
-                status = "SUSPEND_ON " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_suspend_on) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.SUSPEND_OFF         -> {
@@ -363,7 +363,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] EVENT SUSPEND_OFF ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime)"
                 )
-                status = "SUSPEND_OFF " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_suspend_off) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.REFILL              -> {
@@ -382,7 +382,7 @@ open class DanaRSPacketAPSHistoryEvents(
                         "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT REFILL ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Amount: ${param1 / 100.0}U"
                     )
                 }
-                status = "REFILL " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_refill) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.PRIME               -> {
@@ -390,7 +390,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] EVENT PRIME ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Amount: ${param1 / 100.0}U"
                 )
-                status = "PRIME " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_prime) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.PROFILE_CHANGE      -> {
@@ -398,7 +398,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] EVENT PROFILE_CHANGE ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) No: $param1 TotalBasal: ${param2 / 100.0}U"
                 )
-                status = "PROFILE_CHANGE " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_profile_change) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.CARBS               -> {
@@ -415,7 +415,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT CARBS ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Carbs: ${param1}g"
                 )
-                status = "CARBS " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_carbs) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.PRIME_CANNULA       -> {
@@ -434,7 +434,7 @@ open class DanaRSPacketAPSHistoryEvents(
                         "[$pumpId] ${if (newRecord) "**NEW** " else ""}EVENT PRIME_CANNULA($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Amount: ${param1 / 100.0}U"
                     )
                 }
-                status = "PRIME_CANNULA " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_prime_cannula) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.TIME_CHANGE         -> {
@@ -443,7 +443,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] EVENT TIME_CHANGE($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Previous: ${dateUtil.dateAndTimeString(oldDateTime)}"
                 )
-                status = "TIME_CHANGE " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_time_change) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.STEP_BOLUS_COMMAND  -> {
@@ -452,7 +452,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] EVENT STEP_BOLUS_COMMAND ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Amount: ${param1 / 100.0}U Algorithm: ${param2 == 1}"
                 )
-                status = "STEP_BOLUS_COMMAND " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_step_bolus_command) + " " + dateUtil.timeString(datetime)
             }
 
             DanaPump.HistoryEntry.BASAL_RATE_CHANGE   -> {
@@ -464,7 +464,7 @@ open class DanaRSPacketAPSHistoryEvents(
                     LTag.PUMPCOMM,
                     "[$pumpId] EVENT BASAL_RATE_CHANGE ($recordCode) ${dateUtil.dateAndTimeString(datetime)} ($datetime) Rate: $rate Reason: $reason ${basalChangeReasonName(reason)}"
                 )
-                status = "BASAL_RATE_CHANGE " + dateUtil.timeString(datetime)
+                status = rh.gs(R.string.localization_history_basal_rate_change) + " " + dateUtil.timeString(datetime)
             }
         }
         if (datetime > danaPump.lastEventTimeLoaded) danaPump.lastEventTimeLoaded = datetime

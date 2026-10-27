@@ -47,6 +47,8 @@ import app.aaps.pump.dana.keys.DanaIntentKey
 import app.aaps.pump.dana.keys.DanaStringNonKey
 import app.aaps.pump.danar.compose.DanaRComposeContent
 import app.aaps.pump.danar.services.AbstractDanaRExecutionService
+import kotlin.math.abs
+import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -56,8 +58,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlin.math.abs
-import kotlin.math.max
 
 /**
  * Created by mike on 28.01.2018.
@@ -142,7 +142,7 @@ abstract class AbstractDanaRPlugin protected constructor(
             aapsLogger.error("setNewBasalProfile sExecutionService is null")
             // Service not bound yet — deferred, not a genuine error; re-pushed on reconnect. success=true keeps
             // it out of the central failure alarm; enacted stays false so no PROFILE_SET_OK is posted.
-            result.success(true).comment("setNewBasalProfile sExecutionService is null")
+            result.success(true).comment(TextRef.AndroidRes(app.aaps.pump.dana.R.string.localization_execution_service_unavailable))
             return result
         }
         if (!isInitialized()) {

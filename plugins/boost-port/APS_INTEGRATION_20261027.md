@@ -27,12 +27,14 @@ against a hash-pinned extraction from the source branch.
 ## Deliberate remaining gate
 
 The new APS plugin is **hidden and forcibly disabled**. Registration and
-injection do not make it a selectable dosing algorithm. Source sleep/history
-updates, phone/Health Connect ingestion, night-mode orchestration,
+injection do not make it a selectable dosing algorithm. Source end-of-cycle
+sleep/history updates are now connected through the sequential
+[sleep owner](APS_SLEEP_LIFECYCLE_20261028.md). The source
+[night-mode SMB policy](APS_NIGHT_POLICY_20261028.md) is also connected.
+Phone/Health Connect ingestion,
 post-exercise recovery and premeal/meal-policy owners still need integration,
-along with settings UI and full lifecycle scenarios. Existing sleep state is
-read, but this checkpoint does not claim to update that state as the source
-plugin does. Several unsupported opt-in policies explicitly reject a direct
+along with settings UI and full lifecycle scenarios. Automatic sensor-cadence
+wiring and RT sleep telemetry are still open. Several unsupported opt-in policies explicitly reject a direct
 factory call. Full source-policy coverage is required before removing the gate.
 The earlier GENERAL inspection plugin also remains hidden and disabled.
 
@@ -48,16 +50,21 @@ characters. A fresh remote run is needed to assess the shutdown mitigation.
 
 ## Validation
 
-Passed: 1135 Boost JVM tests, 345 APS host tests and 23 SafetyPlugin tests, with
-zero failures/errors/skips. Boost module assemble passed, including common/iOS
-metadata and iOS test compilation. The full debug APK assembled and its signature
-verified. Its DEX contains the actual APS plugin, calculator factory, Android
-model source and invalidatable storage owner; source model assets are byte-exact
-and JVM reference classes are absent. Source archive/model/transformation,
-90-key-default and isolation checks, workflow YAML/Bash syntax and whitespace
-checks passed. The additional import-during-input-collection test ensures that
-an invalidated cycle cannot create a new owner from stale inputs. Publication
-and lifecycle invalidation also share a lock.
+Latest local checkpoint (2026-10-28): 1177 Boost JVM tests and 7 selected
+OpenAPSBoostPlugin host tests passed with no failures/errors/skips. The Boost
+module assembled, including common/native metadata and iOS test compilation.
+The original 114 source blobs, ML assets, 90 stored key defaults, source contract
+and static isolation checks pass. Night policy parity includes a 27,648-context
+comparison against the extracted original method. For the concurrent Russian
+localization work, 175 selected pump regression tests also passed.
+
+The earlier checkpoint covered 345 APS host tests and 23 SafetyPlugin tests;
+those broad suites were not rerun for this increment. See the night/sleep
+reports and [Russian translation report](../../RUSSIAN_TRANSLATION_20261028.md)
+for the current scope. Full-debug phone and Wear APKs also assembled; their v2 signatures verify.
+The phone APK includes the night/sleep owners and original model assets, with
+no JVM oracle classes. New Russian resource values were checked in the APKs
+and the embedded CWF watchface. Apple/device tests are not executed here.
 
 Local debug assembly cannot establish success of a signed remote release build.
 No patient/device validation or Apple test execution is claimed.

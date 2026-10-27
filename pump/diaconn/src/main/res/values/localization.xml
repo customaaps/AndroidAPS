@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_pump_not_initialized">pump not initialized</string>
+    <string name="localization_undefined_error_code">not defined Error code: %1$d</string>
+    <string name="localization_history_meal_bolus_success">Meal bolus completed</string>
+    <string name="localization_history_meal_bolus_fail">Meal bolus failed</string>
+    <string name="localization_history_bolus_success">Bolus completed</string>
+    <string name="localization_history_bolus_fail">Bolus failed</string>
+    <string name="localization_history_extended_bolus_start">Extended bolus started</string>
+    <string name="localization_history_extended_bolus_end">Extended bolus completed</string>
+    <string name="localization_history_extended_bolus_fail">Extended bolus failed</string>
+    <string name="localization_history_dual_extended_start">Dual extended bolus started</string>
+    <string name="localization_history_dual_bolus">Dual bolus</string>
+    <string name="localization_history_dual_bolus_square_success">Dual extended bolus completed</string>
+    <string name="localization_history_dual_bolus_fail">Dual bolus failed</string>
+    <string name="localization_history_suspend">Delivery suspended</string>
+    <string name="localization_history_suspend_release">Delivery resumed</string>
+    <string name="localization_history_insulin_change">Insulin changed</string>
+    <string name="localization_history_tube_change">Tubing changed</string>
+    <string name="localization_history_daily_bolus">Daily bolus</string>
+    <string name="localization_history_daily_basal">Daily basal</string>
+    <string name="localization_history_needle_change">Cannula changed</string>
+    <string name="localization_history_temp_start">Temporary basal started</string>
+    <string name="localization_history_temp_stop">Temporary basal stopped</string>
+    <string name="localization_history_battery_alarm">Battery alarm</string>
+    <string name="localization_history_block_alarm">Occlusion alarm</string>
+    <string name="localization_history_short_age_alarm">Low insulin alarm</string>
+    <string name="localization_history_reset">Reset</string>
+</resources>

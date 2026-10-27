@@ -190,7 +190,7 @@ class BigLogInquireResponsePacket(
                                 // detailedInfo can be from another similar record. Reinsert
                                 detailedBolusInfoStorage.add(detailedBolusInfo)
                             }
-                            status = "MEAL_BOLUS_SUCCESS" + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_meal_bolus_success) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjectMealFail.LOG_KIND        -> {
@@ -225,7 +225,7 @@ class BigLogInquireResponsePacket(
                                 // detailedInfo can be from another similar record. Reinsert
                                 detailedBolusInfoStorage.add(detailedBolusInfo)
                             }
-                            status = "MEAL_BOLUS_FAIL " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_meal_bolus_fail) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjectNormalSuccess.LOG_KIND   -> {
@@ -261,7 +261,7 @@ class BigLogInquireResponsePacket(
                                 // detailedInfo can be from another similar record. Reinsert
                                 detailedBolusInfoStorage.add(detailedBolusInfo)
                             }
-                            status = "BOLUS_SUCCESS" + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_bolus_success) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjectNormalFail.LOG_KIND      -> {
@@ -299,7 +299,7 @@ class BigLogInquireResponsePacket(
                                 // detailedInfo can be from another similar record. Reinsert
                                 detailedBolusInfoStorage.add(detailedBolusInfo)
                             }
-                            status = "BOLUS_FAIL " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_bolus_fail) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogSetSquareInjection.LOG_KIND    -> {
@@ -330,7 +330,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "EXTENDED_BOLUS_START " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_extended_bolus_start) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjectSquareSuccess.LOG_KIND   -> {
@@ -347,7 +347,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "EXTENDED_BOLUS_END " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_extended_bolus_end) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjectSquareFail.LOG_KIND      -> {
@@ -375,7 +375,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "EXTENDED_BOLUS_FAIL " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_extended_bolus_fail) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogSetDualInjection.LOG_KIND      -> {
@@ -409,7 +409,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
 
-                            status = "DUAL_EXTENDED_START " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_dual_extended_start) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjectionDualNormal.LOG_KIND   -> {
@@ -449,7 +449,7 @@ class BigLogInquireResponsePacket(
                                 // detailedInfo can be from another similar record. Reinsert
                                 detailedBolusInfoStorage.add(detailedBolusInfo)
                             }
-                            status = "DUAL_BOLUS" + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_dual_bolus) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjectDualSuccess.LOG_KIND     -> {
@@ -468,7 +468,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "DUAL_BOLUS_SQUARE_SUCCESS " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_dual_bolus_square_success) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjectDualFail.LOG_KIND        -> {
@@ -497,7 +497,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "DUAL_BOLUS FAIL " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_dual_bolus_fail) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjection1HourBasal.LOG_KIND   -> {
@@ -528,7 +528,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "SUSPEND " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_suspend) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogSuspendReleaseV2.LOG_KIND      -> {
@@ -543,7 +543,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "SUSPEND_RELEASE " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_suspend_release) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogChangeInjectorSuccess.LOG_KIND -> {
@@ -572,7 +572,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "INSULIN_CHANGE " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_insulin_change) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogChangeTubeSuccess.LOG_KIND     -> {
@@ -604,7 +604,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "TUBE_CHANGE " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_tube_change) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjection1Day.LOG_KIND         -> { // Daily Bolus Log
@@ -653,7 +653,7 @@ class BigLogInquireResponsePacket(
                                 diaconnG8Pump.serialNo.toString()
                             )
 
-                            status = "DAILY_BOLUS " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_daily_bolus) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogInjection1DayBasal.LOG_KIND    -> { // Daily Basal Log
@@ -702,7 +702,7 @@ class BigLogInquireResponsePacket(
                             //     diaconnG8Pump.serialNo.toString()
                             // )
 
-                            status = "DAILY_BASAL " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_daily_basal) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogChangeNeedleSuccess.LOG_KIND   -> {
@@ -732,7 +732,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "NEEDLE_CHANGE " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_needle_change) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogTbStartV3.LOG_KIND             -> {
@@ -776,7 +776,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "TEMP_START " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_temp_start) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogTbStopV3.LOG_KIND              -> {
@@ -810,7 +810,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "TEMP_STOP " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_temp_stop) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogAlarmBattery.LOG_KIND          -> { // BATTERY SHORTAGE ALARM
@@ -826,7 +826,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "BATTERY_ALARM " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_battery_alarm) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogAlarmBlock.LOG_KIND            -> { // INJECTION BLOCKED ALARM
@@ -844,7 +844,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "BLOCK_ALARM " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_block_alarm) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogAlarmShortAge.LOG_KIND         -> { // INSULIN SHORTAGE ALARM
@@ -862,7 +862,7 @@ class BigLogInquireResponsePacket(
                             diaconnG8HistoryRecord.wrappingCount = wrappingCount
                             diaconnG8HistoryRecord.pumpUid = diaconnG8Pump.pumpUid
                             diaconnHistoryRecordDao.createOrUpdate(diaconnG8HistoryRecord)
-                            status = "SHORT_AGE_ALARM " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_short_age_alarm) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         LogResetSysV3.LOG_KIND            -> {
@@ -891,7 +891,7 @@ class BigLogInquireResponsePacket(
                                     )
                                 }
                             }
-                            status = "RESET " + dateUtil.timeString(logDateTime)
+                            status = rh.gs(R.string.localization_history_reset) + " " + dateUtil.timeString(logDateTime)
                         }
 
                         else                              -> {

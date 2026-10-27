@@ -52,6 +52,7 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import app.aaps.core.interfaces.navigation.ElementType
+import app.aaps.core.keys.interfaces.ClientRole
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsFab
 import app.aaps.core.ui.compose.AapsFloatingToolbar
@@ -60,7 +61,6 @@ import app.aaps.core.ui.compose.AapsFloatingToolbarRow
 import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.AapsTheme
 import app.aaps.core.ui.compose.AapsTopAppBar
-import app.aaps.core.keys.interfaces.ClientRole
 import app.aaps.core.ui.compose.LocalClientRole
 import app.aaps.core.ui.compose.MasterOfflineBanner
 import app.aaps.core.ui.compose.ScreenMode
@@ -76,10 +76,10 @@ import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.components.CarouselReorderConfig
 import app.aaps.ui.compose.components.ContentContainer
 import app.aaps.ui.compose.components.ManagementCarousel
+import kotlin.time.Instant
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 
 /**
  * Screen for managing temporary target presets and activating TTs.
@@ -149,7 +149,7 @@ fun TempTargetManagementScreen(
 
     // Delete confirmation dialog
     if (showDeleteDialog && uiState.selectedPreset != null) {
-        val presetName = uiState.selectedPreset!!.getDisplayName()
+        val presetName = uiState.selectedPreset!!.getDisplayName(stringResource(CoreUiStrings.unknown))
         OkCancelDialog(
             title = stringResource(CoreUiStrings.removerecord),
             message = stringResource(CoreUiStrings.value_question, stringResource(CoreUiStrings.value_with_unit, stringResource(CoreUiStrings.delete), presetName)),

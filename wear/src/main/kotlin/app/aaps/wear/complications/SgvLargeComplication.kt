@@ -7,6 +7,7 @@ import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.weardata.EventData
+import app.aaps.wear.R
 
 /**
  * SGV Large Complication
@@ -43,7 +44,7 @@ class SgvLargeComplication : ModernBaseComplicationProviderService() {
 
         return ShortTextComplicationData.Builder(
             text = PlainComplicationText.Builder(text = bgData.sgvString).build(),
-            contentDescription = PlainComplicationText.Builder(text = "Glucose ${bgData.sgvString}").build()
+            contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_glucose_value, bgData.sgvString)).build()
         )
             .setTitle(titleText)
             .setTapAction(pendingIntent)

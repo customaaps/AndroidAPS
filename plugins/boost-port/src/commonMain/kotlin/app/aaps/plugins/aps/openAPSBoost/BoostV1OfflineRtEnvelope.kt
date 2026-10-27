@@ -10,7 +10,7 @@ package app.aaps.plugins.aps.openAPSBoost
 internal object BoostV1OfflineRtEnvelope {
     enum class Finding {
         INVALID_PIPELINE, INVALID_EVENTUAL_BG, MISSING_EVENTUAL_BG,
-        NO_SOURCE_EQUIVALENT_RESULT, INVALID_TARGET_ADJUSTMENT, INVALID_FUTURE_SENSITIVITY, INVALID_PREDICTION_GUARDS, INVALID_SAFETY_TIMELINE, SNAPSHOT_READY
+        NO_SOURCE_EQUIVALENT_RESULT, INVALID_TARGET_ADJUSTMENT, INVALID_FUTURE_SENSITIVITY, INVALID_PREDICTION_GUARDS, INVALID_SAFETY_TIMELINE, INVALID_CARB_REQUIREMENT, SNAPSHOT_READY
     }
 
     data class Snapshot(
@@ -36,6 +36,7 @@ internal object BoostV1OfflineRtEnvelope {
         val futureSensitivityIsf: Double? = null,
         val predictionGuard: BoostV1PredictionGuardBlend.Result? = null,
         val predictionSafety: BoostV1PredictionSafetyTimeline.Result? = null,
+        val carbRequirement: BoostV1CarbRequirementShadow.Result? = null,
         val sourceEquivalentRtAvailable: Boolean = false,
         val eligibleForPumpDispatch: Boolean = false
     )
@@ -46,7 +47,8 @@ internal object BoostV1OfflineRtEnvelope {
         highBgTarget: BoostV1HighBgTargetShadow.Input? = null,
         futureSensitivityInput: BoostV1FutureSensitivitySelection.Input? = null,
         predictionGuardInput: BoostV1PredictionGuardBlend.Input? = null,
-        predictionSafetyInput: BoostV1PredictionSafetyTimeline.Input? = null
+        predictionSafetyInput: BoostV1PredictionSafetyTimeline.Input? = null,
+        carbRequirementInput: BoostV1CarbRequirementShadow.Input? = null
     ): Snapshot {
         val glucose = input.invocation.base.glucose
         fun rejected(finding: Finding) = Snapshot(
@@ -129,6 +131,9 @@ internal object BoostV1OfflineRtEnvelope {
                 safetyInput.mealCob != input.invocation.meal.mealCob ||
                 safetyInput.naiveEventualBg != calculated.naiveEventualBg ||
                 safetyInput.minGuardBg != computedGuard.minGuardBg ||
+                (adjustment != null && safetyInput.minBg != adjustment.minBg) ||
+                safetyInput.carbImpact != input.prediction.ci ||
+                safetyInput.remainingCarbImpactPeak != input.prediction.remainingCIpeak ||
                 safetyInput.smbConditionMatched != report.smbConditionMatched ||
                 safetyInput.iobPredictions != report.predictionIob ||
                 safetyInput.cobPredictions != report.predictionCob ||
@@ -138,6 +143,18 @@ internal object BoostV1OfflineRtEnvelope {
             BoostV1PredictionSafetyTimeline.inspect(safetyInput).also {
                 if (it.finding != BoostV1PredictionSafetyTimeline.Finding.READY)
                     return rejected(Finding.INVALID_SAFETY_TIMELINE)
+            }
+        }
+        val carbs = carbRequirementInput?.let {
+            val computedSafety = safety ?: return rejected(Finding.INVALID_CARB_REQUIREMENT)
+            if (it.currentBasal != input.invocation.base.profile.currentBasal ||
+                it.sensitivity != isf || it.profileSensitivity != profileSensitivity ||
+                it.mealCarbs != input.invocation.meal.carbs ||
+                it.mealCob != input.invocation.meal.mealCob)
+                return rejected(Finding.INVALID_CARB_REQUIREMENT)
+            BoostV1CarbRequirementShadow.inspect(it, computedSafety).also { result ->
+                if (result.finding != BoostV1CarbRequirementShadow.Finding.READY)
+                    return rejected(Finding.INVALID_CARB_REQUIREMENT)
             }
         }
         return Snapshot(
@@ -162,7 +179,8 @@ internal object BoostV1OfflineRtEnvelope {
             futureSensitivityBg = futureSelection?.glucoseForIsf,
             futureSensitivityIsf = futureIsf,
             predictionGuard = guard,
-            predictionSafety = safety
+            predictionSafety = safety,
+            carbRequirement = carbs
         )
     }
 }

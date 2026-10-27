@@ -46,16 +46,16 @@ import app.aaps.pump.danarv2.services.DanaRv2ExecutionService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.IntKey as MetroIntKey
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
+import kotlin.math.abs
+import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlin.math.abs
-import kotlin.math.max
-import dev.zacsweers.metro.IntKey as MetroIntKey
 
 @ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
 @PumpDriver
@@ -253,7 +253,7 @@ class DanaRv2Plugin(
         }
         // We should never end here
         aapsLogger.error("setTempBasalAbsolute: Internal error")
-        result.success(false).comment("Internal error")
+        result.success(false).comment(TextRef.AndroidRes(app.aaps.pump.dana.R.string.localization_internal_error))
         return result
     }
 

@@ -10,6 +10,7 @@ import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PhotoImageComplicationData
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.wear.R
 import dev.zacsweers.metro.HasMemberInjections
 import java.io.IOException
 
@@ -51,7 +52,7 @@ abstract class WallpaperComplication : ModernBaseComplicationProviderService() {
                 photoIcon?.let {
                     PhotoImageComplicationData.Builder(
                         photoImage = it,
-                        contentDescription = PlainComplicationText.Builder(text = "Wallpaper").build()
+                        contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_wallpaper)).build()
                     ).build()
                 }
             }

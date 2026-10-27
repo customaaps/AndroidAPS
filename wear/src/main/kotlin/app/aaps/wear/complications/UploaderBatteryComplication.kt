@@ -89,7 +89,7 @@ class UploaderBatteryComplication : ModernBaseComplicationProviderService() {
                     value = level.toFloat(),
                     min = 0f,
                     max = 100f,
-                    contentDescription = PlainComplicationText.Builder(text = "Battery $levelStr").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_battery_value, levelStr)).build()
                 )
                     .setText(PlainComplicationText.Builder(text = levelStr).build())
                 // Try to add icon, but skip if context not initialized (e.g., during preview)
@@ -104,7 +104,7 @@ class UploaderBatteryComplication : ModernBaseComplicationProviderService() {
             ComplicationType.SHORT_TEXT          -> {
                 val builder = ShortTextComplicationData.Builder(
                     text = PlainComplicationText.Builder(text = levelStr).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "Battery $levelStr").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_battery_value, levelStr)).build()
                 )
                 // Try to add icon, but skip if context not initialized (e.g., during preview)
                 try {
@@ -119,7 +119,7 @@ class UploaderBatteryComplication : ModernBaseComplicationProviderService() {
                 // New AndroidX type for simple icon-only complications
                 val builder = MonochromaticImageComplicationData.Builder(
                     monochromaticImage = MonochromaticImage.Builder(image = Icon.createWithResource(this, burnInBatteryIcon)).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "Battery $levelStr").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_battery_value, levelStr)).build()
                 )
                 builder.setTapAction(complicationPendingIntent).build()
             }
@@ -127,7 +127,7 @@ class UploaderBatteryComplication : ModernBaseComplicationProviderService() {
             ComplicationType.SMALL_IMAGE         -> {
                 SmallImageComplicationData.Builder(
                     smallImage = SmallImage.Builder(image = Icon.createWithResource(this, batteryIcon), type = SmallImageType.ICON).build(),
-                    contentDescription = PlainComplicationText.Builder(text = "Battery").build()
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_battery)).build()
                 )
                     .setTapAction(complicationPendingIntent)
                     .build()

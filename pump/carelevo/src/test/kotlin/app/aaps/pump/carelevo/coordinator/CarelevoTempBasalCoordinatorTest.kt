@@ -113,7 +113,7 @@ internal class CarelevoTempBasalCoordinatorTest {
 
         assertThat(result.success).isFalse()
         assertThat(result.enacted).isFalse()
-        assertThat(result.comment).isEqualTo("no patch address")
+        assertThat(result.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test
@@ -154,7 +154,7 @@ internal class CarelevoTempBasalCoordinatorTest {
 
         assertThat(result.success).isFalse()
         assertThat(result.enacted).isFalse()
-        assertThat(result.comment).isEqualTo("Internal error")
+        assertThat(result.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_internal_error).toString())
         assertThat(lastDataUpdated).isFalse()
         verify(startTempBasalInfusionUseCase, never()).persistTempBasalStarted(any())
         verifyBlocking(pumpSync, never()) { syncTemporaryBasalWithPumpId(any(), any(), any(), any(), any(), any(), any(), any()) }
@@ -223,7 +223,7 @@ internal class CarelevoTempBasalCoordinatorTest {
 
         assertThat(result.success).isFalse()
         assertThat(result.enacted).isFalse()
-        assertThat(result.comment).isEqualTo("no patch address")
+        assertThat(result.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test
@@ -263,7 +263,7 @@ internal class CarelevoTempBasalCoordinatorTest {
 
         assertThat(result.success).isFalse()
         assertThat(result.enacted).isFalse()
-        assertThat(result.comment).isEqualTo("Internal error")
+        assertThat(result.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_internal_error).toString())
         assertThat(lastDataUpdated).isFalse()
         verify(startTempBasalInfusionUseCase, never()).persistTempBasalStarted(any())
         verifyBlocking(pumpSync, never()) { syncTemporaryBasalWithPumpId(any(), any(), any(), any(), any(), any(), any(), any()) }
@@ -306,7 +306,7 @@ internal class CarelevoTempBasalCoordinatorTest {
 
         assertThat(result.success).isFalse()
         assertThat(result.enacted).isFalse()
-        assertThat(result.comment).isEqualTo("no patch address")
+        assertThat(result.comment).isEqualTo(TextRef.AndroidRes(app.aaps.pump.carelevo.R.string.localization_missing_patch_address).toString())
     }
 
     @Test

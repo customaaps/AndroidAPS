@@ -115,4 +115,5 @@
 
     <string name="openapsboost">Boost V6</string>
     <string name="description_boost">Boost V6 APS algorithm.</string>
+    <string name="boost_night_mode_smb_disabled">"Boost night mode: SMB disabled; "</string>
 </resources>

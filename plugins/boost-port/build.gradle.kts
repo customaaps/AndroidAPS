@@ -9,6 +9,7 @@ val v1ReferenceDir = layout.buildDirectory.dir("generated/v1Reference")
 val generateV1Reference = tasks.register<Exec>("generateV1ReplayReference") {
     inputs.file("tools/v1_replay_sources.py")
     inputs.file("tools/activity_sources.py")
+    inputs.file("tools/night_mode_sources.py")
     inputs.file("port-source/DetermineBasalBoost.kt.source")
     inputs.file("port-source/Round.kt.source")
     inputs.file("../../core/interfaces/port-source/DynamicCarbRatioCalculator.kt.source")

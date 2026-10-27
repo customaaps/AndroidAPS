@@ -19,8 +19,6 @@ import dev.zacsweers.metro.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
 
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
@@ -43,6 +41,7 @@ class BoostApsCalculatorFactoryImpl(
         private val mutex = Mutex()
         private val storage = BoostOwnerStorage(this@BoostApsCalculatorFactoryImpl.storage)
         private val settings = BoostApsRuntimeSettings(storage)
+        private val sleepOwner = BoostSleepCycleOwner(persistence, storage)
         private var session: BoostReplaySession? = null
         private val clock = object : V1ReplayClock {
             override fun hourAt(timestampMs: Long): Int = (localMinute(timestampMs) / 60).toInt()
@@ -64,14 +63,31 @@ class BoostApsCalculatorFactoryImpl(
                 val unsupported = settings.unsupportedEnabledFeatures()
                 if (unsupported.isNotEmpty()) return@withLock BoostApsCalculator.Result.Rejected(
                     "Boost context integration pending: ${unsupported.joinToString()}")
+                val nightSettings = settings.night()
+                if (nightSettings.enabled) {
+                    val originalTarget = input.originalProfileTargetMgDl
+                    require(originalTarget != null && originalTarget.isFinite() && originalTarget > 0.0 &&
+                        (originalTarget + nightSettings.bgOffsetMgDl).isFinite()) { "missing/invalid original Boost night target" }
+                    require(input.meal.mealCOB.isFinite() && input.meal.mealCOB >= 0.0 &&
+                        (!input.profile.temptargetSet ||
+                            (input.profile.target_bg.isFinite() && input.profile.target_bg > 0.0))) { "invalid Boost night context" }
+                }
                 reconcileSettings()
-                val sleepRaw = settings.s(BoostApsSettingKeys.ApsBoostSleepState)
-                if (sleepRaw.isNotEmpty()) Json.parseToJsonElement(sleepRaw).jsonObject
-                val sleep = SleepStateDetector.State.deserialize(sleepRaw)
+                val previousSleep = sleepOwner.snapshot()
+                val sleep = previousSleep.state
+                // Source MidnightUtils uses a 24-hour wall-clock day even on
+                // DST changes, rather than the UTC instant of civil midnight.
+                val offsetMs = dateUtil.getTimeZoneOffsetMinutes(input.atMs) * 60_000L
+                val sourceDayStartMs = DailyStepHistoryTracker.dayIndex(input.atMs, offsetMs) * 86_400_000L - offsetMs
+                val nightActive = BoostNightModePolicy.isActive(nightSettings, BoostNightModePolicy.Context(
+                    input.atMs, sourceDayStartMs, input.glucose.glucose,
+                    input.originalProfileTargetMgDl, input.profile.target_bg.takeIf { input.profile.temptargetSet },
+                    input.meal.mealCOB, sleep.state))
+                val effectiveInput = input.copy(microBolusAllowed = input.microBolusAllowed && !nightActive)
                 val activitySettings = settings.activity()
-                val snapshot = BoostActivitySnapshot(dateUtil.beginOfDay(input.atMs),
+                val snapshot = BoostActivitySnapshot(sourceDayStartMs,
                     "${clock.hourAt(input.atMs)}:${clock.minuteAt(input.atMs).toString().padStart(2, '0')}",
-                    0, 0, 0, 0, false, sleep, null, null)
+                    0, 0, 0, 0, false, sleep, previousSleep.lastBoundaryExitMs, previousSleep.learnedDaytimeHrBpm)
                 val context = BoostProfileContext(input.atMs, input.glucose.glucose, input.profilePercent,
                     input.profile.target_bg, input.profile.min_bg, input.profile.max_bg, input.profile.target_bg,
                     input.insulinPeak, false, settings.d(BoostApsSettingKeys.ApsBoostBolus),
@@ -88,7 +104,7 @@ class BoostApsCalculatorFactoryImpl(
                 val cycle = BoostTargetCycleAssembler(persistence, tdd, dynamicCr).assembleWithActivity(
                     BoostTargetCycleAssembler.Inputs(input.glucose, input.currentTemp, input.iob, input.meal,
                         input.profile, input.originalProfileCr, input.autosens, isfSettings, context,
-                        input.microBolusAllowed, input.flatBg, settings.d(BoostApsSettingKeys.ApsBoostCumulativeSmbCap60Min)),
+                        effectiveInput.microBolusAllowed, input.flatBg, settings.d(BoostApsSettingKeys.ApsBoostCumulativeSmbCap60Min)),
                     activitySettings, snapshot, { value -> value?.let { activityFormat("%.1f", it) } ?: "null" },
                     resolveRecoveryAndMealContext = { c, _ -> c })
                 val manualBolus = persistence.getBolusesFromTimeToTime(input.atMs - MEAL_ANNOUNCED_BOLUS_WINDOW_MS, input.atMs, true)
@@ -115,11 +131,16 @@ class BoostApsCalculatorFactoryImpl(
                     is BoostReplaySession.Result.Calculated -> {
                         if (!calculated.persistence.persisted) return@withLock BoostApsCalculator.Result.Rejected(
                             calculated.persistence.problem ?: "Boost state was not saved")
-                        val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, input)
+                        val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, effectiveInput)
+                        // Source evaluates sleep after V1/V5/V6: this result's meal
+                        // model feeds the next cycle, never the current activity/V5.
+                        sleepOwner.completeCycle(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs),
+                            settings.sleep(), cycle.profile.recentSteps15Minutes,
+                            calculated.frame.v1.mlMealLikely, input.cycleSpacingMinutes)
                         BoostApsCalculator.Result.Calculated(result, input.profile.copy(
                             current_basal = cycle.profile.current_basal, carb_ratio = result.carbRatio ?: input.originalProfileCr,
                             variable_sens = result.variable_sens ?: 0.0, TDD = cycle.profile.TDD,
-                            insulinDivisor = cycle.profile.insulinDivisor), cycle.autosens.copy())
+                            insulinDivisor = cycle.profile.insulinDivisor), cycle.autosens.copy(), nightModeActive = nightActive)
                     }
                 }
             } catch (cancelled: CancellationException) {

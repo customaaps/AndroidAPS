@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_missing_pod_state">Null pod state</string>
+</resources>

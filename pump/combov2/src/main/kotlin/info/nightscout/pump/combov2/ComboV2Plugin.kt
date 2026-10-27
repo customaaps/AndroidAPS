@@ -55,19 +55,26 @@ import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.IntKey as MetroIntKey
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
 import info.nightscout.comboctl.android.AndroidBluetoothInterface
 import info.nightscout.comboctl.base.BasicProgressStage
+import info.nightscout.comboctl.base.BluetoothAddress as ComboCtlBluetoothAddress
 import info.nightscout.comboctl.base.BluetoothException
 import info.nightscout.comboctl.base.BluetoothNotAvailableException
 import info.nightscout.comboctl.base.BluetoothNotEnabledException
 import info.nightscout.comboctl.base.ComboException
 import info.nightscout.comboctl.base.DisplayFrame
+import info.nightscout.comboctl.base.LogLevel as ComboCtlLogLevel
+import info.nightscout.comboctl.base.Logger as ComboCtlLogger
 import info.nightscout.comboctl.base.NullDisplayFrame
 import info.nightscout.comboctl.base.PairingPIN
 import info.nightscout.comboctl.base.ProgressReport
+import info.nightscout.comboctl.base.Tbr as ComboCtlTbr
 import info.nightscout.comboctl.main.BasalProfile
+import info.nightscout.comboctl.main.Pump as ComboCtlPump
+import info.nightscout.comboctl.main.PumpManager as ComboCtlPumpManager
 import info.nightscout.comboctl.main.QuantityNotChangingException
 import info.nightscout.comboctl.main.RTCommandProgressStage
 import info.nightscout.comboctl.parser.AlertScreenContent
@@ -80,6 +87,10 @@ import info.nightscout.pump.combov2.keys.ComboIntKey
 import info.nightscout.pump.combov2.keys.ComboIntNonKey
 import info.nightscout.pump.combov2.keys.ComboLongNonKey
 import info.nightscout.pump.combov2.keys.ComboStringNonKey
+import java.util.Locale
+import kotlin.math.min
+import kotlin.math.roundToInt
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -110,17 +121,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.joda.time.DateTime
-import java.util.Locale
-import kotlin.math.min
-import kotlin.math.roundToInt
-import kotlin.time.ExperimentalTime
-import dev.zacsweers.metro.IntKey as MetroIntKey
-import info.nightscout.comboctl.base.BluetoothAddress as ComboCtlBluetoothAddress
-import info.nightscout.comboctl.base.LogLevel as ComboCtlLogLevel
-import info.nightscout.comboctl.base.Logger as ComboCtlLogger
-import info.nightscout.comboctl.base.Tbr as ComboCtlTbr
-import info.nightscout.comboctl.main.Pump as ComboCtlPump
-import info.nightscout.comboctl.main.PumpManager as ComboCtlPumpManager
 
 internal const val PUMP_ERROR_TIMEOUT_INTERVAL_MSECS = 1000L * 60 * 5
 
@@ -1011,7 +1011,7 @@ class ComboV2Plugin(
 
                         BasicProgressStage.Finished               -> {
                             val percent = (progressReport.overallProgress * 100).toInt()
-                            bolusProgressData.updateProgress(percent, TextRef.Literal("Bolus finished, performing post-bolus checks"))
+                            bolusProgressData.updateProgress(percent, TextRef.AndroidRes(R.string.combov2_post_bolus_checks))
                         }
 
                         else                                      -> Unit

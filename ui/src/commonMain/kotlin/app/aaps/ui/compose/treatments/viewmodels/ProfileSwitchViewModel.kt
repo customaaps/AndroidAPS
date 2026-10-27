@@ -25,6 +25,7 @@ import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.clientcontrol.RecordRemoval
 import app.aaps.core.ui.compose.SelectableListToolbar
 import app.aaps.core.ui.compose.ToolbarConfig
+import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.treatments.viewmodels.TreatmentConstants.TREATMENT_HISTORY_DAYS
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.FlowPreview
@@ -104,7 +105,7 @@ class ProfileSwitchViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load profile switches", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Unknown error loading profile switches", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.load_profile_switches_failed), EventShowSnackbar.Type.Error))
             }
         }
     }

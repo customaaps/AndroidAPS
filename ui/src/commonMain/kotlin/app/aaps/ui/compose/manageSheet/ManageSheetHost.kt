@@ -8,8 +8,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.interfaces.navigation.ElementType
+import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.dialogs.ElementConfirmationDialog
 import app.aaps.core.ui.compose.navigation.NavigationRequest
+import app.aaps.core.ui.compose.stringResource
+import app.aaps.ui.UiStrings
 
 /**
  * Coordinator composable that owns the manage bottom sheet visibility state, collects ViewModel state, and renders
@@ -28,17 +31,19 @@ fun ManageSheetHost(
     onNavigate: (NavigationRequest) -> Unit,
     onActionsError: (String, String) -> Unit,
 ): ManageSheetState {
+    val extendedBolusErrorTitle = stringResource(UiStrings.extended_bolus_delivery_error)
+    val tempBasalErrorTitle = stringResource(CoreUiStrings.temp_basal_delivery_error)
     var visible by remember { mutableStateOf(false) }
 
     // The master's prepared cancel confirmation (element type + bolusId + its lines + round-trip label), set via the
     // ShowConfirmation side effect. Held at host level so it survives the sheet dismissing.
     var confirmation by remember { mutableStateOf<ManageViewModel.SideEffect.ShowConfirmation?>(null) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(extendedBolusErrorTitle, tempBasalErrorTitle) {
         manageViewModel.sideEffect.collect { effect ->
             when (effect) {
                 is ManageViewModel.SideEffect.ShowConfirmation -> confirmation = effect
-                is ManageViewModel.SideEffect.ShowError        -> onActionsError(effect.comment, effect.elementType.deliveryErrorTitle())
+                is ManageViewModel.SideEffect.ShowError        -> onActionsError(effect.comment, if (effect.elementType == ElementType.EXTENDED_BOLUS) extendedBolusErrorTitle else tempBasalErrorTitle)
             }
         }
     }
@@ -92,12 +97,6 @@ fun ManageSheetHost(
             }
         )
     }
-}
-
-/** Alarm title for a failed cancel relay, by action — mirrors the previous per-button titles. */
-private fun ElementType.deliveryErrorTitle(): String = when (this) {
-    ElementType.EXTENDED_BOLUS -> "Extended bolus delivery error"
-    else                       -> "Temp basal delivery error"
 }
 
 /** Handle returned by [ManageSheetHost] to trigger the sheet from outside. */

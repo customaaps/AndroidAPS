@@ -88,7 +88,7 @@
     <string name="remove_base_discard_patch">Отсоедините основание помпы и утилизируйте отработавший патч надлежащим образом.</string>
     <string name="press_next_or_OK">Нажмите <b>OK</b> для возврата на основной экран. Нажмите <b>Далее</b> для активации нового патча.</string>
     <string name="activation_in_progress">Ой! Что-то пошло не так, вероятно, активация уже запущена.</string>
-    <string name="press_retry_or_discard">Нажмите <b>Далее</b>, чтобы возобновить активацию или <b>Discard</b> для сброса статуса активации.</string>
+    <string name="press_retry_or_discard">Нажмите «Далее», чтобы возобновить активацию, или «Вывести из эксплуатации», чтобы сбросить состояние активации.</string>
     <string name="reading_activation_status">Пожалуйста, подождите, получение статуса активации с помпы.</string>
     <!-- settings-->
     <string name="alarm_setting_title">Настройки оповещений</string>
@@ -103,7 +103,7 @@
     <string name="alarm_setting_silent">Без звука</string>
     <string name="pump_warning_notification_title">Уведомление об оповещениях помпы</string>
     <string name="pump_warning_notification_summary">Показывать уведомления о некритических оповещениях помпы: низком заряде батареи, низком запасе инсулина (20 единиц) и приближающемся истечении срока работы. Рекомендуется оставить включенным, когда звук оповещений выключен.</string>
-    <string name="pump_warning_expiry_hour_title">Предупреждение об окончании срока годности помпы [hours]</string>
+    <string name="pump_warning_expiry_hour_title">Предупреждение об окончании срока службы помпы [часы]</string>
     <string name="pump_warning_expiry_hour_summary">Показывать уведомление в указанный час после активации.</string>
     <string name="patch_expiration_title">Окончание срока действия патча</string>
     <string name="patch_expiration_summary">Если включено, то патч закончит свое действие через 3 дня, с дополнительными 8 часами после этого.</string>
@@ -126,4 +126,15 @@
     <string name="bolus_error_reason_unable_to_send_command">Невозможно отправить команду на болюс</string>
     <string name="bolus_error_reason_communication_lost">Истекло время ожидания статуса болюса</string>
     <string name="bolus_error_reason_pump_error">Ошибка помпы</string>
+    <string name="patch_reset_after_primed_error">Патч-помпа самопроизвольно перезапустилась и потеряла сеанс связи. Она больше не может вводить инсулин. Снимите патч-помпу и запустите новую.</string>
+    <string name="status_idle">Ожидание</string>
+    <string name="status_filled">Заполнена</string>
+    <string name="status_priming">Заполнение</string>
+    <string name="status_primed">Заполнение завершено</string>
+    <string name="status_ejecting">Извлечение</string>
+    <string name="status_ejected">Извлечена</string>
+    <string name="status_active">Активна</string>
+    <string name="status_stopped">Остановлена</string>
+    <string name="step_select_insulin">Выберите инсулин</string>
+    <string name="unpair_confirm_message">Сохранённый серийный номер помпы будет удалён, соединение будет разорвано. Активируйте новую патч-помпу для поиска помпы.</string>
 </resources>

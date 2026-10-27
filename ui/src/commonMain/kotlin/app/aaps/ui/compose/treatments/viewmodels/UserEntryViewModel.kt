@@ -17,6 +17,7 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.ui.compose.MenuItemData
 import app.aaps.core.ui.compose.SelectableListToolbar
 import app.aaps.core.ui.compose.ToolbarConfig
+import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.treatments.viewmodels.TreatmentConstants.USER_ENTRY_FILTERED_DAYS
 import app.aaps.ui.compose.treatments.viewmodels.TreatmentConstants.USER_ENTRY_UNFILTERED_DAYS
 import dev.zacsweers.metro.Inject
@@ -82,7 +83,7 @@ class UserEntryViewModel(
             } catch (e: Exception) {
                 aapsLogger.error(LTag.UI, "Failed to load user entries", e)
                 _uiState.update { it.copy(isLoading = false) }
-                rxBus.send(EventShowSnackbar(e.message ?: "Unknown error loading user entries", EventShowSnackbar.Type.Error))
+                rxBus.send(EventShowSnackbar(e.message ?: rh.gs(UiStrings.load_user_entries_failed), EventShowSnackbar.Type.Error))
             }
         }
     }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_watchface_title">Watchface</string>
+    <string name="localization_wallpaper">Wallpaper</string>
+    <string name="localization_battery">Battery</string>
+    <string name="localization_battery_value">Battery %1$s</string>
+    <string name="localization_glucose_value">Glucose %1$s</string>
+    <string name="localization_status_value">Status: %1$s</string>
+    <string name="localization_basal_target">Basal Rate, Target</string>
+    <string name="localization_iob_basal">IOB, Basal Rate</string>
+    <string name="localization_basal_cob_iob">Basal Rate, COB, IOB</string>
+    <string name="localization_build_version">Build version: %1$s</string>
+</resources>

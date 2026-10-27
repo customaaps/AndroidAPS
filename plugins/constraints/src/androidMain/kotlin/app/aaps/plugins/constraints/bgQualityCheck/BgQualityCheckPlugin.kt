@@ -87,7 +87,7 @@ class BgQualityCheckPlugin(
     // Fallback to LGS if BG values are doubled
     override suspend fun applyMaxIOBConstraints(maxIob: Constraint<Double>): Constraint<Double> =
         if (state == BgQualityCheck.State.DOUBLED)
-            maxIob.set(0.0, "Limiting max IOB to 0 U due to doubled values in BG Source", this)
+            maxIob.set(0.0, rh.gs(ConstraintsStrings.bg_doubled_max_iob), this)
         else
             maxIob
 
@@ -117,7 +117,7 @@ class BgQualityCheckPlugin(
             message = rh.gs(ConstraintsStrings.a11y_bg_quality_flat)
         } else if (iobCobCalculator.ads.lastUsed5minCalculation == true) {
             state = BgQualityCheck.State.FIVE_MIN_DATA
-            message = "Data is clean"
+            message = rh.gs(ConstraintsStrings.bg_quality_clean)
         } else if (iobCobCalculator.ads.lastUsed5minCalculation == false) {
             state = BgQualityCheck.State.RECALCULATED
             message = rh.gs(ConstraintsStrings.recalculated_data_used)

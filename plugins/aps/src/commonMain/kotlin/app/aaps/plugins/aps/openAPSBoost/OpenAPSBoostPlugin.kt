@@ -221,7 +221,8 @@ class OpenAPSBoostPlugin(
             )
             var minBg = hardLimits.verifyHardLimits(Round.roundTo(profile.getTargetLowMgdl(), 0.1), InterfacesStrings.profile_low_target, HardLimits.LIMIT_MIN_BG)
             var maxBg = hardLimits.verifyHardLimits(Round.roundTo(profile.getTargetHighMgdl(), 0.1), InterfacesStrings.profile_high_target, HardLimits.LIMIT_MAX_BG)
-            var targetBg = hardLimits.verifyHardLimits(profile.getTargetMgdl(), CoreUiStrings.temp_target_value, HardLimits.LIMIT_TARGET_BG)
+            val originalTargetMgDl = profile.getTargetMgdl()
+            var targetBg = hardLimits.verifyHardLimits(originalTargetMgDl, CoreUiStrings.temp_target_value, HardLimits.LIMIT_TARGET_BG)
 
             var isTempTarget = false
             persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now())?.let { tempTarget ->
@@ -309,13 +310,14 @@ class OpenAPSBoostPlugin(
                 profile.iCfg.peak, now, allowed, bgQualityCheck.state == BgQualityCheck.State.FLAT,
                 runningMode == RM.Mode.DISCONNECTED_PUMP || runningMode == RM.Mode.SUSPENDED_BY_PUMP,
                 runningMode.pausesLoopExecution() && runningMode != RM.Mode.DISCONNECTED_PUMP && runningMode != RM.Mode.SUSPENDED_BY_PUMP,
-                switched)
+                switched, originalProfileTargetMgDl = originalTargetMgDl)
             when (val calculated = owner.calculate(request)) {
                 is BoostApsCalculator.Result.Rejected -> {
                     aapsLogger.error(LTag.APS, calculated.reason)
                     rxBus.send(EventResetOpenAPSGui(calculated.reason))
                 }
                 is BoostApsCalculator.Result.Calculated -> {
+                    if (calculated.nightModeActive) calculated.result.reason.append(rh.gs(ApsStrings.boost_night_mode_smb_disabled))
                     val result = apsResultProvider().with(calculated.result)
                     result.inputConstraints = inputConstraints
                     result.autosensResult = calculated.autosens

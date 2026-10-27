@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- DST Helper -->
-    <string name="dst_plugin_name" translatable="false">Daylight Saving time</string>
+    <string name="dst_plugin_name">Daylight Saving time</string>
     <string name="dst_in_24h_warning">Daylight Saving time change in 24h or less</string>
     <string name="dst_loop_disabled_warning">Daylight Saving time change less than 3 hours ago - Closed loop disabled</string>
 
     <!-- Storage constraint -->
-    <string name="storage" translatable="false">Storage constraint</string>
+    <string name="storage">Storage constraint</string>
     <string name="disk_full">Free at least %1$d MB from internal storage! Loop disabled!</string>
 
     <!-- Version Checker -->
@@ -17,7 +17,7 @@
     <string name="version_expire">Version %1$s expire on %2$s and will turn into LGS mode</string>
 
     <!-- Signature verifier -->
-    <string name="signature_verifier" translatable="false">Signature verifier</string>
+    <string name="signature_verifier">Signature verifier</string>
 
     <!-- BG Quality -->
     <string name="bg_quality" translatable="false">BG Quality</string>

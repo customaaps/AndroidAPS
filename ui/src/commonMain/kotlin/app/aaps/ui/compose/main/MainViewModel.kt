@@ -25,13 +25,14 @@ import app.aaps.core.interfaces.clientcontrol.ActionProgress
 import app.aaps.core.interfaces.clientcontrol.ClientControlActionDispatcher
 import app.aaps.core.interfaces.clientcontrol.isNotDeliveryError
 import app.aaps.core.interfaces.configuration.Config
-import app.aaps.core.interfaces.configuration.appInitializedFlow
 import app.aaps.core.interfaces.configuration.ExternalOptions
+import app.aaps.core.interfaces.configuration.appInitializedFlow
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.UserEntryLogger
+import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.interfaces.overview.graph.OverviewDataCache
 import app.aaps.core.interfaces.overview.graph.ProfileDisplayData
 import app.aaps.core.interfaces.overview.graph.RunningModeDisplayData
@@ -49,7 +50,6 @@ import app.aaps.core.interfaces.queue.SmbPause
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventShowDialog
-import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.interfaces.scenes.ActiveSceneSync
 import app.aaps.core.interfaces.scenes.SceneActions
 import app.aaps.core.interfaces.scenes.SceneChainResolver
@@ -95,6 +95,7 @@ import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -110,7 +111,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.TimeSource
 
 // Registers itself: @ViewModelKey infers the key from the class. No graph entry, and deliberately
 // unscoped so each screen gets its own.
@@ -684,13 +684,13 @@ class MainViewModel(
     val showExit: Boolean get() = config.platform != AppPlatform.Ios
 
     fun buildAboutDialogData(appName: String): AboutDialogData {
-        var message = "Build: ${config.BUILD_NAME}\nRevision: ${config.BUILD_VERSION}\n"
-        message += "Flavor: ${config.FLAVOR}${config.BUILD_TYPE}\n"
+        var message = rh.gs(UiStrings.about_build, config.BUILD_NAME, config.BUILD_VERSION)
+        message += rh.gs(UiStrings.about_flavor, "${config.FLAVOR}${config.BUILD_TYPE}")
         // Only where the build declares one. All three shells do - Android's `ConfigImpl` says
         // "Android" - so in practice the line is always there; the guard is for a Config that
         // predates the property, such as a test double, which then omits the line rather than
         // claiming a platform.
-        if (config.PLATFORM.isNotEmpty()) message += "Platform: ${config.PLATFORM}\n"
+        if (config.PLATFORM.isNotEmpty()) message += rh.gs(UiStrings.about_platform, config.PLATFORM)
         message += rh.gs(CoreUiStrings.value_with_unit, rh.gs(CoreUiStrings.configbuilder_nightscoutversion_label), nsClient.detectedNsVersion() ?: rh.gs(CoreUiStrings.not_available_full))
         if (!fabricPrivacy.fabricEnabled()) message += "\n${rh.gs(CoreUiStrings.fabric_upload_disabled)}"
         val enabledOptions = ExternalOptions.entries.filter { config.isEnabled(it) }

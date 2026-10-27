@@ -12,6 +12,7 @@ import textwrap
 import sys
 sys.dont_write_bytecode = True
 import activity_sources
+import night_mode_sources
 from pathlib import Path
 
 MODULE = Path(__file__).resolve().parents[1]
@@ -556,6 +557,7 @@ def main():
         (activity_out / 'BoostActivityInputs.kt').write_text((activity_sources.PORT / 'BoostActivityInputs.kt').read_text().replace(
             'package ' + activity_sources.PACKAGE, 'package ' + activity_sources.REFERENCE, 1))
         (activity_out / 'BoostActivityPreparation.kt').write_text(activity_sources.preparation(reference=True))
+        night_mode_sources.write_reference(args.reference_output)
     print('V1/V5/V6 archives and reviewed portable arithmetic transformations verified')
 
 

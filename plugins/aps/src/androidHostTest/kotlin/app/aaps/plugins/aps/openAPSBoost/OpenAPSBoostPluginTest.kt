@@ -30,6 +30,7 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
     private var owners = 0
     private var duringCalculation: (() -> Unit)? = null
     private var reject = false
+    private var nightModeActive = false
     private val factory = object : BoostApsCalculatorFactory {
         override val ownedKeys = emptyList<app.aaps.core.keys.interfaces.NonPreferenceKey>()
         override fun create(): BoostApsCalculator {
@@ -42,7 +43,7 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
                     return BoostApsCalculator.Result.Calculated(RT(algorithm = APSResult.Algorithm.BOOST,
                         runningDynamicIsf = true, timestamp = input.atMs, units = if (input.microBolusAllowed) 0.2 else 0.0,
                         rate = 1.0, duration = 30, profileCarbRatio = input.originalProfileCr,
-                        profileIsfMgdl = input.originalProfileIsf, effectiveIsf = 40.0), input.profile, input.autosens)
+                        profileIsfMgdl = input.originalProfileIsf, effectiveIsf = 40.0), input.profile, input.autosens, nightModeActive = nightModeActive)
                 }
             }
         }
@@ -96,6 +97,27 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
         assertThat(sut.lastAPSResult?.inputConstraints).isNotNull()
         assertThat(sut.lastAPSResult?.oapsProfile).isNotNull()
         assertThat(sut.lastAPSRun).isEqualTo(now)
+    }
+
+    @Test fun nightPolicyExplanationUsesLocalizedPresentationResource() = runBlocking {
+        val localized = "Ночной режим Boost: SMB отключены; "
+        doReturn(localized).whenever(rh).gs(app.aaps.plugins.aps.ApsStrings.boost_night_mode_smb_disabled)
+        nightModeActive = true
+        sut.invoke("night presentation", false)
+        assertThat(sut.lastAPSResult?.reason).contains(localized.trim())
+    }
+
+    @Test fun originalNightProfileTargetIsCapturedBeforeTemporaryTargetReplacement() = runBlocking {
+        val original = effectiveProfile.getTargetMgdl()
+        whenever(persistenceLayer.getTemporaryTargetActiveAt(any())).thenReturn(TT(
+            timestamp = now, reason = TT.Reason.EATING_SOON, highTarget = 72.0, lowTarget = 72.0,
+            duration = 3_600_000L))
+        sut.invoke("night target capture", false)
+        val request = requests.last()
+        assertThat(request.originalProfileTargetMgDl).isEqualTo(original)
+        assertThat(request.profile.target_bg).isEqualTo(72.0)
+        assertThat(request.profile.temptargetSet).isTrue()
+        assertThat(request.originalProfileTargetMgDl).isNotEqualTo(request.profile.target_bg)
     }
 
     @Test fun rejectedCycleClearsPreviousResultAndImportDiscardsInFlightResult() = runBlocking {

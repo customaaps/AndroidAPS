@@ -73,7 +73,7 @@
     <!-- DoubleKey: Actions preferences -->
     <!-- DoubleKey: Safety preferences -->
     <!-- DoubleKey: APS preferences -->
-    <string name="openapsma_max_basal_summary">Максимальная базальная скорость; в OpenAPS параметр называется max basal.</string>
+    <string name="openapsma_max_basal_summary">Максимальная скорость базальной подачи, используемая OpenAPS.</string>
     <string name="openapsama_max_daily_safety_multiplier_summary">По умолчанию: 3. Защитный предел OpenAPS: базальная скорость не может превышать максимальную скорость суточного профиля, умноженную на этот коэффициент. Это ограничение «3 × максимальная суточная базальная скорость» в паре с «4 × текущая».</string>
     <string name="openapsama_current_basal_safety_multiplier_summary">По умолчанию: 4. Защитный предел OpenAPS: базальная скорость не может превышать текущую скорость профиля, умноженную на этот коэффициент, независимо от максимума, установленного на помпе. Высокий предел на помпе не отменяет это ограничение.</string>
     <string name="openapsama_bolus_snooze_dia_divisor_summary">По умолчанию: 2. После болюса на еду защита болюса помогает избежать преждевременного снижения базальной подачи. При DIA 3 часа и делителе 2 её действие постепенно заканчивается за 1,5 часа (3DIA/2).</string>

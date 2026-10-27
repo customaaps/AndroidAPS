@@ -60,8 +60,11 @@ import app.aaps.pump.medtrum.services.MedtrumService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.IntKey as MetroIntKey
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
+import kotlin.math.abs
+import kotlin.math.min
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -69,9 +72,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
-import kotlin.math.abs
-import kotlin.math.min
-import dev.zacsweers.metro.IntKey as MetroIntKey
 
 @ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
 @PumpDriver
@@ -339,18 +339,18 @@ class MedtrumPlugin(
                 LTag.PUMP,
                 "setTempBasalAbsolute failed, connectionOK: $connectionOK, tempBasalInProgress: ${medtrumPump.tempBasalInProgress}, tempBasalAbsoluteRate: ${medtrumPump.tempBasalAbsoluteRate}"
             )
-            pumpEnactResultProvider().success(false).enacted(false).comment("Medtrum setTempBasalAbsolute failed")
+            pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.medtrum.R.string.localization_set_temp_basal_failed))
         }
     }
 
     override suspend fun setTempBasalPercent(percent: Int, durationInMinutes: Int, enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "setTempBasalPercent - percent: $percent, durationInMinutes: $durationInMinutes, enforceNew: $enforceNew")
-        return pumpEnactResultProvider().success(false).enacted(false).comment("Medtrum driver does not support percentage temp basals")
+        return pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.medtrum.R.string.localization_percentage_temp_basal_not_supported))
     }
 
     override suspend fun setExtendedBolus(insulin: Double, durationInMinutes: Int): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "setExtendedBolus - insulin: $insulin, durationInMinutes: $durationInMinutes")
-        return pumpEnactResultProvider().success(false).enacted(false).comment("Medtrum driver does not support extended boluses")
+        return pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.medtrum.R.string.localization_extended_bolus_not_supported))
     }
 
     override suspend fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult {
@@ -362,7 +362,7 @@ class MedtrumPlugin(
             pumpEnactResultProvider().success(true).enacted(true).isTempCancel(true)
         } else {
             aapsLogger.error(LTag.PUMP, "cancelTempBasal failed, connectionOK: $connectionOK, tempBasalInProgress: ${medtrumPump.tempBasalInProgress}")
-            pumpEnactResultProvider().success(false).enacted(false).comment("Medtrum cancelTempBasal failed")
+            pumpEnactResultProvider().success(false).enacted(false).comment(TextRef.AndroidRes(app.aaps.pump.medtrum.R.string.localization_cancel_temp_basal_failed))
         }
     }
 

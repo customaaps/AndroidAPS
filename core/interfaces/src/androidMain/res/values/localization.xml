@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="boost_integration_diagnostics">Boost V6 integration diagnostics</string>
+    <string name="boost_integration_diagnostics_summary">Engineering-only migration flag; never enables insulin dosing.</string>
+    <string name="boost_integration_pending">Boost V6 (integration pending)</string>
+    <string name="boost_inspection_description">Staged pure logic only; no APS dosing or pump control.</string>
+    <string name="boost_offline_diagnostics_title">Boost — offline diagnostics</string>
+    <string name="boost_offline_diagnostics_no_control">Boost is not controlling insulin. Dmitry\'s active APS remains unchanged.</string>
+    <string name="boost_offline_diagnostics_read_only">Mode: read-only / no treatment decisions</string>
+    <string name="boost_offline_diagnostics_no_data">No validated offline replay is available.</string>
+    <string name="boost_offline_diagnostics_invalid">Offline replay failed validation. No results are displayed.</string>
+    <string name="boost_offline_diagnostics_review">Offline replay flagged a glucose protection condition for review.</string>
+    <string name="boost_offline_diagnostics_available">Offline replay diagnostics are available; no therapy is enabled.</string>
+    <string name="boost_offline_diagnostics_no_acquisition">No sensor, meal or insulin data is acquired by this screen.</string>
+</resources>

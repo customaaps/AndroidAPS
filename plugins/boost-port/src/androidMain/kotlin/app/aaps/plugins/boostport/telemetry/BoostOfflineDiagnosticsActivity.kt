@@ -6,6 +6,7 @@ import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import app.aaps.core.interfaces.R
 
 /**
  * Explicitly launched internal screen. No background subscription or pump APIs.
@@ -29,13 +30,18 @@ class BoostOfflineDiagnosticsActivity : Activity() {
                 setPadding(0, vertical, 0, vertical)
             })
         }
-        add("Boost — offline diagnostics", 22f)
-        add("Boost is not controlling insulin. Dmitry's active APS remains unchanged.", 16f)
-        add("Mode: read-only / no treatment decisions", 16f)
+        add(getString(R.string.boost_offline_diagnostics_title), 22f)
+        add(getString(R.string.boost_offline_diagnostics_no_control), 16f)
+        add(getString(R.string.boost_offline_diagnostics_read_only), 16f)
         val raw = intent.getStringExtra(EXTRA_STATUS)
         val status = BoostOfflineDiagnosticsStatus.fromWire(raw)
-        add(status.displayText, 16f)
-        add("No sensor, meal or insulin data is acquired by this screen.", 14f)
+        add(getString(when (status) {
+            BoostOfflineDiagnosticsStatus.NO_DATA -> R.string.boost_offline_diagnostics_no_data
+            BoostOfflineDiagnosticsStatus.INVALID -> R.string.boost_offline_diagnostics_invalid
+            BoostOfflineDiagnosticsStatus.REVIEW -> R.string.boost_offline_diagnostics_review
+            BoostOfflineDiagnosticsStatus.AVAILABLE -> R.string.boost_offline_diagnostics_available
+        }), 16f)
+        add(getString(R.string.boost_offline_diagnostics_no_acquisition), 14f)
         view.addView(column)
         setContentView(view)
     }

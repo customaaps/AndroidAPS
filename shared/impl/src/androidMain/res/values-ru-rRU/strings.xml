@@ -54,4 +54,6 @@
     <string name="cwf_comment_hour_hand">Изображение для часовой стрелки (Аналоговые часы)</string>
     <string name="cwf_comment_minute_hand">Изображение для минутной стрелки (Аналоговые часы)</string>
     <string name="cwf_comment_second_hand">Изображение для секундной стрелки (Аналоговые часы)</string>
+    <!-- Russian coverage for new screens and accessibility labels. -->
+    <string name="cwf_comment_complication">Контейнер для дополнительного элемента циферблата</string>
 </resources>

@@ -73,8 +73,10 @@ import app.aaps.pump.equil.manager.customCommands.CmdModeAndHistoryGet
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.IntKey as MetroIntKey
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
+import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,8 +88,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.joda.time.DateTime
 import org.joda.time.Duration
-import kotlin.math.max
-import dev.zacsweers.metro.IntKey as MetroIntKey
 
 @ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
 @PumpDriver
@@ -320,7 +320,7 @@ class EquilPumpPlugin(
             // bolus requested
             aapsLogger.error("deliverTreatment: Invalid input: neither carbs nor insulin are set in treatment")
             return pumpEnactResultProvider().success(false).enacted(false)
-                .bolusDelivered(0.0).comment("Invalid input")
+                .bolusDelivered(0.0).comment(TextRef.AndroidRes(app.aaps.pump.equil.R.string.localization_invalid_input))
         }
         val mode = equilManager.equilState?.runMode
         if (mode !== RunMode.RUN) {
