@@ -633,4 +633,8 @@
     <!-- Graph configuration -->
     <!-- Graph series short names (used as graph labels, keep very short) -->
     <string name="prefs_range_title">Диапазон для визуализации</string>
+    <string name="cr_short">CR</string>
+    <string name="cr_profile">CR профиля: %1$.1f г/Ед</string>
+    <string name="cr_used">Использованный CR: %1$.1f г/Ед</string>
+    <string name="overview_profile_to_used">%1$s: в профиле %2$s; использовано %3$s</string>
 </resources>

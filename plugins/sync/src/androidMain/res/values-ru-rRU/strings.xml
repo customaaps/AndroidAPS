@@ -100,26 +100,26 @@
     <string name="wear_action_loop_state_invalid">Запрошено неверное состояние цикла</string>
     <string name="garmin_request_key">Ключ запроса</string>
     <!-- SMS Communicator & OTP Authenticator -->
-    <string name="smscommunicator">SMS коммуникатор</string>
-    <string name="description_sms_communicator">Выполнить дистанционное управление AAPS при помощи команд SMS.</string>
-    <string name="smscommunicator_code_from_authenticator_for" comment="This is continuation of sentence: To [ACTION] reply with code">из приложения Authenticator для %1$s и дополните пином в конце</string>
+    <string name="smscommunicator">SMS-коммуникатор</string>
+    <string name="description_sms_communicator">Удалённое управление AAPS с помощью команд SMS.</string>
+    <string name="smscommunicator_code_from_authenticator_for" comment="This is continuation of sentence: To [ACTION] reply with code">из приложения Authenticator для %1$s, добавив свой PIN в конце</string>
     <string name="smscommunicator_tab_otp_label">Настройка аутентификации</string>
     <string name="smscommunicator_code_verify_label">Код для проверки:</string>
-    <string name="smscommunicator_code_verify_hint">OTP + ПИН-код</string>
+    <string name="smscommunicator_code_verify_hint">OTP + PIN</string>
     <string name="smscommunicator_code_verify_info">Проверочный код состоит из 6 цифр, отображаемых приложением Authenticator (известным как OTP), за которым следует 3 или более цифр обязательного PIN-кода.</string>
     <string name="smscommunicator_otp_reset_btn">Сбросить аутентификаторы</string>
     <string name="smscommunicator_otp_reset_title">Сбросить ключ идентификации</string>
-    <string name="smscommunicator_otp_reset_prompt">Вы действительно хотите сбросить ключ аутентификации? Все сконфигурированные в настоящее время ключи станут недопустимы, и придется их настроить заново.</string>
-    <string name="smscommunicator_otp_step1_install_header">1. Установить Аутентификатор</string>
-    <string name="smscommunicator_otp_step2_provisioning_header">2. Сканируйте код для настройки OTP кодов AAPS</string>
+    <string name="smscommunicator_otp_reset_prompt">Сбросить ключ аутентификации? Все настроенные аутентификаторы перестанут работать, и их потребуется настроить заново.</string>
+    <string name="smscommunicator_otp_step1_install_header">1. Установите приложение-аутентификатор</string>
+    <string name="smscommunicator_otp_step2_provisioning_header">2. Отсканируйте код для настройки OTP в AAPS</string>
     <string name="smscommunicator_otp_step3_test_header">3. Проверьте одноразовый пароль</string>
     <string name="smscommunicator_otp_reset_header">Сбросить авторизацию</string>
-    <string name="smscommunicator_otp_install_info">На каждом отслеживающем телефоне установите приложение Authenticator, поддерживающее маркеры TOTP RFC 6238. Популярные бесплатные приложения: \n Authy\n Google Authenticator\n LastPass Authenticator\n FreeOTP Authenticator</string>
-    <string name="smscommunicator_otp_reset_warning">После сброса аутентификатора вы делаете все созданные идентификаторы недействительными. Вам нужно будет снова создать их!</string>
+    <string name="smscommunicator_otp_install_info">На каждом телефоне для удалённого управления установите приложение-аутентификатор с поддержкой TOTP RFC 6238. Бесплатные варианты:\nAuthy\nGoogle Authenticator\nLastPass Authenticator\nFreeOTP Authenticator</string>
+    <string name="smscommunicator_otp_reset_warning">Сброс сделает все ранее настроенные аутентификаторы недействительными. Их потребуется настроить заново.</string>
     <string name="smscommunicator_otp_verification_ok">OK</string>
-    <string name="smscommunicator_otp_verification_ivalid_size">НЕВЕРНЫЙ РАЗМЕР!</string>
+    <string name="smscommunicator_otp_verification_ivalid_size">НЕВЕРНАЯ ДЛИНА КОДА</string>
     <string name="smscommunicator_otp_verification_wrong_pin">НЕВЕРНЫЙ PIN-КОД</string>
-    <string name="smscommunicator_otp_verification_wrong_otp">НЕВЕРНЫЙ РАЗОВЫЙ КОД</string>
+    <string name="smscommunicator_otp_verification_wrong_otp">НЕВЕРНЫЙ OTP</string>
     <string name="sms_wrong_code">Неверный код. Команда отменена.</string>
     <string name="sms_timeout_while_waiting">Время ожидания окончания предыдущего соединения с помпой истекло</string>
     <string name="smscommunicator_bolus_reply_with_code">Для подачи болюса %1$.2fед ответьте кодом %2$s</string>
@@ -189,4 +189,7 @@
     <string name="sms_profile_switch_created">Переключатель профиля создан</string>
     <string name="sms_wrong_tbr_duration">Длительность временного базала TBR должна быть кратной %1$d минутам и больше 0.</string>
     <string name="a11y_otp_qr_code">QR код для создания одноразового пароля</string>
+    <string name="permission_sms_title">SMS</string>
+    <string name="permission_sms_description">Для удалённого управления с помощью сообщений приложению требуется разрешение на SMS.</string>
+    <string name="smscommunicator_current_loop_mode">Текущий режим работы: %1$s</string>
 </resources>

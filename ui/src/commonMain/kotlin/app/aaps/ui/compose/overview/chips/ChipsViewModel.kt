@@ -118,7 +118,10 @@ class ChipsViewModel(
             dialogText = data.lines.joinToString("\n"),
             ratio = data.ratio,
             isEnabled = data.isEnabled,
-            hasData = data.hasData
+            hasData = data.hasData,
+            profileIsf = data.profileIsf,
+            crFrom = data.crFrom,
+            crTo = data.crTo
         )
     }
 

@@ -6,6 +6,7 @@ import app.aaps.core.data.aps.SMBDefaults
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.getPassedDurationToTimeInMinutes
+import app.aaps.core.interfaces.aps.DynamicCarbRatioPolicy
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.InterfacesStrings
@@ -101,7 +102,8 @@ open class OpenAPSAutoISFPlugin(
     private val profiler: Profiler,
     private val glucoseStatusCalculatorAutoIsf: GlucoseStatusCalculatorAutoIsf,
     private val apsResultProvider: () -> APSResult,
-    private val ch: ConcentrationHelper
+    private val ch: ConcentrationHelper,
+    private val dynamicCarbRatio: DynamicCarbRatioPolicy
 ) : PluginBaseWithPreferences(
     PluginDescription()
         .mainType(PluginType.APS)
@@ -316,6 +318,13 @@ open class OpenAPSAutoISFPlugin(
             consoleLog = mutableListOf()
             variableSensitivity = autoISF(profile)
         }
+        val profileCrForCycle = profile.getIc()
+        val profileIsfForCycle = profile.getProfileIsfMgdl()
+        val dynamicCrResult = dynamicCarbRatio.calculate(DynamicCarbRatioPolicy.Input(
+            baseCr = profileCrForCycle, glucose = glucoseStatus.glucose, target = targetBg,
+            profileIsf = sens, atMs = now))
+        if (dynamicCrResult.reason.isNotEmpty()) aapsLogger.debug(LTag.APS, dynamicCrResult.reason)
+
         val oapsProfile = OapsProfileAutoIsf(
             dia = 0.0, // not used
             min_5m_carbimpact = 0.0, // not used
@@ -325,7 +334,7 @@ open class OpenAPSAutoISFPlugin(
             min_bg = minBg,
             max_bg = maxBg,
             target_bg = targetBg,
-            carb_ratio = profile.getIc(),
+            carb_ratio = dynamicCrResult.carbRatio,
             sens = sens,
             autosens_adjust_targets = false, // not used
             max_daily_safety_multiplier = preferences.get(DoubleKey.ApsMaxDailyMultiplier),
@@ -456,6 +465,10 @@ open class OpenAPSAutoISFPlugin(
             auto_isf_consoleError = consoleError,
             auto_isf_consoleLog = consoleLog
         ).also {
+            // Keep the profile baseline from this cycle, even across later profile switches.
+            it.profileIsfMgdl = profileIsfForCycle.takeIf { value -> value.isFinite() && value > 0.0 }
+            it.profileCarbRatio = profileCrForCycle.takeIf { value -> value.isFinite() && value > 0.0 }
+            if (dynamicCrResult.reason.isNotEmpty()) it.reason.append(" [${dynamicCrResult.reason}]")
             val determineBasalResult = apsResultProvider().with(it)
             // Preserve input data
             determineBasalResult.inputConstraints = inputConstraints

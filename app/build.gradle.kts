@@ -121,6 +121,7 @@ android {
         targetSdk = Versions.targetSdk
 
         buildConfigField("String", "VERSION", "\"$version\"")
+        buildConfigField("String", "BUILD_NAME", "\"${Versions.buildName}\"")
         buildConfigField("String", "BUILDVERSION", "\"${generateGitBuild()}-${generateDate()}\"")
         buildConfigField("String", "REMOTE", "\"${generateGitRemote()}\"")
         buildConfigField("String", "HEAD", "\"${generateGitBuild()}\"")
@@ -233,6 +234,7 @@ dependencies {
     // graph built here still sees every plugin that self-registers into the plugin map.
     implementation(project(":appshell"))
     implementation(project(":implementation"))
+    implementation(project(":plugins:boost-port"))
     implementation(project(":database:impl"))
     implementation(project(":database:persistence"))
     implementation(project(":pump:virtual"))

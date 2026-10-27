@@ -365,6 +365,8 @@ class DetermineBasalAutoISF(
                 adjusted_sens
                 //console.log(" (autosens ratio "+sensitivityRatio+")");
             }
+        rT.effectiveIsf = sens.takeIf { it.isFinite() && it > 0.0 }
+        rT.carbRatio = profile.carb_ratio.takeIf { it.isFinite() && it > 0.0 }
         consoleError.add("CR: ${profile.carb_ratio}")
 
         if (autoIsfMode) {
@@ -461,6 +463,8 @@ class DetermineBasalAutoISF(
         //console.error(reservoir_data);
 
         rT = RT(
+            effectiveIsf = sens.takeIf { it.isFinite() && it > 0.0 },
+            carbRatio = profile.carb_ratio.takeIf { it.isFinite() && it > 0.0 },
             algorithm = APSResult.Algorithm.AUTO_ISF,
             runningDynamicIsf = autoIsfMode,
             timestamp = currentTime,

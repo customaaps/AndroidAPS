@@ -362,6 +362,8 @@ class DetermineBasalSMB(
                 adjusted_sens
                 //console.log(" (autosens ratio "+sensitivityRatio+")");
             }
+        rT.effectiveIsf = sens.takeIf { it.isFinite() && it > 0.0 }
+        rT.carbRatio = profile.carb_ratio.takeIf { it.isFinite() && it > 0.0 }
         consoleError.add("CR:${profile.carb_ratio}")
 
         //calculate BG impact: the amount BG "should" be rising or falling based on insulin activity alone
@@ -434,6 +436,8 @@ class DetermineBasalSMB(
         //console.error(reservoir_data);
 
         rT = RT(
+            effectiveIsf = sens.takeIf { it.isFinite() && it > 0.0 },
+            carbRatio = profile.carb_ratio.takeIf { it.isFinite() && it > 0.0 },
             algorithm = APSResult.Algorithm.SMB,
             runningDynamicIsf = dynIsfMode,
             timestamp = currentTime,

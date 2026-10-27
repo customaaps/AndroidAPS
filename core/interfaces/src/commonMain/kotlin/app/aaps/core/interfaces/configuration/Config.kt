@@ -99,6 +99,8 @@ interface Config {
     val HEAD: String
     val COMMITTED: Boolean
     val BUILD_VERSION: String
+    /** Human-facing build label; it does not participate in version checks. */
+    val BUILD_NAME: String get() = VERSION
     val REMOTE: String
     val BUILD_TYPE: String
     val VERSION: String

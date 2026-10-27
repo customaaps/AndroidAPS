@@ -185,6 +185,8 @@ class DetermineBasalAMA(
         val minAvgDelta = min(glucose_status.shortAvgDelta, glucose_status.longAvgDelta)
 
         val sens = round(profile.sens / autosens_data.ratio, 1)
+        rT.effectiveIsf = sens.takeIf { it.isFinite() && it > 0.0 }
+        rT.carbRatio = profile.carb_ratio.takeIf { it.isFinite() && it > 0.0 }
         if (sens != profile.sens) {
             consoleError.add("Adjusting sens from ${profile.sens} to $sens")
         }
@@ -219,6 +221,8 @@ class DetermineBasalAMA(
         val threshold = min_bg - 0.5 * (min_bg - 50)
 
         rT = RT(
+            effectiveIsf = sens.takeIf { it.isFinite() && it > 0.0 },
+            carbRatio = profile.carb_ratio.takeIf { it.isFinite() && it > 0.0 },
             algorithm = APSResult.Algorithm.AMA,
             runningDynamicIsf = false,
             timestamp = currentTime,

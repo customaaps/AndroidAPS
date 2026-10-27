@@ -44,6 +44,28 @@ data class RT(
     var variable_sens: Double? = null,
     var isfMgdlForCarbs: Double? = null, // used to pass to AAPS client
 
+    // Display-only snapshot from this calculation. Optional for older stored/device-status results.
+    var profileIsfMgdl: Double? = null,
+    var effectiveIsf: Double? = null,
+    var profileCarbRatio: Double? = null,
+    var carbRatio: Double? = null,
+
+    var carbRatioReason: String? = null,
+    var boostTier: String? = null,
+    var boostActive: Boolean? = null,
+    var fastCarbProtection: Boolean? = null,
+    var dynamicISF: Double? = null,
+    var predictionISF: Double? = null,
+    var sensNormalTarget: Double? = null,
+    var tdd: Double? = null,
+    var tddRatio: Double? = null,
+    var insulinReqPctEffective: Double? = null,
+    var deltaAcceleration: Double? = null,
+    var boostProfileSwitch: Int? = null,
+    var mlHypoRisk: Double? = null,
+    var mlMealLikely: Double? = null,
+    var minGuardBG: Double? = null,
+
     var consoleLog: MutableList<String>? = null,
     var consoleError: MutableList<String>? = null
 ) {

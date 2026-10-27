@@ -1,0 +1,642 @@
+{
+  "sourceCommit": "bc02e4c49f2b9bb5d50a5938b9a09884c76140cd",
+  "sourceBlobs": {
+    "BooleanKey": "0c418931e87143385142733bb8444e385f8bef00",
+    "IntKey": "79e2f0c600e8d3fe1e379e1fba6c4371504cd043",
+    "DoubleKey": "0339795ad053b951a5b0c24633cf9edb85826e41",
+    "UnitDoubleKey": "494be48984446bcee9a5a2004c8884c8b28438ba",
+    "StringKey": "df8f399f97b5c1340e415937b4f77f0d7e3c122e"
+  },
+  "entries": [
+    {
+      "name": "ApsBoostEnablePercentScale",
+      "kind": "BooleanValue",
+      "key": "enableBoostPercentScale",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostEnableCircadianIsf",
+      "kind": "BooleanValue",
+      "key": "enableCircadianISF",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostAllowWithHighTt",
+      "kind": "BooleanValue",
+      "key": "enableBoost_with_high_temptarget",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostUseTdd",
+      "kind": "BooleanValue",
+      "key": "boost_use_tdd",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostAdjustSensitivity",
+      "kind": "BooleanValue",
+      "key": "boost_adjust_sensitivity",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostAllowAllBgSources",
+      "kind": "BooleanValue",
+      "key": "boost_allow_all_bg_sources",
+      "value": true,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostNightModeEnabled",
+      "kind": "BooleanValue",
+      "key": "boost_night_mode_enabled",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostNightModeDisableWithCob",
+      "kind": "BooleanValue",
+      "key": "boost_night_mode_disable_with_cob",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostNightModeDisableWithLowTt",
+      "kind": "BooleanValue",
+      "key": "boost_night_mode_disable_with_low_tt",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostBypassVersionCheck",
+      "kind": "BooleanValue",
+      "key": "boost_bypass_version_check",
+      "value": true,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostPostExerciseRecoveryEnabled",
+      "kind": "BooleanValue",
+      "key": "boost_post_exercise_recovery_enabled",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostHrIntegrationEnabled",
+      "kind": "BooleanValue",
+      "key": "boost_hr_integration_enabled",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostHrStressDetection",
+      "kind": "BooleanValue",
+      "key": "boost_hr_stress_detection",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostNightModeAutoBySleep",
+      "kind": "BooleanValue",
+      "key": "boost_night_mode_auto_by_sleep",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostHealthConnectHrEnabled",
+      "kind": "BooleanValue",
+      "key": "boost_health_connect_hr_enabled",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5ActiveDosing",
+      "kind": "BooleanValue",
+      "key": "boost_v5_active_dosing",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV6PreMealTarget",
+      "kind": "BooleanValue",
+      "key": "boost_v6_pre_meal_target",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5FastCarbConfirm",
+      "kind": "BooleanValue",
+      "key": "boost_v5_fast_carb_confirm",
+      "value": true,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5ConfirmTranche",
+      "kind": "BooleanValue",
+      "key": "boost_v5_confirm_tranche",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5AggressiveEarlyConfirm",
+      "kind": "BooleanValue",
+      "key": "boost_v5_aggressive_early_confirm",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5ComposedFloorActive",
+      "kind": "BooleanValue",
+      "key": "boost_v5_composed_floor_active",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5VelocityBudgetActive",
+      "kind": "BooleanValue",
+      "key": "boost_v5_velocity_budget_active",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5PrimerTbrFallback",
+      "kind": "BooleanValue",
+      "key": "boost_v5_primer_tbr_fallback",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5PrimerBolusMode",
+      "kind": "BooleanValue",
+      "key": "boost_v5_primer_bolus_mode",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostPostRescueTightRampTrial",
+      "kind": "BooleanValue",
+      "key": "boost_postrescue_tight_ramp_trial",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5AutoConfigDone",
+      "kind": "BooleanValue",
+      "key": "boost_v5_autoconfig_done",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostActivityShadowEnabled",
+      "kind": "BooleanValue",
+      "key": "boost_activity_shadow_enabled",
+      "value": true,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostAutosensWhenNoTdd",
+      "kind": "BooleanValue",
+      "key": "boost_autosens_when_no_tdd",
+      "value": false,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostInactivitySteps",
+      "kind": "IntValue",
+      "key": "boost_inactivity_steps",
+      "value": 500,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostSleepInSteps",
+      "kind": "IntValue",
+      "key": "boost_sleep_in_steps",
+      "value": 250,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostActivitySteps5",
+      "kind": "IntValue",
+      "key": "boost_activity_steps_5",
+      "value": 420,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostActivitySteps15",
+      "kind": "IntValue",
+      "key": "boost_activity_steps_15",
+      "value": 800,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostActivitySteps30",
+      "kind": "IntValue",
+      "key": "boost_activity_steps_30",
+      "value": 1200,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostActivitySteps60",
+      "kind": "IntValue",
+      "key": "boost_activity_steps_60",
+      "value": 1800,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostDynIsfAdjustmentFactor",
+      "kind": "IntValue",
+      "key": "boost_DynISFAdjust",
+      "value": 100,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostHrMaxBpm",
+      "kind": "IntValue",
+      "key": "boost_hr_max_bpm",
+      "value": 180,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostHrRestingBpm",
+      "kind": "IntValue",
+      "key": "boost_hr_resting_bpm",
+      "value": 60,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostHrWindowMinutes",
+      "kind": "IntValue",
+      "key": "boost_hr_window_minutes",
+      "value": 15,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostPostExerciseMinDuration",
+      "kind": "IntValue",
+      "key": "boost_post_exercise_min_duration",
+      "value": 10,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostPreSleepLeadMin",
+      "kind": "IntValue",
+      "key": "boost_pre_sleep_lead_min",
+      "value": 60,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostSleepHysteresisMin",
+      "kind": "IntValue",
+      "key": "boost_sleep_hysteresis_min",
+      "value": 10,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostWakeHrHysteresisMin",
+      "kind": "IntValue",
+      "key": "boost_wake_hr_hysteresis_min",
+      "value": 5,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostHealthConnectPollMin",
+      "kind": "IntValue",
+      "key": "boost_health_connect_poll_min",
+      "value": 5,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostBolus",
+      "kind": "DoubleValue",
+      "key": "boost_bolus_cap",
+      "value": 2.5,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostMaxIob",
+      "kind": "DoubleValue",
+      "key": "boost_max_iob",
+      "value": 1.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostInsulinReqPct",
+      "kind": "DoubleValue",
+      "key": "boost_insulin_req_pct",
+      "value": 50.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostScale",
+      "kind": "DoubleValue",
+      "key": "boost_scale_value",
+      "value": 1.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostPercentScale",
+      "kind": "DoubleValue",
+      "key": "boost_percent_scale_factor",
+      "value": 200.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostDynIsfVelocity",
+      "kind": "DoubleValue",
+      "key": "boost_dynisf_velocity",
+      "value": 100.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostSleepInHours",
+      "kind": "DoubleValue",
+      "key": "boost_sleep_in_hrs",
+      "value": 2.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostInactivityPct",
+      "kind": "DoubleValue",
+      "key": "boost_inactivity_pct",
+      "value": 130.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostActivityPct",
+      "kind": "DoubleValue",
+      "key": "boost_activity_pct",
+      "value": 80.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostPostExerciseRecoveryHours",
+      "kind": "DoubleValue",
+      "key": "boost_post_exercise_recovery_hours",
+      "value": 2.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostPostExerciseRecoveryScale",
+      "kind": "DoubleValue",
+      "key": "boost_post_exercise_recovery_scale",
+      "value": 0.5,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5Aggression",
+      "kind": "DoubleValue",
+      "key": "boost_v5_aggression",
+      "value": 1.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5HypoCaution",
+      "kind": "DoubleValue",
+      "key": "boost_v5_hypo_caution",
+      "value": 1.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5Sensitivity",
+      "kind": "DoubleValue",
+      "key": "boost_v5_sensitivity",
+      "value": 1.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostCumulativeSmbCap60Min",
+      "kind": "DoubleValue",
+      "key": "boost_cumulative_smb_cap_60min",
+      "value": 10.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5ConfirmedCapU",
+      "kind": "DoubleValue",
+      "key": "boost_v5_confirmed_cap_u",
+      "value": 2.5,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5CommittedCapU",
+      "kind": "DoubleValue",
+      "key": "boost_v5_committed_cap_u",
+      "value": 0.5,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5TrancheFraction",
+      "kind": "DoubleValue",
+      "key": "boost_v5_tranche_fraction",
+      "value": 0.5,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5TrancheThreshold",
+      "kind": "DoubleValue",
+      "key": "boost_v5_tranche_threshold",
+      "value": 0.48,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5PrimerCapU",
+      "kind": "DoubleValue",
+      "key": "boost_v5_primer_cap_u",
+      "value": 0.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV6PreMealTargetMgdl",
+      "kind": "DoubleValue",
+      "key": "boost_v6_pre_meal_target_mgdl",
+      "value": 72.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV6PreMealLeadMin",
+      "kind": "DoubleValue",
+      "key": "boost_v6_pre_meal_lead_min",
+      "value": 60.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostDynIsfBgCap",
+      "kind": "DoubleValue",
+      "key": "boost_dynisf_bg_cap",
+      "value": 210.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostDynIsfNormalTarget",
+      "kind": "DoubleValue",
+      "key": "boost_dynisf_normal_target",
+      "value": 99.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostNightModeBgOffset",
+      "kind": "DoubleValue",
+      "key": "boost_night_mode_bg_offset",
+      "value": 27.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostPostExerciseRecoveryTarget",
+      "kind": "DoubleValue",
+      "key": "boost_post_exercise_recovery_target",
+      "value": 144.0,
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostStartTime",
+      "kind": "StringValue",
+      "key": "boost_start_time",
+      "value": "07:00",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostEndTime",
+      "kind": "StringValue",
+      "key": "boost_end_time",
+      "value": "07:01",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostNightModeStart",
+      "kind": "StringValue",
+      "key": "boost_night_mode_start",
+      "value": "22:00",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostNightModeEnd",
+      "kind": "StringValue",
+      "key": "boost_night_mode_end",
+      "value": "07:00",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5State",
+      "kind": "StringValue",
+      "key": "boost_v5_state",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostIsfShadowState",
+      "kind": "StringValue",
+      "key": "boost_isf_shadow_state",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostVwaTddShadowState",
+      "kind": "StringValue",
+      "key": "boost_vwa_tdd_shadow_state",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostLastEngineMode",
+      "kind": "StringValue",
+      "key": "boost_last_engine_mode",
+      "value": "",
+      "exportable": false
+    },
+    {
+      "name": "ApsBoostLastUseTdd",
+      "kind": "StringValue",
+      "key": "boost_last_use_tdd",
+      "value": "",
+      "exportable": false
+    },
+    {
+      "name": "ApsBoostSleepState",
+      "kind": "StringValue",
+      "key": "boost_sleep_state",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostSleepHistory",
+      "kind": "StringValue",
+      "key": "boost_sleep_history",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostMlRingBuffer",
+      "kind": "StringValue",
+      "key": "boost_ml_ring_buffer",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostMealTimeHistory",
+      "kind": "StringValue",
+      "key": "boost_meal_time_history",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostDailyStepHistory",
+      "kind": "StringValue",
+      "key": "boost_daily_step_history",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostIntradayStepBank",
+      "kind": "StringValue",
+      "key": "boost_intraday_step_bank",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostTrialSeed",
+      "kind": "StringValue",
+      "key": "boost_trial_seed",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5RedriveBaseline",
+      "kind": "StringValue",
+      "key": "boost_v5_redrive_baseline",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5AutoConfigPending",
+      "kind": "StringValue",
+      "key": "boost_v5_autoconfig_pending",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5RedriveSummary",
+      "kind": "StringValue",
+      "key": "boost_v5_redrive_summary",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostV5RedriveHistory",
+      "kind": "StringValue",
+      "key": "boost_v5_redrive_history",
+      "value": "",
+      "exportable": true
+    },
+    {
+      "name": "ApsBoostHistorySyncSummary",
+      "kind": "StringValue",
+      "key": "boost_history_sync_summary",
+      "value": "",
+      "exportable": true
+    }
+  ]
+}

@@ -25,6 +25,17 @@ enum class DoubleKey(
     override val visibility: ElementVisibility = ElementVisibility.ALWAYS
 ) : DoublePreferenceKey {
 
+    ApsDynamicCrAdjustmentFactor(
+        key = "dynamic_cr_adjustment_factor", defaultValue = 0.5, min = 0.0, max = 2.0,
+        title = KeysStrings.dynamic_cr_adjustment, unitType = UnitType.DOUBLE_2,
+        dependency = BooleanKey.ApsUseDynamicCarbRatio
+    ),
+    ApsDynamicCrWeightPercentage(
+        key = "dynamic_cr_weight_percentage", defaultValue = 0.65, min = 0.0, max = 1.0,
+        title = KeysStrings.dynamic_cr_weight, summary = KeysStrings.dynamic_cr_weight_summary, unitType = UnitType.DOUBLE_2,
+        dependency = BooleanKey.ApsUseDynamicCarbRatio
+    ),
+
     OverviewInsulinButtonIncrement1(
         key = "insulin_button_increment_1",
         defaultValue = 0.5,

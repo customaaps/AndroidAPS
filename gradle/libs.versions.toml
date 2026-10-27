@@ -49,6 +49,8 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 
 [libraries]
+# Read-only Health Connect adapter for the isolated Boost KMP port.
+androidx-health-connect-client = { group = "androidx.health.connect", name = "connect-client", version = "1.1.0" }
 # Metro's own view model extension, same version train as the compiler plugin. It replaces a
 # hand-written ViewModelProvider.Factory and it is multiplatform: it builds on
 # org.jetbrains.androidx.lifecycle, the republish the Apple targets need.

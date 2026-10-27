@@ -4,6 +4,7 @@ import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
 import app.aaps.plugins.aps.openAPSAutoISF.OpenAPSAutoISFPlugin
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
+import app.aaps.plugins.aps.openAPSBoost.OpenAPSBoostPlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.ContributesTo
@@ -51,4 +52,9 @@ object ApsPluginRegistrations {
     @IntoMap
     @IntKey(230)
     fun openApsAutoIsfEntry(plugin: OpenAPSAutoISFPlugin): PluginBase = plugin
+
+    @Provides
+    @IntoMap
+    @IntKey(236)
+    fun openApsBoostEntry(plugin: OpenAPSBoostPlugin): PluginBase = plugin
 }

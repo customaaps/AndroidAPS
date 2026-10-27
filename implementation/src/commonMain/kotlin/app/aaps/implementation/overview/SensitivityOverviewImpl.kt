@@ -19,6 +19,7 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.CoreUiStrings
+import app.aaps.core.utils.MidnightUtils
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -64,12 +65,23 @@ class SensitivityOverviewImpl(
         else constraintChecker.isAutosensModeEnabled().value()
 
         val profile = profileFunction.getProfile()
-        val request = loop.lastRun?.request
-        val isfMgdl = profile?.getProfileIsfMgdl()
-        val variableSens =
-            if (config.APS) request?.variableSens ?: 0.0
-            else if (config.AAPSCLIENT) processedDeviceStatusData.getAPSResult()?.variableSens ?: 0.0
-            else 0.0
+        val request = when {
+            config.APS -> loop.lastRun?.request
+            config.AAPSCLIENT -> processedDeviceStatusData.getAPSResult()
+            else -> null
+        }
+        val snapshot = (request?.rawData() as? RT)
+            ?: if (config.AAPSCLIENT) processedDeviceStatusData.openAPSData.suggested else null
+        // Prefer the baseline and used values captured together by that calculation.
+        // A current profile may have changed since it ran; never recalculate Dynamic CR here.
+        fun Double?.positive(): Double? = this?.takeIf { it.isFinite() && it > 0.0 }
+        val isfMgdl = snapshot?.profileIsfMgdl.positive() ?: profile?.getProfileIsfMgdl().positive()
+        val variableSens = snapshot?.effectiveIsf.positive() ?: request?.variableSens.positive() ?: 0.0
+        val profileCr = snapshot?.profileCarbRatio.positive()
+            ?: profile?.getIcTimeFromMidnight(MidnightUtils.secondsFromMidnight(dateUtil.now())).positive()
+        val usedCr = snapshot?.carbRatio.positive()
+            ?: request?.oapsProfile?.carb_ratio.positive()
+            ?: request?.oapsProfileAutoIsf?.carb_ratio.positive()
         // The ratio the algorithm really used. On the master it is taken from the APS result itself,
         // so a temp target that changes sensitivity is included - `autosensResult` alone would miss
         // that. On a client it is the master's value from the uploaded device status, because a
@@ -79,10 +91,10 @@ class SensitivityOverviewImpl(
         // autosens is off. A value that is not above zero can only come from foreign device status
         // data; it is read as unknown rather than divided by.
         val ratioUsed = (
-            if (config.APS) (request?.rawData() as? RT)?.sensitivityRatio ?: request?.autosensResult?.ratio
+            if (config.APS) snapshot?.sensitivityRatio ?: request?.autosensResult?.ratio
             else if (config.AAPSCLIENT) processedDeviceStatusData.openAPSData.suggested?.sensitivityRatio
             else null
-            )?.takeIf { it > 0.0 } ?: 1.0
+            )?.takeIf { it.isFinite() && it > 0.0 } ?: 1.0
         // The algorithm's ratio is worth naming only when it reads differently than the autosens
         // value shown above. Both lines print whole percent, so comparing the raw numbers would
         // print the same percentage twice: autosens is computed again on every new reading, while
@@ -113,8 +125,9 @@ class SensitivityOverviewImpl(
             lines.add(rh.gs(CoreUiStrings.isf_variable, variableIsfDisplayed))
             if (namesOwnRatio)
                 lines.add(rh.gs(CoreUiStrings.algorithm_long, ratioUsed * 100))
-            val isfForCarbs = profile.getIsfMgdlForCarbs(dateUtil.now(), "Overview", config, processedDeviceStatusData)
-            lines.add(rh.gs(CoreUiStrings.isf_for_carbs, profileUtil.fromMgdlToUnits(isfForCarbs, units)))
+            profile?.getIsfMgdlForCarbs(dateUtil.now(), "Overview", config, processedDeviceStatusData)?.let { isfForCarbs ->
+                lines.add(rh.gs(CoreUiStrings.isf_for_carbs, profileUtil.fromMgdlToUnits(isfForCarbs, units)))
+            }
             if (config.APS) {
                 activePlugin.activeAPS?.getSensitivityOverviewString()?.let { lines.add(it) }
             }
@@ -151,6 +164,14 @@ class SensitivityOverviewImpl(
                 lines.add(rh.gs(CoreUiStrings.algorithm_long, ratioUsed * 100))
         }
 
+        val profileIsfText = isfMgdl?.let { decimalFormatter.to1Decimal(profileUtil.fromMgdlToUnits(it, units)) }.orEmpty()
+        val crFrom = profileCr?.let(decimalFormatter::to1Decimal).orEmpty()
+        val crTo = usedCr?.let(decimalFormatter::to1Decimal)?.takeIf { it != crFrom }.orEmpty()
+        if (profileCr != null && usedCr != null) {
+            lines.add(rh.gs(CoreUiStrings.cr_profile, profileCr))
+            lines.add(rh.gs(CoreUiStrings.cr_used, usedCr))
+        }
+
         return SensitivityOverviewData(
             asText = asText,
             isfFrom = isfFrom,
@@ -159,7 +180,10 @@ class SensitivityOverviewImpl(
             lines = lines,
             ratio = lastAutosensRatio ?: 1.0,
             isEnabled = isEnabled,
-            hasData = lastAutosensData != null
+            hasData = lastAutosensData != null || snapshot?.effectiveIsf.positive() != null || usedCr != null,
+            profileIsf = profileIsfText,
+            crFrom = crFrom,
+            crTo = crTo
         )
     }
 

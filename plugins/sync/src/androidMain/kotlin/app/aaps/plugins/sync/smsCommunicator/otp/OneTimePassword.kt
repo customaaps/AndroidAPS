@@ -4,6 +4,7 @@ import android.util.Base64
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.StringNonKey
 import app.aaps.core.keys.interfaces.Preferences
@@ -36,6 +37,8 @@ class OneTimePassword(
      * [checkOTP] still calls [configure] directly, because it must re-read the PIN each time.
      */
     private val configured: Unit by lazy { configure() }
+
+    fun isEnabled(): Boolean = preferences.get(BooleanKey.SmsEnableOtp)
 
     /**
      * Name of master device (target of OTP)

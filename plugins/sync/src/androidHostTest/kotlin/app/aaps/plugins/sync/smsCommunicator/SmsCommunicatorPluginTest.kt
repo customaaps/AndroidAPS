@@ -156,6 +156,7 @@ class SmsCommunicatorPluginTest : TestBaseWithProfile() {
         runBlocking { whenever(profileFunction.getRunningOrRequestedICfg()).thenReturn(someICfg) }
         runBlocking { whenever(pumpStatusProvider.shortStatus(anyBoolean())).thenReturn(testPumpPlugin.pumpSpecificShortStatus(true)) }
         whenever(otp.name()).thenReturn("User")
+        whenever(otp.isEnabled()).thenReturn(true)
         whenever(otp.checkOTP(anyString())).thenReturn(OneTimePasswordValidationResult.OK)
     }
 
@@ -165,6 +166,45 @@ class SmsCommunicatorPluginTest : TestBaseWithProfile() {
         assertThat(smsCommunicatorPlugin.allowedNumbers[0]).isEqualTo("1234")
         assertThat(smsCommunicatorPlugin.allowedNumbers[1]).isEqualTo("5678")
         assertThat(smsCommunicatorPlugin.allowedNumbers).hasSize(2)
+    }
+
+    @Test fun disabledAuthenticatorUsesSmsChallengeWithTheSameSenderGate() = runTest {
+        whenever(otp.isEnabled()).thenReturn(false)
+        whenever(preferences.get(BooleanKey.SmsAllowRemoteCommands)).thenReturn(true)
+        whenever(loop.allowedNextModes()).thenReturn(listOf(RM.Mode.SUSPENDED_BY_USER))
+
+        smsCommunicatorPlugin.processSms(Sms("1234", "LOOP SUSPEND 30"))
+        val pending = smsCommunicatorPlugin.messageToConfirm!!
+        val code = pending.confirmCode
+        assertThat(code).matches("[A-HJ-Z]{3}")
+        assertThat(code).isNotEqualTo("CAL")
+        assertThat(code).isNotEqualTo("SMS")
+        assertThat(smsCommunicatorPlugin.messages.last().text).contains(code)
+        assertThat(batches).isEmpty()
+
+        val unlistedSender = Sms("9999", code)
+        smsCommunicatorPlugin.processSms(unlistedSender)
+        assertThat(unlistedSender.ignored).isTrue()
+        smsCommunicatorPlugin.processSms(Sms("5678", code))
+        assertThat(batches).isEmpty()
+        assertThat(smsCommunicatorPlugin.messageToConfirm).isSameInstanceAs(pending)
+
+        smsCommunicatorPlugin.processSms(Sms("1234", code))
+        assertThat(batches).hasSize(1)
+        assertThat(lastAction()).isEqualTo(BatchAction.RunningMode(RM.Mode.SUSPENDED_BY_USER, 30))
+        assertThat(smsCommunicatorPlugin.messageToConfirm).isNull()
+        verify(otp, never()).checkOTP(anyString())
+    }
+
+    @Test fun disabledAuthenticatorDoesNotEnableRemoteCommands() = runTest {
+        whenever(otp.isEnabled()).thenReturn(false)
+        whenever(preferences.get(BooleanKey.SmsAllowRemoteCommands)).thenReturn(false)
+        smsCommunicatorPlugin.processSms(Sms("1234", "LOOP SUSPEND 30"))
+        assertThat(smsCommunicatorPlugin.messageToConfirm).isNull()
+        assertThat(batches).isEmpty()
+        assertThat(smsCommunicatorPlugin.messages.last().text)
+            .isEqualTo(text.gs(SyncStrings.smscommunicator_remote_command_not_allowed))
+        verify(otp, never()).checkOTP(anyString())
     }
 
     @Test

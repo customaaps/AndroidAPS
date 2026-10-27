@@ -12,6 +12,7 @@ import app.aaps.core.interfaces.insulin.InsulinManager
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.KeysStrings
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.StringKey
@@ -83,6 +84,15 @@ class BuiltInSearchables(
                     else null
                 },
                 BooleanKey.OverviewKeepScreenOn,
+                BooleanKey.EngineeringMode,
+                BooleanKey.ApsIgnoreBgSource,
+                BooleanKey.DisableUpdatesChecker,
+                PreferenceSubScreenDef(
+                    key = "dynamic_cr_settings", title = KeysStrings.dynamic_cr_settings,
+                    items = listOf(BooleanKey.ApsUseDynamicCarbRatio, IntKey.ApsDynamicCrFormula,
+                        DoubleKey.ApsDynamicCrAdjustmentFactor, DoubleKey.ApsDynamicCrWeightPercentage,
+                        BooleanKey.ApsDynamicCrUseCustomPeakTime, IntKey.ApsDynamicCrPeakTime)
+                ),
                 StringKey.GeneralInstanceName,
             ),
             icon = Icons.Default.Settings

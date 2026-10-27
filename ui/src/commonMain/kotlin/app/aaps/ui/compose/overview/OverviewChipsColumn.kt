@@ -87,7 +87,7 @@ fun OverviewChipsColumn(
             onIobChipClick = onIobChipClick
         )
         SensitivityChipBlock(
-            state = sensitivityUiState,
+            state = sensitivityUiState.copy(isfFrom = "", isfTo = ""),
             modifier = Modifier.fillMaxWidth()
         )
     }

@@ -28,6 +28,18 @@ enum class IntKey(
     override val sync: SyncSpec? = null
 ) : IntPreferenceKey {
 
+    ApsDynamicCrFormula(
+        key = "dynamic_cr_formula", defaultValue = 0, min = 0, max = 1,
+        title = KeysStrings.dynamic_cr_formula, preferenceType = PreferenceType.LIST,
+        entriesRefs = mapOf(0 to KeysStrings.dynamic_cr_logarithmic, 1 to KeysStrings.dynamic_cr_sigmoid),
+        dependency = BooleanKey.ApsUseDynamicCarbRatio
+    ),
+    ApsDynamicCrPeakTime(
+        key = "dynamic_cr_peak_time", defaultValue = 75, min = 35, max = 110,
+        title = KeysStrings.dynamic_cr_peak_time, unitType = UnitType.MIN,
+        dependency = BooleanKey.ApsDynamicCrUseCustomPeakTime
+    ),
+
     OverviewCarbsButtonIncrement1(
         key = "carbs_button_increment_1",
         defaultValue = 5,

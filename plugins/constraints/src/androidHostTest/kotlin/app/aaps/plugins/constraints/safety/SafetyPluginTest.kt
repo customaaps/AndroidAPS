@@ -83,13 +83,15 @@ class SafetyPluginTest : TestBaseWithProfile() {
                 aapsLogger, rxBus, constraintChecker, text, profileFunction, profileUtil, config, activePlugin, iobCobCalculator,
                 hardLimits, preferences, dateUtil, processedTbrEbData, persistenceLayer, glucoseStatusProvider, tddCalculator, bgQualityCheck,
                 notificationManager, determineBasalSMB, profiler, GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, deltaCalculator), { apsResultProvider() }, ch,
-                fabricPrivacy
+                fabricPrivacy,
+                dynamicCarbRatio = app.aaps.core.interfaces.aps.DynamicCarbRatioPolicy.Disabled
             )
         openAPSAMAPlugin =
             OpenAPSAMAPlugin(
                 aapsLogger, rxBus, constraintChecker, text, config, profileFunction, activePlugin, iobCobCalculator, processedTbrEbData,
                 hardLimits, dateUtil, persistenceLayer, glucoseStatusProvider, preferences, determineBasalAMA,
-                GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, deltaCalculator), { apsResultProvider() }, ch, fabricPrivacy, mock()
+                GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, deltaCalculator), { apsResultProvider() }, ch, fabricPrivacy, mock(),
+                dynamicCarbRatio = app.aaps.core.interfaces.aps.DynamicCarbRatioPolicy.Disabled
             )
     }
 
@@ -136,6 +138,27 @@ class SafetyPluginTest : TestBaseWithProfile() {
         // repeated the escape into the expected value - so the test asserted text no user ever saw.
         assertThat(c.getReasons()).isEqualTo("Safety: SMB always and after carbs disabled because active BG source doesn't support advanced filtering")
         assertThat(c.value()).isFalse()
+    }
+
+    @Test
+    fun ignoreBgSourceSkipsOnlyTheSourceFilteringRequirement() = runTest {
+        whenever(persistenceLayer.isAdvancedFilteringSupported()).thenReturn(false)
+        whenever(preferences.get(BooleanKey.ApsIgnoreBgSource)).thenReturn(true)
+        val allowed = safetyPlugin.isAdvancedFilteringEnabled(ConstraintObject(true, aapsLogger))
+        assertThat(allowed.value()).isTrue()
+        assertThat(allowed.getReasons()).isEmpty()
+
+        // A denial already supplied by another constraint must not be turned into permission.
+        val denied = safetyPlugin.isAdvancedFilteringEnabled(ConstraintObject(false, aapsLogger))
+        assertThat(denied.value()).isFalse()
+
+        // The source opt-in does not authorize SMB in an open loop.
+        whenever(constraintChecker.isClosedLoopAllowed()).thenReturn(ConstraintObject(false, aapsLogger))
+        assertThat(safetyPlugin.isSMBModeEnabled(ConstraintObject(true, aapsLogger)).value()).isFalse()
+
+        // Switching the option off restores the normal source requirement immediately.
+        whenever(preferences.get(BooleanKey.ApsIgnoreBgSource)).thenReturn(false)
+        assertThat(safetyPlugin.isAdvancedFilteringEnabled(ConstraintObject(true, aapsLogger)).value()).isFalse()
     }
 
     @Test

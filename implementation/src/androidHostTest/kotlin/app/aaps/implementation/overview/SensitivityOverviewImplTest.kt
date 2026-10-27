@@ -2,6 +2,7 @@ package app.aaps.implementation.overview
 
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.interfaces.aps.APSResult
+import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.aps.AutosensData
 import app.aaps.core.interfaces.aps.AutosensDataStore
 import app.aaps.core.interfaces.aps.AutosensResult
@@ -12,6 +13,7 @@ import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.overview.IsfStep
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.shared.tests.TestBaseWithProfile
+import app.aaps.core.objects.profile.ProfileSealed
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
 import kotlin.math.round
@@ -48,6 +50,8 @@ class SensitivityOverviewImplTest : TestBaseWithProfile() {
             profileUtil, activePlugin, baseText, decimalFormatter, dateUtil, aapsLogger, preferences
         )
         whenever(config.APS).thenReturn(true)
+        whenever(activePlugin.activeAPS).thenReturn(mock<APS>())
+        effectiveProfile = ProfileSealed.EPS(effectiveProfileSwitch, activePlugin)
         whenever(iobCobCalculator.ads).thenReturn(ads)
         val autosensEnabled: Constraint<Boolean> = mock()
         whenever(autosensEnabled.value()).thenReturn(true)
@@ -73,6 +77,62 @@ class SensitivityOverviewImplTest : TestBaseWithProfile() {
 
     private fun profileIsfLine(): String =
         baseText.gs(CoreUiStrings.isf_profile, effectiveProfile.getProfileIsfMgdl())
+
+    private fun resultSnapshot(snapshot: RT) {
+        val request = mock<APSResult>().also { whenever(it.rawData()).thenReturn(snapshot) }
+        whenever(loop.lastRun).thenReturn(Loop.LastRun().apply { this.request = request })
+    }
+
+    @Test
+    fun `ISF and CR use the original baseline and actual values from one cycle`() = runBlocking {
+        whenever(profileFunction.getUnits()).thenReturn(GlucoseUnit.MMOL)
+        resultSnapshot(RT(runningDynamicIsf = true, profileIsfMgdl = 100.8,
+            effectiveIsf = 82.8, profileCarbRatio = 10.0, carbRatio = 8.0))
+
+        val data = sut.build()
+
+        assertThat(data.profileIsf).isEqualTo(decimalFormatter.to1Decimal(profileUtil.fromMgdlToUnits(100.8, GlucoseUnit.MMOL)))
+        assertThat(data.isfFrom).isEqualTo(data.profileIsf)
+        assertThat(data.isfTo).isEqualTo(decimalFormatter.to1Decimal(profileUtil.fromMgdlToUnits(82.8, GlucoseUnit.MMOL)))
+        assertThat(data.crFrom).isEqualTo(decimalFormatter.to1Decimal(10.0))
+        assertThat(data.crTo).isEqualTo(decimalFormatter.to1Decimal(8.0))
+        assertThat(data.lines).contains(baseText.gs(CoreUiStrings.cr_used, 8.0))
+        assertThat(data.hasData).isTrue()
+    }
+
+    @Test
+    fun `CR changes hidden by displayed precision do not get an arrow`() = runBlocking {
+        resultSnapshot(RT(runningDynamicIsf = false, profileCarbRatio = 10.0, carbRatio = 10.01))
+        val data = sut.build()
+        assertThat(data.crFrom).isEqualTo(decimalFormatter.to1Decimal(10.0))
+        assertThat(data.crTo).isEmpty()
+    }
+
+    @Test
+    fun `client uses the master snapshot even without a local result or profile`() = runBlocking {
+        whenever(config.APS).thenReturn(false)
+        whenever(config.AAPSCLIENT).thenReturn(true)
+        whenever(profileFunction.getProfile()).thenReturn(null)
+        whenever(processedDeviceStatusData.openAPSData).thenReturn(ProcessedDeviceStatusData.OpenAPSData().apply {
+            suggested = RT(runningDynamicIsf = true, profileIsfMgdl = 100.0, effectiveIsf = 80.0,
+                profileCarbRatio = 12.0, carbRatio = 9.0)
+        })
+        val data = sut.build()
+        assertThat(data.isfFrom).isEqualTo(decimalFormatter.to1Decimal(100.0))
+        assertThat(data.isfTo).isEqualTo(decimalFormatter.to1Decimal(80.0))
+        assertThat(data.crFrom).isEqualTo(decimalFormatter.to1Decimal(12.0))
+        assertThat(data.crTo).isEqualTo(decimalFormatter.to1Decimal(9.0))
+    }
+
+    @Test
+    fun `nonfinite or nonpositive display metadata is not shown`() = runBlocking {
+        resultSnapshot(RT(runningDynamicIsf = true, profileIsfMgdl = Double.NaN, effectiveIsf = Double.POSITIVE_INFINITY,
+            profileCarbRatio = 0.0, carbRatio = -1.0, sensitivityRatio = Double.POSITIVE_INFINITY))
+        val data = sut.build()
+        assertThat(data.profileIsf).isEqualTo(decimalFormatter.to1Decimal(effectiveProfile.getProfileIsfMgdl()))
+        assertThat(data.isfTo).isEmpty()
+        assertThat(data.crTo).isEmpty()
+    }
 
     /** The algorithm divides, so a ratio below 1.0 raises the ISF - see `DetermineBasalSMB`. */
     private fun effectiveIsfLine(ratio: Double): String =

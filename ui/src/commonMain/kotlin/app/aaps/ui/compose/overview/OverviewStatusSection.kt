@@ -7,11 +7,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +26,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
@@ -36,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -58,6 +63,7 @@ import app.aaps.core.ui.compose.stringResource
 import app.aaps.core.ui.compose.stringResourceOrNull
 import app.aaps.ui.compose.overview.statusLights.StatusItem
 import app.aaps.ui.compose.overview.statusLights.StatusSectionContent
+import app.aaps.ui.compose.overview.chips.SensitivityUiState
 
 /**
  * @see OverviewStatusSectionCollapsedPreview
@@ -79,10 +85,11 @@ fun OverviewStatusSection(
     statusLightsDef: PreferenceSubScreenDef,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
+    sensitivity: SensitivityUiState = SensitivityUiState(),
     modifier: Modifier = Modifier
 ) {
     val items = listOfNotNull(cannulaStatus, insulinStatus, sensorStatus, batteryStatus)
-    if (items.isEmpty()) return
+    if (items.isEmpty() && !sensitivity.hasProfileValues) return
     val compactItems = items.filter { it.compactAge || (it.compactLevel && it.level != null) }
 
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
@@ -97,62 +104,55 @@ fun OverviewStatusSection(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
+            if (!expanded || items.isEmpty()) {
+                CompactOverviewStatus(
+                    items = compactItems,
+                    sensitivity = sensitivity,
+                    canExpand = items.isNotEmpty(),
+                    onExpand = { onExpandedChange(true) }
+                )
+            } else Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (expanded) {
-                    Text(
-                        text = stringResource(CoreUiStrings.status),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onExpandedChange(false) }
-                    )
-                    IconButton(
-                        onClick = { showSettingsSheet = true },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(CoreUiStrings.settings),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                Text(
+                    text = stringResource(CoreUiStrings.status),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onExpandedChange(false) }
+                )
+                IconButton(
+                    onClick = { showSettingsSheet = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
-                        imageVector = Icons.Filled.ExpandLess,
-                        contentDescription = stringResource(CoreUiStrings.collapse),
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(CoreUiStrings.settings),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.clickable { onExpandedChange(false) }
-                    )
-                } else {
-                    // The long ages where all of them fit on one line, otherwise the short ones. The line
-                    // wraps only when even the short ones do not fit.
-                    LongOrShort(
-                        long = { CompactStatusItems(items = compactItems, shortAge = false) },
-                        short = { CompactStatusItems(items = compactItems, shortAge = true) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onExpandedChange(true) }
-                    )
-                    Icon(
-                        imageVector = Icons.Filled.ExpandMore,
-                        contentDescription = stringResource(CoreUiStrings.expand),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.clickable { onExpandedChange(true) }
+                        modifier = Modifier.size(20.dp)
                     )
                 }
+                Icon(
+                    imageVector = Icons.Filled.ExpandLess,
+                    contentDescription = stringResource(CoreUiStrings.collapse),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clickable { onExpandedChange(false) }
+                )
             }
 
             AnimatedVisibility(
-                visible = expanded,
+                visible = expanded && items.isNotEmpty(),
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (sensitivity.hasProfileValues) {
+                        DynamicValuesBlock(state = sensitivity, modifier = Modifier.fillMaxWidth())
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
                     // Each button also needs this phone's role to allow what it opens (the master would refuse it).
                     val role = LocalClientRole.current
                     StatusSectionContent(
@@ -184,6 +184,73 @@ fun OverviewStatusSection(
             onDismiss = { showSettingsSheet = false },
             sheetState = sheetState
         )
+    }
+}
+
+/** Equipment stays on the left; both APS values stay together on the right. */
+@Composable
+internal fun CompactOverviewStatus(
+    items: List<StatusItem>,
+    sensitivity: SensitivityUiState,
+    canExpand: Boolean,
+    onExpand: () -> Unit
+) {
+    if (!sensitivity.hasProfileValues) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            LongOrShort(
+                long = { CompactStatusItems(items, shortAge = false) },
+                short = { CompactStatusItems(items, shortAge = true) },
+                modifier = Modifier.weight(1f).clickable(enabled = canExpand, onClick = onExpand)
+            )
+            if (canExpand) StatusExpandButton(onExpand)
+        }
+        return
+    }
+
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        // Large accessibility fonts and very narrow split-screen panes need a vertical fallback.
+        val stack = maxWidth / LocalDensity.current.fontScale < 280.dp
+        if (stack || items.isEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (items.isNotEmpty()) {
+                    CompactEquipment(items, Modifier.fillMaxWidth().clickable(onClick = onExpand))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    DynamicValuesBlock(sensitivity, Modifier.weight(1f))
+                    if (canExpand) StatusExpandButton(onExpand)
+                }
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CompactEquipment(items, Modifier.weight(0.54f).clickable(onClick = onExpand))
+                VerticalDivider(Modifier.height(64.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                Column(modifier = Modifier.weight(0.46f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    DynamicValuesBlock(sensitivity, Modifier.fillMaxWidth())
+                    if (canExpand) {
+                        androidx.compose.foundation.layout.Box(Modifier.align(Alignment.End)) { StatusExpandButton(onExpand) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusExpandButton(onExpand: () -> Unit) {
+    IconButton(onClick = onExpand, modifier = Modifier.size(32.dp)) {
+        Icon(Icons.Filled.ExpandMore, contentDescription = stringResource(CoreUiStrings.expand))
+    }
+}
+
+@Composable
+private fun CompactEquipment(items: List<StatusItem>, modifier: Modifier) {
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items.forEach { CompactStatusItem(item = it, age = it.ageShort) }
     }
 }
 

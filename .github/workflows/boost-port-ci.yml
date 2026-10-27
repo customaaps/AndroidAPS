@@ -1,0 +1,88 @@
+name: Boost KMP port integration
+
+on:
+  workflow_dispatch:
+  push:
+    # Always validate the dedicated port branch: changes in shared Gradle/build logic
+    # and core libraries can break Boost without touching plugins/boost-port/**.
+    branches: [nigthscout-dev-boost-port-20261026]
+
+concurrency:
+  group: boost-port-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  boost-port:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Read JDK version
+        id: jdk
+        run: echo "version=$(jq -r '.default' .github/jdk-map.json)" >> "$GITHUB_OUTPUT"
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.jdk.outputs.version }}
+          cache: gradle
+      - name: Constrain build memory
+        run: |
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx3g -XX:+UseParallelGC -Xss4m
+          org.gradle.workers.max=2
+          kotlin.daemon.jvm.options=-Xmx4g
+          EOF
+      - name: Verify Gradle and Android SDK setup
+        run: |
+          test -f gradlew
+          test -f gradle/wrapper/gradle-wrapper.jar
+          test -f gradle/wrapper/gradle-wrapper.properties
+          test -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          java -version
+          ./gradlew --version --no-daemon
+      - name: Validate passive Boost ML assets
+        run: python3 plugins/boost-port/tools/validate_ml_assets.py
+      - name: Verify Boost port stays disabled and hidden
+        run: python3 plugins/boost-port/tools/check_port_isolation.py
+      - name: Audit archived V5-to-V1 integration contract
+        run: python3 plugins/boost-port/tools/check_v1_v5_source_contract.py
+      - name: Run migrated Boost common/JVM tests
+        run: |
+          chmod +x gradlew
+          ./gradlew :plugins:boost-port:jvmTest --no-daemon --stacktrace
+      - name: Compile isolated Boost Android KMP target
+        run: |
+          ./gradlew :plugins:boost-port:assemble --no-daemon --stacktrace
+      - name: Compile complete Android fullDebug APK
+        run: |
+          ./gradlew :app:assembleFullDebug --no-daemon --stacktrace
+      - name: Publish fullDebug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dmitry-boost-port-full-debug-apk
+          path: app/build/outputs/apk/full/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Summarize verification requirements
+        if: always()
+        run: |
+          echo "## Boost port verification" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Job must pass asset checks, isolation checks, JVM tests, and fullDebug build." >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish Boost KMP test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boost-port-test-reports
+          path: |
+            plugins/boost-port/build/reports/tests/
+            plugins/boost-port/build/test-results/
+          if-no-files-found: ignore

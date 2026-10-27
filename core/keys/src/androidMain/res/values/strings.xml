@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- General preferences -->
+    <string name="enable_engineering_mode">Enable engineering mode</string>
+    <string name="enable_engineering_mode_summary">Enable additional development and diagnostic options.</string>
     <string name="pref_title_simple_mode">Simple mode</string>
     <string name="pref_title_insulin_concentration">Insulin concentration support</string>
     <string name="pref_summary_insulin_concentration">Enable support for different insulin concentrations (U50, U200, etc.)</string>
@@ -333,6 +335,8 @@
     <string name="automation_location_gps">Use GPS location</string>
 
     <!-- StringKey: SMS preferences -->
+    <string name="smscommunicator_otp_enabled">Enable Authenticator</string>
+    <string name="smscommunicator_otp_enabled_summary">Use an authenticator app\'s one-time password followed by your PIN. When disabled, reply with the confirmation code sent by SMS.</string>
     <string name="smscommunicator_allowednumbers">Allowed phone numbers</string>
     <string name="smscommunicator_allowednumbers_summary">+XXXXXXXXXX;+YYYYYYYYYY</string>
     <string name="smscommunicator_otp_pin">Additional mandatory PIN at token end</string>
@@ -428,4 +432,19 @@
 
     <!--    Appearance preferences-->
 
+    <string name="ignore_bg_source">Ignore BG source</string>
+    <string name="ignore_bg_source_summary">Allow SMB always and after carbs without requiring the BG source to support advanced filtering.</string>
+    <string name="disable_updates_checker">Disable new version checks</string>
+    <string name="disable_updates_checker_summary">Disable new version notifications and the version expiration restriction.</string>
+    <string name="dynamic_cr_settings">Dynamic CR</string>
+    <string name="dynamic_cr_enabled">Enable dynamic CR for APS</string>
+    <string name="dynamic_cr_enabled_summary">Calculate CR from glucose and TDD for all APS algorithms. Disabled by default; when off, the profile CR is used.</string>
+    <string name="dynamic_cr_custom_peak">Use custom insulin peak time</string>
+    <string name="dynamic_cr_formula">CR formula</string>
+    <string name="dynamic_cr_logarithmic">Logarithmic</string>
+    <string name="dynamic_cr_sigmoid">Sigmoid</string>
+    <string name="dynamic_cr_peak_time">Insulin peak time for CR</string>
+    <string name="dynamic_cr_adjustment">CR adjustment factor</string>
+    <string name="dynamic_cr_weight">Recent TDD weight (0–1)</string>
+    <string name="dynamic_cr_weight_summary">0 uses the 7-day average TDD; 1 uses the last 24 hours. Intermediate values blend them.</string>
 </resources>

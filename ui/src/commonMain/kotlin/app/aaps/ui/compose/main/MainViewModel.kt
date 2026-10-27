@@ -684,7 +684,7 @@ class MainViewModel(
     val showExit: Boolean get() = config.platform != AppPlatform.Ios
 
     fun buildAboutDialogData(appName: String): AboutDialogData {
-        var message = "Build: ${config.BUILD_VERSION}\n"
+        var message = "Build: ${config.BUILD_NAME}\nRevision: ${config.BUILD_VERSION}\n"
         message += "Flavor: ${config.FLAVOR}${config.BUILD_TYPE}\n"
         // Only where the build declares one. All three shells do - Android's `ConfigImpl` says
         // "Android" - so in practice the line is always there; the guard is for a Config that
@@ -697,7 +697,7 @@ class MainViewModel(
         message += rh.gs(CoreUiStrings.about_link_urls)
 
         return AboutDialogData(
-            title = "$appName ${config.VERSION}",
+            title = "$appName ${config.BUILD_NAME}",
             message = message,
             enabledOptions = enabledOptions
         )

@@ -8,6 +8,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import app.aaps.core.ui.compose.StatusLevel
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.ui.compose.overview.statusLights.StatusItem
+import app.aaps.ui.compose.overview.chips.SensitivityUiState
 
 private val previewStatusItems = Triple(
     StatusItem(
@@ -63,6 +64,7 @@ internal fun OverviewStatusSectionCollapsedPreview() {
             showPumpBatteryChange = true,
             onNavigate = {},
             statusLightsDef = previewStatusLightsDef,
+            sensitivity = SensitivityUiState(profileIsf = "5.6", isfFrom = "5.6", isfTo = "4.6", crFrom = "10.0", crTo = "8.0"),
             expanded = false,
             onExpandedChange = {}
         )

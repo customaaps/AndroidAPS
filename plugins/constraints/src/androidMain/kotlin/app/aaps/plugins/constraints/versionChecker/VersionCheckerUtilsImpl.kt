@@ -13,6 +13,7 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.versionChecker.VersionCheckerUtils
 import app.aaps.core.interfaces.versionChecker.VersionDefinition
 import app.aaps.core.keys.LongComposedKey
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.TextRef.Companion.withArgs
 import app.aaps.plugins.constraints.ConstraintsStrings
@@ -61,6 +62,10 @@ class VersionCheckerUtilsImpl(
         }
 
     override fun triggerCheckVersion() {
+        if (preferences.get(BooleanKey.DisableUpdatesChecker)) {
+            preferences.put(LongComposedKey.AppExpiration, config().VERSION_NAME, value = 0L)
+            return
+        }
         val version: String? = AllowedVersions.findByApi(definition, Build.VERSION.SDK_INT)
         val newVersionByApi = compareWithCurrentVersion(newVersion = version, currentVersion = config().VERSION_NAME)
 

@@ -31,6 +31,35 @@ enum class BooleanKey(
 ) : BooleanPreferenceKey {
 
     GeneralSimpleMode(key = "simple_mode", defaultValue = true, title = KeysStrings.pref_title_simple_mode, sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)),
+    EngineeringMode(
+        key = "force_engineering_mode", defaultValue = false,
+        title = KeysStrings.enable_engineering_mode,
+        summary = KeysStrings.enable_engineering_mode_summary,
+        platforms = AppPlatform.ANDROID_ONLY
+    ),
+    ApsIgnoreBgSource(
+        key = "ignore_bg_source", defaultValue = false,
+        title = KeysStrings.ignore_bg_source,
+        summary = KeysStrings.ignore_bg_source_summary,
+        platforms = AppPlatform.ANDROID_ONLY,
+        showInNsClientMode = false, showInPumpControlMode = false
+    ),
+    DisableUpdatesChecker(
+        key = "skip_updates_check", defaultValue = false,
+        title = KeysStrings.disable_updates_checker,
+        summary = KeysStrings.disable_updates_checker_summary,
+        platforms = AppPlatform.ANDROID_ONLY
+    ),
+    ApsUseDynamicCarbRatio(
+        key = "use_dynamic_carb_ratio", defaultValue = false,
+        title = KeysStrings.dynamic_cr_enabled, summary = KeysStrings.dynamic_cr_enabled_summary,
+        showInNsClientMode = false, showInPumpControlMode = false
+    ),
+    ApsDynamicCrUseCustomPeakTime(
+        key = "dynamic_cr_use_custom_peak_time", defaultValue = false,
+        title = KeysStrings.dynamic_cr_custom_peak,
+        dependency = ApsUseDynamicCarbRatio
+    ),
     GeneralInsulinConcentration(
         key = "insulin_concentration_enabled", defaultValue = false, title = KeysStrings.pref_title_insulin_concentration, summary = KeysStrings.pref_summary_insulin_concentration,
         defaultedBySM = true,
@@ -216,6 +245,11 @@ enum class BooleanKey(
     AutotuneAdditionalLog("autotune_additional_log", false, KeysStrings.pref_title_autotune_additional_log),
 
     SmsAllowRemoteCommands("smscommunicator_remotecommandsallowed", false, KeysStrings.pref_title_sms_allow_remote_commands),
+    SmsEnableOtp(
+        "smscommunicator_enable_otp", true,
+        KeysStrings.smscommunicator_otp_enabled, KeysStrings.smscommunicator_otp_enabled_summary,
+        platforms = AppPlatform.ANDROID_ONLY, dependency = SmsAllowRemoteCommands
+    ),
     SmsReportPumpUnreachable("smscommunicator_report_pump_unreachable", true, KeysStrings.pref_title_sms_report_pump_unreachable, KeysStrings.pref_summary_sms_report_pump_unreachable),
 
     VirtualPumpStatusUpload("virtualpump_uploadstatus", false, KeysStrings.pref_title_virtual_pump_status_upload, showInNsClientMode = false),

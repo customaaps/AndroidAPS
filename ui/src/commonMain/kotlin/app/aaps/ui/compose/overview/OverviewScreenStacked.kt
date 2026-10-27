@@ -148,6 +148,7 @@ fun OverviewScreenStacked(
         }
 
         OverviewStatusSection(
+            sensitivity = sensitivityUiState,
             sensorStatus = statusState.sensorStatus,
             insulinStatus = statusState.insulinStatus,
             cannulaStatus = statusState.cannulaStatus,

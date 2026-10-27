@@ -181,7 +181,8 @@ fun OverviewScreenTablet(
                 }
 
                 OverviewStatusSection(
-                    sensorStatus = statusState.sensorStatus,
+                    sensitivity = sensitivityUiState,
+            sensorStatus = statusState.sensorStatus,
                     insulinStatus = statusState.insulinStatus,
                     cannulaStatus = statusState.cannulaStatus,
                     batteryStatus = statusState.batteryStatus,

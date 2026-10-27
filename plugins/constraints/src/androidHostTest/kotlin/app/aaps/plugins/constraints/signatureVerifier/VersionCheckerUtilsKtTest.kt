@@ -6,6 +6,8 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.versionChecker.VersionDefinition
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.LongComposedKey
 import app.aaps.plugins.constraints.versionChecker.VersionCheckerUtilsImpl
 import app.aaps.plugins.constraints.versionChecker.numericVersionPart
 import app.aaps.shared.tests.TestBase
@@ -17,7 +19,11 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mock
+import org.mockito.Mockito.clearInvocations
 import org.mockito.kotlin.whenever
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 
 @Suppress("SpellCheckingInspection")
 class VersionCheckerUtilsKtTest : TestBase() {
@@ -49,6 +55,28 @@ class VersionCheckerUtilsKtTest : TestBase() {
     @BeforeEach fun setup() {
         val definition = VersionDefinition { Json.parseToJsonElement(generateSupportedVersions()).jsonObject }
         versionCheckerUtils = VersionCheckerUtilsImpl(aapsLogger, preferences, rh, config, dateUtil, notificationManager, definition)
+    }
+
+    @Test
+    fun `disabled checker clears expiration without loading definition or notifying`() {
+        val currentConfig = mock<Config>()
+        whenever(currentConfig.VERSION_NAME).thenReturn("3.3.1.3")
+        whenever(config.invoke()).thenReturn(currentConfig)
+        whenever(preferences.get(BooleanKey.DisableUpdatesChecker)).thenReturn(true)
+        var definitionReads = 0
+        val definition = VersionDefinition {
+            definitionReads++
+            Json.parseToJsonElement(generateSupportedVersions()).jsonObject
+        }
+        versionCheckerUtils = VersionCheckerUtilsImpl(aapsLogger, preferences, rh, config, dateUtil, notificationManager, definition)
+
+        // The shared @BeforeEach clock setup has already called dateUtil.now().
+        clearInvocations(dateUtil)
+        versionCheckerUtils.triggerCheckVersion()
+
+        assertThat(definitionReads).isEqualTo(0)
+        verify(preferences).put(LongComposedKey.AppExpiration, "3.3.1.3", value = 0L)
+        verifyNoInteractions(notificationManager, dateUtil)
     }
 
     @Test

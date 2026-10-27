@@ -5,6 +5,7 @@ import androidx.collection.forEach
 import app.aaps.core.data.aps.SMBDefaults
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.getPassedDurationToTimeInMinutes
+import app.aaps.core.interfaces.aps.DynamicCarbRatioPolicy
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.InterfacesStrings
@@ -102,7 +103,8 @@ open class OpenAPSSMBPlugin(
     private val glucoseStatusCalculatorSMB: GlucoseStatusCalculatorSMB,
     private val apsResultProvider: () -> APSResult,
     private val ch: ConcentrationHelper,
-    private val fabricPrivacy: FabricPrivacy
+    private val fabricPrivacy: FabricPrivacy,
+    private val dynamicCarbRatio: DynamicCarbRatioPolicy
 ) : PluginBaseWithPreferences(
     PluginDescription()
         .mainType(PluginType.APS)
@@ -402,6 +404,17 @@ open class OpenAPSSMBPlugin(
         val iobArray = iobCobCalculator.calculateIobArrayForSMB(autosensResult, SMBDefaults.exercise_mode, SMBDefaults.half_basal_exercise_target, isTempTarget)
         val mealData = iobCobCalculator.getMealDataWithWaitingForCalculationFinish()
 
+        val profileIsfForCr = profile.getIsfMgdl("OpenAPSSMBPlugin")
+        val profileCrForCycle = profile.getIc()
+        val profileIsfForCycle = profile.getProfileIsfMgdl()
+        val dynamicCrResult = dynamicCarbRatio.calculate(DynamicCarbRatioPolicy.Input(
+            baseCr = profileCrForCycle, glucose = glucoseStatus.glucose, target = targetBg,
+            profileIsf = profileIsfForCr, atMs = now),
+            knownTdd = if (dynIsfResult.tddPartsCalculated()) DynamicCarbRatioPolicy.TddParts(
+                dynIsfResult.tdd7D, dynIsfResult.tdd1D, dynIsfResult.tddLast24H,
+                dynIsfResult.tddLast4H, dynIsfResult.tddLast8to4H) else null)
+        if (dynamicCrResult.reason.isNotEmpty()) aapsLogger.debug(LTag.APS, dynamicCrResult.reason)
+
         val oapsProfile = OapsProfile(
             dia = 0.0, // not used
             min_5m_carbimpact = 0.0, // not used
@@ -411,8 +424,8 @@ open class OpenAPSSMBPlugin(
             min_bg = minBg,
             max_bg = maxBg,
             target_bg = targetBg,
-            carb_ratio = profile.getIc(),
-            sens = profile.getIsfMgdl("OpenAPSSMBPlugin"),
+            carb_ratio = dynamicCrResult.carbRatio,
+            sens = profileIsfForCr,
             autosens_adjust_targets = false, // not used
             max_daily_safety_multiplier = preferences.get(DoubleKey.ApsMaxDailyMultiplier),
             current_basal_safety_multiplier = preferences.get(DoubleKey.ApsMaxCurrentBasalMultiplier),
@@ -498,6 +511,10 @@ open class OpenAPSSMBPlugin(
             flatBGsDetected = flatBGsDetected,
             dynIsfMode = effectiveDynIsfMode
         ).also {
+            // Keep the profile baseline from this cycle, even across later profile switches.
+            it.profileIsfMgdl = profileIsfForCycle.takeIf { value -> value.isFinite() && value > 0.0 }
+            it.profileCarbRatio = profileCrForCycle.takeIf { value -> value.isFinite() && value > 0.0 }
+            if (dynamicCrResult.reason.isNotEmpty()) it.reason.append(" [${dynamicCrResult.reason}]")
             val determineBasalResult = apsResultProvider().with(it)
             // Preserve input data
             determineBasalResult.inputConstraints = inputConstraints

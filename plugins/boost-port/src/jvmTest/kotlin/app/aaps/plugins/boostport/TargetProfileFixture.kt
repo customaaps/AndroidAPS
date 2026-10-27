@@ -1,0 +1,52 @@
+package app.aaps.plugins.boostport
+
+import app.aaps.core.interfaces.aps.OapsProfile
+
+internal fun targetProfileFixture(): OapsProfile {
+    val p = V1ReplayFixture.profile(180.0)
+    return OapsProfile(
+        dia = p.dia,
+        min_5m_carbimpact = p.min_5m_carbimpact,
+        max_iob = p.max_iob,
+        max_daily_basal = p.max_daily_basal,
+        max_basal = p.max_basal,
+        min_bg = p.min_bg,
+        max_bg = p.max_bg,
+        target_bg = p.target_bg,
+        carb_ratio = p.carb_ratio,
+        sens = p.sens,
+        autosens_adjust_targets = p.autosens_adjust_targets,
+        max_daily_safety_multiplier = p.max_daily_safety_multiplier,
+        current_basal_safety_multiplier = p.current_basal_safety_multiplier,
+        high_temptarget_raises_sensitivity = p.high_temptarget_raises_sensitivity,
+        low_temptarget_lowers_sensitivity = p.low_temptarget_lowers_sensitivity,
+        sensitivity_raises_target = p.sensitivity_raises_target,
+        resistance_lowers_target = p.resistance_lowers_target,
+        adv_target_adjustments = p.adv_target_adjustments,
+        exercise_mode = p.exercise_mode,
+        half_basal_exercise_target = p.half_basal_exercise_target,
+        maxCOB = p.maxCOB,
+        skip_neutral_temps = p.skip_neutral_temps,
+        remainingCarbsCap = p.remainingCarbsCap,
+        enableUAM = p.enableUAM,
+        A52_risk_enable = p.A52_risk_enable,
+        SMBInterval = p.SMBInterval,
+        enableSMB_with_COB = p.enableSMB_with_COB,
+        enableSMB_with_temptarget = p.enableSMB_with_temptarget,
+        allowSMB_with_high_temptarget = p.allowSMB_with_high_temptarget,
+        enableSMB_always = p.enableSMB_always,
+        enableSMB_after_carbs = p.enableSMB_after_carbs,
+        maxSMBBasalMinutes = p.maxSMBBasalMinutes,
+        maxUAMSMBBasalMinutes = p.maxUAMSMBBasalMinutes,
+        bolus_increment = p.bolus_increment,
+        carbsReqThreshold = p.carbsReqThreshold,
+        current_basal = p.current_basal,
+        temptargetSet = p.temptargetSet,
+        autosens_max = p.autosens_max,
+        out_units = p.out_units,
+        lgsThreshold = p.lgsThreshold,
+        variable_sens = p.variable_sens,
+        insulinDivisor = p.insulinDivisor,
+        TDD = p.TDD,
+    )
+}

@@ -1,0 +1,51 @@
+package app.aaps.plugins.aps.openAPSBoost.replay
+
+import app.aaps.core.interfaces.aps.Predictions
+
+/** Source numeric output for offline replay; does not implement RT or APSResult. */
+internal enum class V1ReplayAlgorithm { UNKNOWN, BOOST, SMB }
+
+internal data class V1ReplayResult(
+    var algorithm: V1ReplayAlgorithm = V1ReplayAlgorithm.UNKNOWN,
+    var runningDynamicIsf: Boolean,
+    var timestamp: Long? = null,
+    val temp: String = "absolute",
+    var bg: Double? = null,
+    var tick: String? = null,
+    var eventualBG: Double? = null,
+    var targetBG: Double? = null,
+    var insulinReq: Double? = null,
+    var carbsReq: Int? = null,
+    var carbsReqWithin: Int? = null,
+    var units: Double? = null,
+    var deliverAt: Long? = null,
+    var sensitivityRatio: Double? = null,
+    var reason: StringBuilder = StringBuilder(),
+    var duration: Int? = null,
+    var rate: Double? = null,
+    var predBGs: Predictions? = null,
+    var COB: Double? = null,
+    var IOB: Double? = null,
+    var variable_sens: Double? = null,
+    var carbRatio: Double? = null,
+    var carbRatioReason: String? = null,
+    var consoleLog: MutableList<String>? = null,
+    var consoleError: MutableList<String>? = null,
+    var boostTier: String? = null,
+    var boostActive: Boolean? = null,
+    var fastCarbProtection: Boolean? = null,
+    var dynamicISF: Double? = null,
+    var predictionISF: Double? = null,
+    var sensNormalTarget: Double? = null,
+    var tdd: Double? = null,
+    var tddRatio: Double? = null,
+    var insulinReqPctEffective: Double? = null,
+    var deltaAcceleration: Double? = null,
+    var boostProfileSwitch: Int? = null,
+    var mlHypoRisk: Double? = null,
+    var mlMealLikely: Double? = null,
+    var mlRiskScale: Double? = null,
+    var mlMealG3Released: Boolean? = null,
+    var mlG3ReleaseSource: String? = null,
+    var minGuardBG: Double? = null,
+)

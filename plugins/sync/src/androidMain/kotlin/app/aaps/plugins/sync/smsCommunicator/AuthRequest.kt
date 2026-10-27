@@ -16,7 +16,7 @@ import kotlinx.coroutines.delay
 
 /**
  * Tracks a single pending SMS confirmation flow: sends the request prompt on
- * construction and runs [action] when the matching OTP arrives within the
+ * construction and runs [action] when the matching OTP or SMS code arrives within the
  * 5-minute window. Pure value object — construct via [SmsCommunicatorPlugin]'s
  * `authRequest(...)` factory at the call site, no DI needed.
  */
@@ -41,7 +41,8 @@ class AuthRequest(
     }
 
     private fun codeIsValid(toValidate: String): Boolean =
-        otp.checkOTP(toValidate) == OneTimePasswordValidationResult.OK
+        if (otp.isEnabled()) otp.checkOTP(toValidate) == OneTimePasswordValidationResult.OK
+        else confirmCode == toValidate
 
     suspend fun action(codeReceived: String) {
         if (processed) {

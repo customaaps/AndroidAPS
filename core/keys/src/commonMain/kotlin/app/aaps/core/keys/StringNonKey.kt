@@ -12,6 +12,12 @@ enum class StringNonKey(
     override val sync: SyncSpec? = null
 ) : StringNonPreferenceKey {
 
+    /**
+     * Reserved legacy Boost V5 state slot (source: StringKey.ApsBoostV5State).
+     * The offline port never writes this key and no live APS plugin is registered.
+     * Non-exportable and non-synced until a complete persistence safety review.
+     */
+    BoostV5OfflineLegacyState(key = "boost_v5_state", defaultValue = "", exportable = false),
     QuickWizard(key = "QuickWizard", defaultValue = "[]", sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)),
     WearCwfWatchfaceName(key = "wear_cwf_watchface_name", defaultValue = ""),
     WearCwfAuthorVersion(key = "wear_cwf_author_version", defaultValue = ""),

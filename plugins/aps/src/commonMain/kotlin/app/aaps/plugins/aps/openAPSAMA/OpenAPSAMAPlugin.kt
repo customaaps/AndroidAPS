@@ -3,6 +3,7 @@ package app.aaps.plugins.aps.openAPSAMA
 import app.aaps.core.data.aps.SMBDefaults
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.getPassedDurationToTimeInMinutes
+import app.aaps.core.interfaces.aps.DynamicCarbRatioPolicy
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.aps.APS
@@ -81,7 +82,8 @@ class OpenAPSAMAPlugin(
     private val apsResultProvider: () -> APSResult,
     private val ch: ConcentrationHelper,
     private val fabricPrivacy: FabricPrivacy,
-    notificationManager: NotificationManager
+    notificationManager: NotificationManager,
+    private val dynamicCarbRatio: DynamicCarbRatioPolicy
 ) : PluginBaseWithPreferences(
     PluginDescription()
         .mainType(PluginType.APS)
@@ -177,6 +179,14 @@ class OpenAPSAMAPlugin(
         val iobArray = iobCobCalculator.calculateIobArrayInDia(profile)
         val mealData = iobCobCalculator.getMealDataWithWaitingForCalculationFinish()
 
+        val profileIsfForCr = profile.getIsfMgdl("OpenAPSAMAPlugin")
+        val profileCrForCycle = profile.getIc()
+        val profileIsfForCycle = profile.getProfileIsfMgdl()
+        val dynamicCrResult = dynamicCarbRatio.calculate(DynamicCarbRatioPolicy.Input(
+            baseCr = profileCrForCycle, glucose = glucoseStatus.glucose, target = targetBg,
+            profileIsf = profileIsfForCr, atMs = now))
+        if (dynamicCrResult.reason.isNotEmpty()) aapsLogger.debug(LTag.APS, dynamicCrResult.reason)
+
         val oapsProfile = OapsProfile(
             dia = min(profile.iCfg.dia, 3.0),
             min_5m_carbimpact = if (mealData.usedMinCarbsImpact > 0) mealData.usedMinCarbsImpact else preferences.get(DoubleKey.ApsAmaMin5MinCarbsImpact),
@@ -186,8 +196,8 @@ class OpenAPSAMAPlugin(
             min_bg = minBg,
             max_bg = maxBg,
             target_bg = targetBg,
-            carb_ratio = profile.getIc(),
-            sens = profile.getIsfMgdl("OpenAPSAMAPlugin"),
+            carb_ratio = dynamicCrResult.carbRatio,
+            sens = profileIsfForCr,
             autosens_adjust_targets = preferences.get(BooleanKey.ApsAmaAutosensAdjustTargets),
             max_daily_safety_multiplier = preferences.get(DoubleKey.ApsMaxDailyMultiplier),
             current_basal_safety_multiplier = preferences.get(DoubleKey.ApsMaxCurrentBasalMultiplier),
@@ -255,6 +265,10 @@ class OpenAPSAMAPlugin(
             meal_data = mealData,
             currentTime = now
         ).also {
+            // Keep the profile baseline from this cycle, even across later profile switches.
+            it.profileIsfMgdl = profileIsfForCycle.takeIf { value -> value.isFinite() && value > 0.0 }
+            it.profileCarbRatio = profileCrForCycle.takeIf { value -> value.isFinite() && value > 0.0 }
+            if (dynamicCrResult.reason.isNotEmpty()) it.reason.append(" [${dynamicCrResult.reason}]")
             val determineBasalResult = apsResultProvider().with(it)
             // Preserve input data
             determineBasalResult.inputConstraints = inputConstraints

@@ -18,6 +18,8 @@ import org.mockito.Mock
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 class AuthRequestTest : TestBase() {
@@ -32,10 +34,70 @@ class AuthRequestTest : TestBase() {
     private var actionCalled = false
 
     @BeforeEach fun prepareTests() {
+        whenever(otp.isEnabled()).thenReturn(true)
         doAnswer { invocation: InvocationOnMock ->
             sentSms = invocation.getArgument(0)
             null
         }.whenever(smsCommunicator).sendSMS(anyOrNull())
+    }
+
+    private fun request() = AuthRequest(
+        Sms("aNumber", "aText"), "Reply with ABC", "ABC",
+        object : SmsAction(false) {
+            override suspend fun run() { actionCalled = true }
+        }, aapsLogger, smsCommunicator, rh, otp, dateUtil, commandQueue
+    )
+
+    @Test fun disabledAuthenticatorRequiresTheSmsChallenge() = runTest {
+        whenever(otp.isEnabled()).thenReturn(false)
+        val request = request()
+        request.action("ABC")
+        assertThat(actionCalled).isTrue()
+        verify(otp, never()).checkOTP(anyOrNull())
+        actionCalled = false
+        request.action("ABC")
+        assertThat(actionCalled).isFalse()
+    }
+
+    @Test fun disabledAuthenticatorRejectsWrongCodeAndCancelsRequest() = runTest {
+        whenever(otp.isEnabled()).thenReturn(false)
+        val request = request()
+        request.action("XYZ")
+        assertThat(actionCalled).isFalse()
+        assertThat(sentSms!!.text).isEqualTo("Wrong code. Command cancelled.")
+        request.action("ABC")
+        assertThat(actionCalled).isFalse()
+        verify(otp, never()).checkOTP(anyOrNull())
+    }
+
+    @Test fun disabledAuthenticatorDoesNotAcceptAnOtpInsteadOfTheSmsCode() = runTest {
+        whenever(otp.isEnabled()).thenReturn(false)
+        val request = request()
+        request.action("123456789")
+        assertThat(actionCalled).isFalse()
+        verify(otp, never()).checkOTP(anyOrNull())
+    }
+
+    @Test fun enabledAuthenticatorDoesNotFallBackToTheSmsCode() = runTest {
+        whenever(otp.checkOTP("ABC")).thenReturn(OneTimePasswordValidationResult.ERROR_WRONG_OTP)
+        request().action("ABC")
+        assertThat(actionCalled).isFalse()
+        verify(otp).checkOTP("ABC")
+    }
+
+    @Test fun enabledAuthenticatorAcceptsAnOtpDifferentFromTheChallengeText() = runTest {
+        whenever(otp.checkOTP("123456789")).thenReturn(OneTimePasswordValidationResult.OK)
+        request().action("123456789")
+        assertThat(actionCalled).isTrue()
+    }
+
+    @Test fun disabledAuthenticatorStillEnforcesConfirmationTimeout() = runTest {
+        whenever(otp.isEnabled()).thenReturn(false)
+        whenever(dateUtil.now()).thenReturn(10_000L)
+        val request = request()
+        whenever(dateUtil.now()).thenReturn(10_000L + Constants.SMS_CONFIRM_TIMEOUT)
+        request.action("ABC")
+        assertThat(actionCalled).isFalse()
     }
 
     @Test fun doTests() = runTest {

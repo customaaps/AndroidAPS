@@ -1273,4 +1273,8 @@
     <string name="units_sec">sec</string>
     <string name="units_years">y</string>
     <string name="prefs_range_title">Range for visualization</string>
+    <string name="cr_short">CR</string>
+    <string name="cr_profile">Profile CR: %1$.1f g/U</string>
+    <string name="cr_used">CR used: %1$.1f g/U</string>
+    <string name="overview_profile_to_used">%1$s: profile %2$s; used %3$s</string>
 </resources>

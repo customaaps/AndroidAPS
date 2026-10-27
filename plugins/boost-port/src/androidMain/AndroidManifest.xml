@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Read-only Health Connect capability for an explicitly invoked, disabled-by-default
+         diagnostic adapter. No WRITE_ permissions or background health access. -->
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <!-- Internal diagnostics page: never exported, no background execution. -->
+    <application>
+        <activity
+            android:name="app.aaps.plugins.boostport.telemetry.BoostOfflineDiagnosticsActivity"
+            android:exported="false"
+            android:label="Boost offline diagnostics" />
+    </application>
+</manifest>

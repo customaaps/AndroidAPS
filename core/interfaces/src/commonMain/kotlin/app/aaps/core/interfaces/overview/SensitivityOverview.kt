@@ -41,5 +41,9 @@ data class SensitivityOverviewData(
     val lines: List<String> = emptyList(),
     val ratio: Double = 1.0,
     val isEnabled: Boolean = true,
-    val hasData: Boolean = false
+    val hasData: Boolean = false,
+    /** Profile baseline is available even when no ISF adjustment was made. */
+    val profileIsf: String = "",
+    val crFrom: String = "",
+    val crTo: String = ""
 )

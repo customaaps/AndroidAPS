@@ -113,4 +113,6 @@
     <string name="autoISF_settings_title">AutoISF settings</string>
     <string name="smb_delivery_settings_title">SMB delivery settings</string>
 
+    <string name="openapsboost">Boost V6</string>
+    <string name="description_boost">Boost V6 APS algorithm.</string>
 </resources>

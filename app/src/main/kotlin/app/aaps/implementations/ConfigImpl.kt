@@ -7,6 +7,8 @@ import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.configuration.InitProgress
 import app.aaps.core.interfaces.maintenance.FileListProvider
+import app.aaps.core.interfaces.sharedPreferences.KeyValueStore
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.AppPlatform
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.di.ExternalOptionsOverride
@@ -32,7 +34,8 @@ import kotlinx.coroutines.flow.update
 @Inject
 class ConfigImpl(
     private val fileListProvider: () -> FileListProvider,
-    private val externalOptionsOverride: ExternalOptionsOverride
+    private val externalOptionsOverride: ExternalOptionsOverride,
+    private val keyValueStore: KeyValueStore
 ) : Config {
 
     override val SUPPORTED_NS_VERSION = 150000 // 15.0.0
@@ -48,6 +51,7 @@ class ConfigImpl(
     override val HEAD = BuildConfig.HEAD
     override val COMMITTED = BuildConfig.COMMITTED.toBoolean()
     override val BUILD_VERSION = BuildConfig.BUILDVERSION
+    override val BUILD_NAME = BuildConfig.BUILD_NAME
     override val REMOTE: String = BuildConfig.REMOTE
     override val BUILD_TYPE: String = BuildConfig.BUILD_TYPE
     override val PLATFORM: String = "Android"
@@ -97,7 +101,12 @@ class ConfigImpl(
     private val enabledOptionsCache = mutableMapOf<ExternalOptions, Boolean>()
 
     override fun isEngineeringModeOrRelease(): Boolean = if (!APS) true else isEngineeringMode() || !isDev()
-    override fun isEngineeringMode(): Boolean = isEnabled(ExternalOptions.ENGINEERING_MODE)
+    // Read the stored flag directly: Preferences.get itself consults
+    // isEngineeringMode, so using that accessor here would recurse.
+    // The preference is live; only the existing external-file lookup is cached.
+    override fun isEngineeringMode(): Boolean =
+        keyValueStore.getBoolean(BooleanKey.EngineeringMode.key, BooleanKey.EngineeringMode.defaultValue) ||
+            isEnabled(ExternalOptions.ENGINEERING_MODE)
     override fun isDev(): Boolean = (VERSION.contains("-") || VERSION.matches(Regex(".*[a-zA-Z]+.*"))) && !VERSION.contains("-beta") && !VERSION.contains("-rc")
     // The override is read first and never cached. The instrumented tests change which options they
     // want between tests, so a cached answer from the first one would stick for the whole run. The file

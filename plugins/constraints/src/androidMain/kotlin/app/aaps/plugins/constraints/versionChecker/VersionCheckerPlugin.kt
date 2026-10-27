@@ -15,6 +15,7 @@ import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.versionChecker.VersionCheckerUtils
 import app.aaps.core.keys.LongComposedKey
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.plugins.constraints.ConstraintsStrings
 import app.aaps.plugins.constraints.versionChecker.keys.VersionCheckerLongKey
@@ -49,6 +50,7 @@ class VersionCheckerPlugin(
 ), PluginConstraints {
 
     override suspend fun applyMaxIOBConstraints(maxIob: Constraint<Double>): Constraint<Double> {
+        if (preferences.get(BooleanKey.DisableUpdatesChecker)) return maxIob
         versionCheckerUtils.triggerCheckVersion()
         val endDate = preferences.get(LongComposedKey.AppExpiration, config.VERSION_NAME)
         return if (endDate != 0L && dateUtil.now() > endDate)

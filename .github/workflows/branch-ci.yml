@@ -203,19 +203,35 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Report build resource limits
+        run: |
+          nproc
+          free -h
+          df -h . "$RUNNER_TEMP"
+          for build_memory_limit in /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do
+            if [ -r "$build_memory_limit" ]; then
+              printf '%s: ' "$build_memory_limit"
+              cat "$build_memory_limit"
+            fi
+          done
+
       - name: Build APKs
         run: |
-              ./gradlew :app:assemble${{ env.BUILD_VARIANT }} :wear:assemble${{ env.BUILD_VARIANT }} \
-              -Dorg.gradle.jvmargs="-Xmx8g -XX:+UseParallelGC -Xss4m" \
-              -Dkotlin.daemon.jvm.options="-Xmx2g" \
-              -Dkotlin.compiler.execution.strategy="in-process" \
-              -Dorg.gradle.daemon=true \
-              -Dorg.gradle.workers.max=8 \
-              -Dorg.gradle.caching=true \
-              -Pandroid.injected.signing.store.file="$RUNNER_TEMP/keystore/keystore.jks" \
-              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
-              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
-              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          # Repeated runner shutdowns have no compiler error in their logs. Keep
+          # the two release builds sequential and bound their peak memory use.
+          # Kotlin's execution strategy is a project property (-P), not -D.
+          build_args=(
+            --no-daemon --max-workers=2 --no-parallel --stacktrace
+            '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+UseParallelGC -Xss4m'
+            -Pkotlin.compiler.execution.strategy=in-process
+            -Dorg.gradle.caching=true
+            "-Pandroid.injected.signing.store.file=$RUNNER_TEMP/keystore/keystore.jks"
+            "-Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD"
+            "-Pandroid.injected.signing.key.alias=$KEY_ALIAS"
+            "-Pandroid.injected.signing.key.password=$KEY_PASSWORD"
+          )
+          ./gradlew ":app:assemble$BUILD_VARIANT" "${build_args[@]}"
+          ./gradlew ":wear:assemble$BUILD_VARIANT" "${build_args[@]}"
 
       - name: Rename APKs with version
         run: |

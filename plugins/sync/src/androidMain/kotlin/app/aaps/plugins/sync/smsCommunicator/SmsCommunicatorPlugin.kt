@@ -104,6 +104,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import org.apache.commons.lang3.Strings
 import org.joda.time.DateTime
+import java.security.SecureRandom
 import java.text.Normalizer
 import java.util.Locale
 import java.util.regex.Pattern
@@ -1036,8 +1037,21 @@ class SmsCommunicatorPlugin(
         return true
     }
 
-    private fun generatePassCode(): String =
-        rh.gs(SyncStrings.smscommunicator_code_from_authenticator_for, otp.name())
+    private val confirmationRandom by lazy { SecureRandom() }
+
+    private fun generatePassCode(): String {
+        if (otp.isEnabled())
+            return rh.gs(SyncStrings.smscommunicator_code_from_authenticator_for, otp.name())
+        // Preserve the source's three-letter SMS challenge, excluding ambiguous I.
+        // A challenge must not be parsed as an existing command (e.g. CAL or SMS).
+        var code: String
+        do {
+            code = buildString {
+                repeat(3) { append(('A'.code + confirmationRandom.nextInt(26)).toChar()) }
+            }.replace('I', 'J')
+        } while (code in commands)
+        return code
+    }
 
     private fun stripAccents(str: String): String {
         var s = str
@@ -1069,6 +1083,7 @@ class SmsCommunicatorPlugin(
         items = listOf(
             StringKey.SmsAllowedNumbers,
             BooleanKey.SmsAllowRemoteCommands,
+            BooleanKey.SmsEnableOtp,
             IntKey.SmsRemoteBolusDistance,
             StringKey.SmsOtpPassword,
             SmsIntentKey.OtpSetup.withCompose(
