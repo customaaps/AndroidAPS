@@ -16,3 +16,5 @@ Narrow screens/large fonts can use a vertical fallback for readability.
 36 selected Android host tests passed, covering age placement and semantics,
 compact status, narrow numeric-zero TBR, percentage conversion and related view
 models. Preview rendering was inspected; no physical-device UI test was run.
+
+Full-debug phone and Wear APKs also assembled successfully; their APK v2 signatures verify.

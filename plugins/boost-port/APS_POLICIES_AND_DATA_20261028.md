@@ -66,3 +66,13 @@ Remaining integration work is listed in [the APS integration checkpoint](APS_INT
 In particular, source native CGM cadence, Health Connect step-history/baseline
 owners, V5 auto-configuration and remaining runtime telemetry/lifecycle coverage
 still precede enabling the APS plugin. Clinical/device validation is not claimed.
+
+## Full-debug Android artifacts
+
+Phone and Wear assembled successfully together in 5m 26s. Both APK v2 signatures
+verify. Phone DEX contains the new recovery, meal, acquisition and permissions
+classes; the four source Boost model assets are byte-identical to the archive.
+The reference test package is absent from phone DEX.
+
+- `app/build/outputs/apk/full/debug/app-full-debug.apk`: 252710305 bytes; SHA-256 `79514175fcb34dfa45f9e070f3f6c11e20219ab6e87e0c53475146a649d166b4`.
+- `wear/build/outputs/apk/full/debug/wear-full-debug.apk`: 73600501 bytes; SHA-256 `e8d1aa8615bfba1076de016d0336cfcaa1cecec978f9ca56b47d43e2e693ace3`.
