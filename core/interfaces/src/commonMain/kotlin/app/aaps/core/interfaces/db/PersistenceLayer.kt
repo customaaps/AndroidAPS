@@ -241,7 +241,11 @@ interface PersistenceLayer {
      * @param type record type because filed is not nullable in class
      * @return List of inserted/updated records
      */
-    suspend fun syncPumpBolus(bolus: BS, type: BS.Type?, updateExistingTimestamp: Boolean = true): TransactionResult<BS>
+    suspend fun syncPumpBolus(bolus: BS, type: BS.Type?): TransactionResult<BS> =
+        syncPumpBolus(bolus, type, updateExistingTimestamp = true)
+
+    /** Explicit overload keeps the original signature callable from Java. */
+    suspend fun syncPumpBolus(bolus: BS, type: BS.Type?, updateExistingTimestamp: Boolean): TransactionResult<BS>
 
     /**
      * Sync record coming from pump to database based on pump temporary id

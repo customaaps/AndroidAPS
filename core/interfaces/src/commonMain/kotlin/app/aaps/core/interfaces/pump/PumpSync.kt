@@ -217,8 +217,14 @@ interface PumpSync {
      * @param pumpSerial    pump serial number
      * @return true if new record is created
      **/
-    /** When false, keep an existing row's timestamp while still correcting amount/type. */
-    suspend fun syncBolusWithPumpId(timestamp: Long, amount: PumpInsulin, type: BS.Type?, pumpId: Long, pumpType: PumpType, pumpSerial: String, updateExistingTimestamp: Boolean = true): Boolean
+    suspend fun syncBolusWithPumpId(timestamp: Long, amount: PumpInsulin, type: BS.Type?, pumpId: Long, pumpType: PumpType, pumpSerial: String): Boolean =
+        syncBolusWithPumpId(timestamp, amount, type, pumpId, pumpType, pumpSerial, updateExistingTimestamp = true)
+
+    /**
+     * When false, keep an existing row's timestamp while still correcting amount/type.
+     * Keep the original overload above: Java callers cannot use Kotlin default arguments.
+     */
+    suspend fun syncBolusWithPumpId(timestamp: Long, amount: PumpInsulin, type: BS.Type?, pumpId: Long, pumpType: PumpType, pumpSerial: String, updateExistingTimestamp: Boolean): Boolean
 
     /**
      * Synchronization of carbs

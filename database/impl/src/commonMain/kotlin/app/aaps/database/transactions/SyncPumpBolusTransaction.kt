@@ -8,8 +8,11 @@ import app.aaps.database.entities.Bolus
 class SyncPumpBolusTransaction(
     private val bolus: Bolus,
     private val bolusType: Bolus.Type?, // extra parameter because field is not nullable in Bolus.class
-    private val updateExistingTimestamp: Boolean = true
+    private val updateExistingTimestamp: Boolean
 ) : Transaction<SyncPumpBolusTransaction.TransactionResult>() {
+
+    /** Retain the original two-argument constructor for Java as well as Kotlin callers. */
+    constructor(bolus: Bolus, bolusType: Bolus.Type?) : this(bolus, bolusType, true)
 
     override suspend fun run(): TransactionResult {
         bolus.interfaceIDs.pumpId ?: bolus.interfaceIDs.pumpType ?: bolus.interfaceIDs.pumpSerial ?: throw IllegalStateException("Some pump ID is null")
