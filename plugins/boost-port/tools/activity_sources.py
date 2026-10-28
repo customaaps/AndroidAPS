@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Mechanically port the source activity/sleep/learning arithmetic and retain a JVM oracle."""
 import argparse
+import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -9,9 +10,30 @@ PORT = ROOT / 'src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/activity'
 PACKAGE = 'app.aaps.plugins.aps.openAPSBoost.activity'
 REFERENCE = 'app.aaps.plugins.boostport.reference.activity'
 NAMES = ('HrActivityCalculator', 'SleepStateDetector', 'SleepHistoryTracker', 'DailyStepHistoryTracker', 'MealTimeLearner', 'WearStepSource')
+CURRENT_SLEEP = ROOT / 'port-source/6.2.0'
+# Exact upstream blobs at tim2000s/Boost-in-AAPS_3.4:3f75d6a3; the original archive stays frozen.
+SLEEP_BLOBS = {
+    'SleepStateDetector.kt.source': '415f3fbba53e0f68ae2056ccd0ea40cf22acc7e1',
+    'OpenAPSBoostPlugin.kt.source': '85b34774c353c652dea091ec26cb7586eadf5045',
+    'SleepLieInWakeTest.kt.source': '4dd15130da14b22ee3a9fd1519c02a0320d6b466',
+}
+
+def current_sleep_source():
+    for filename, expected in SLEEP_BLOBS.items():
+        raw = (CURRENT_SLEEP / filename).read_bytes()
+        actual = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+        if actual != expected:
+            raise ValueError('Upstream sleep blob differs: ' + filename)
+    return (CURRENT_SLEEP / 'SleepStateDetector.kt.source').read_text()
+
+def sleep_wake_test():
+    text = (CURRENT_SLEEP / 'SleepLieInWakeTest.kt.source').read_text()
+    text = text.replace('package app.aaps.plugins.aps.openAPSBoost', 'package app.aaps.plugins.boostport.activity', 1)
+    text = text.replace('app.aaps.plugins.aps.openAPSBoost.SleepStateDetector', PACKAGE + '.SleepStateDetector')
+    return text.replace('import app.aaps.core.data.model.HR', 'import app.aaps.core.data.model.HR\nimport ' + PACKAGE + '.SleepStateDetector', 1)
 
 def transform(name, reference=False):
-    text = (ARCHIVE / (name + '.kt.source')).read_text()
+    text = current_sleep_source() if name == 'SleepStateDetector' else (ARCHIVE / (name + '.kt.source')).read_text()
     package = REFERENCE if reference else PACKAGE
     text = text.replace('package app.aaps.plugins.aps.openAPSBoost', 'package ' + package, 1)
     text = text.replace('object ' + name + ' {', 'internal object ' + name + ' {', 1)
@@ -62,6 +84,8 @@ def preparation(reference=False):
     body = body.replace('StepService.feedState() == StepService.FeedState.LIVE', 'snapshot.phoneFeedLive')
     body = body.replace('dateUtil.now()', 'now')
     body = body.replace('sleepStateCached', 'snapshot.sleep')
+    body = body.replace("snapshot.sleep is last\n        // cycle's state (this cycle's is evaluated later); a one-cycle (~5 min) lag is acceptable.",
+                        "snapshot.sleep is the current\n        // cycle's state, evaluated before this activity preparation.")
     body = body.replace('lastSleepBoundaryExitMs', 'snapshot.lastSleepBoundaryExitMs')
     body = body.replace('hrLearnedDaytimeBpmCached', 'snapshot.learnedDaytimeHrBpm')
     body = body.replace('preferences.get(IntKey.ApsBoostSleepHysteresisMin)', 'settings.sleepHysteresisMin')
@@ -95,7 +119,7 @@ import app.aaps.plugins.aps.openAPSBoost.activity.BoostActivitySettings
 import app.aaps.plugins.aps.openAPSBoost.activity.BoostActivitySnapshot
 import kotlinx.coroutines.CancellationException
 
-/** Complete source activity preparation; services and previous-cycle state are explicit. */
+/** Complete source activity preparation; services and the captured cycle state are explicit. */
 internal class BoostActivityPreparation(
     private val settings: BoostActivitySettings,
     private val snapshot: BoostActivitySnapshot,
@@ -131,6 +155,11 @@ def main():
             out = args.reference_output / Path(REFERENCE.replace('.', '/'))
             out.mkdir(parents=True, exist_ok=True)
             (out / (name + '.kt')).write_text(transform(name, reference=True))
+    wake_test = ROOT / 'src/jvmTest/kotlin/app/aaps/plugins/boostport/activity/SleepLieInWakeTest.kt'
+    if args.write_port:
+        wake_test.write_text(sleep_wake_test())
+    elif wake_test.read_text() != sleep_wake_test():
+        raise ValueError('Upstream lie-in wake regressions diverge')
     if args.reference_output:
         text = (ARCHIVE / 'StepSourceResolver.kt.source').read_text().replace(
             'package app.aaps.plugins.aps.openAPSBoost', 'package ' + REFERENCE, 1)

@@ -184,7 +184,13 @@ internal object SleepStateDetector {
         // the last WAKE_STEP_LOOKBACK_MIN (+1 anchor just older, so the first in-window increment
         // counts), and the count of consecutive cycles with avgHr above the wake floor.
         var stepSamples: MutableList<StepSample> = mutableListOf(),
-        var hrHighStreak: Int = 0
+        var hrHighStreak: Int = 0,
+        // 2026-10-15: the phone's own stepsToday, kept as a separate series. Growth is measured on
+        // each series and the larger taken. Taking growth of max(watch, phone) instead hid every
+        // watch step whenever the phone's day total (topped up from Health Connect) was the larger:
+        // on 2026-10-15 the watch logged 77 steps by 08:43 and the detector counted none until the
+        // phone itself moved at 08:58. Empty when the host passes no phone series.
+        var phoneStepSamples: MutableList<StepSample> = mutableListOf()
     ) {
         fun serialize(): String =
             JSONObject()
@@ -198,6 +204,9 @@ internal object SleepStateDetector {
                     for (s in stepSamples) arr.put(JSONArray().put(s.tMs).put(s.steps))
                 })
                 .put("hrHighStreak", hrHighStreak)
+                .put("phoneStepSamples", JSONArray().also { arr ->
+                    for (s in phoneStepSamples) arr.put(JSONArray().put(s.tMs).put(s.steps))
+                })
                 .toString()
 
         companion object {
@@ -205,13 +214,17 @@ internal object SleepStateDetector {
                 if (raw.isBlank()) return State()
                 return try {
                     val j = JSONObject(raw)
-                    val samples = mutableListOf<StepSample>()
-                    j.optJSONArray("stepSamples")?.let { arr ->
-                        for (i in 0 until arr.length()) {
-                            val p = arr.getJSONArray(i)
-                            samples.add(StepSample(p.getLong(0), p.getInt(1)))
+                    fun readSamples(key: String): MutableList<StepSample> {
+                        val out = mutableListOf<StepSample>()
+                        j.optJSONArray(key)?.let { arr ->
+                            for (i in 0 until arr.length()) {
+                                val p = arr.getJSONArray(i)
+                                out.add(StepSample(p.getLong(0), p.getInt(1)))
+                            }
                         }
+                        return out
                     }
+                    val samples = readSamples("stepSamples")
                     State(
                         state = SleepState.valueOf(j.optString("state", "AWAKE")),
                         sleepCandidateSinceMs = j.optLong("sleepCandidateSinceMs", -1L).takeIf { it > 0 },
@@ -220,7 +233,8 @@ internal object SleepStateDetector {
                         lastFreshHrSampleMs = j.optLong("lastFreshHrSampleMs", 0L),
                         sleepEntryReason = j.optString("sleepEntryReason", "").takeIf { it.isNotEmpty() },
                         stepSamples = samples,
-                        hrHighStreak = j.optInt("hrHighStreak", 0)
+                        hrHighStreak = j.optInt("hrHighStreak", 0),
+                        phoneStepSamples = readSamples("phoneStepSamples")
                     )
                 } catch (e: Exception) {
                     State()
@@ -241,7 +255,12 @@ internal object SleepStateDetector {
         // its wake time ONLY on genuine wakes ("hr_steps", "resume") and ignore "boundary" (the
         // hard morning-exit at the night-window end) — otherwise the exit feeds its own learned
         // wake and the window ratchets earlier every night (the 2026-06-25 collapse).
-        val wakeReason: String? = null
+        val wakeReason: String? = null,
+        // 2026-10-15: the step growth over the wake lookback on each series, and whether this cycle
+        // fell in the lie-in, so the host can log why a wake did or did not happen (sleepDbg=).
+        val stepsLbWatch: Int = 0,
+        val stepsLbPhone: Int = 0,
+        val inLieIn: Boolean = false
     )
 
     /**
@@ -302,7 +321,13 @@ internal object SleepStateDetector {
          * list because Inputs is constructed positionally and inserting mid-list silently
          * rebinds arguments. (2026-08-01)
          */
-        val cycleSpacingMinutes: Double? = null
+        val cycleSpacingMinutes: Double? = null,
+        /**
+         * The phone's own day total, kept apart from [stepsToday] (the watch's, or the combined total
+         * on hosts that have one source). -1 when the host does not supply it. LAST for the same
+         * positional-construction reason as [cycleSpacingMinutes]. (2026-10-15)
+         */
+        val stepsTodayPhone: Int = -1
     )
 
     /**
@@ -336,7 +361,8 @@ internal object SleepStateDetector {
             minuteInWrappedRange(inputs.minuteOfDay, inputs.nightEndMin, lieInEnd)
 
         // deep-copy the step-sample list so evaluate() stays pure over prev (data-class copy is shallow)
-        var newState = prev.copy(stepSamples = prev.stepSamples.toMutableList())
+        var newState = prev.copy(stepSamples = prev.stepSamples.toMutableList(),
+                                 phoneStepSamples = prev.phoneStepSamples.toMutableList())
         var transitioned = false
         var wakeReason: String? = null
 
@@ -369,7 +395,11 @@ internal object SleepStateDetector {
         // the local-midnight stepsToday reset never yields negative/false deltas). HR sustain streak:
         // consecutive cycles with avgHr above the wake floor; any miss (null or low) resets it.
         if (inputs.stepsToday >= 0) recordStepSample(newState.stepSamples, inputs.nowMs, inputs.stepsToday)
-        val stepsInLookback = stepGrowth(newState.stepSamples, inputs.nowMs, WAKE_STEP_LOOKBACK_MIN)
+        if (inputs.stepsTodayPhone >= 0) recordStepSample(newState.phoneStepSamples, inputs.nowMs, inputs.stepsTodayPhone)
+        // Growth on each series, larger taken: a step on either device counts as soon as it lands.
+        val stepsLbWatch = stepGrowth(newState.stepSamples, inputs.nowMs, WAKE_STEP_LOOKBACK_MIN)
+        val stepsLbPhone = stepGrowth(newState.phoneStepSamples, inputs.nowMs, WAKE_STEP_LOOKBACK_MIN)
+        val stepsInLookback = maxOf(stepsLbWatch, stepsLbPhone)
         // Unified strong-steps wake threshold (the user's ApsBoostSleepInSteps; constant fallback when the
         // merge is off). Hoisted here so BOTH the PRE_SLEEP activity-escape and the SLEEPING steps-alone
         // wake read the one value.
@@ -386,7 +416,7 @@ internal object SleepStateDetector {
             .append(" inOuter=$inOuterWindow inPreSleep=$inPreSleep")
             .append(" drought=${if (droughtMinutes == Int.MAX_VALUE) "∞" else "${droughtMinutes}m"}")
             .append(" freshN15=$freshSamplesInLast15Min")
-            .append(" stepsLB=$stepsInLookback hrStreak=${newState.hrHighStreak}")
+            .append(" stepsLB=$stepsInLookback(w$stepsLbWatch,p$stepsLbPhone) hrStreak=${newState.hrHighStreak} lieIn=$inLieIn")
 
         // 2026-06-05 / 2026-07-08: drought-qualified candidacy. When the HR feed is UNRELIABLE
         // (dead OR intermittent — freshSamplesInLast15Min below the reliable floor) AND drought is
@@ -440,7 +470,8 @@ internal object SleepStateDetector {
                             newState = State(state = SleepState.SLEEPING, enteredAtMs = inputs.nowMs,
                                              lastFreshHrSampleMs = newState.lastFreshHrSampleMs,
                                              sleepEntryReason = when { hrQualifies -> "hr"; avgHr == null -> "drought"; else -> "time" },
-                                             stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak)
+                                             stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak,
+                                     phoneStepSamples = newState.phoneStepSamples)
                             transitioned = true
                             debug.append(" | →SLEEPING (held ${heldMin}m${if (droughtQualifies && !hrQualifies) " — drought" else ""})")
                         } else {
@@ -455,7 +486,8 @@ internal object SleepStateDetector {
                 if (!transitioned && inPreSleep) {
                     newState = State(state = SleepState.PRE_SLEEP, enteredAtMs = inputs.nowMs,
                                      lastFreshHrSampleMs = newState.lastFreshHrSampleMs,
-                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak)
+                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak,
+                                     phoneStepSamples = newState.phoneStepSamples)
                     transitioned = true
                     debug.append(" | →PRE_SLEEP (time)")
                 }
@@ -471,7 +503,8 @@ internal object SleepStateDetector {
                 if (stepsInLookback >= strongStepsThreshold) {
                     newState = State(state = SleepState.AWAKE, enteredAtMs = inputs.nowMs,
                                      lastFreshHrSampleMs = newState.lastFreshHrSampleMs,
-                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak)
+                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak,
+                                     phoneStepSamples = newState.phoneStepSamples)
                     transitioned = true
                     debug.append(" | →AWAKE (activity ${stepsInLookback} steps/${WAKE_STEP_LOOKBACK_MIN}m ≥ $strongStepsThreshold)")
                 }
@@ -479,7 +512,8 @@ internal object SleepStateDetector {
                 else if (!inOuterWindow && !inPreSleep) {
                     newState = State(state = SleepState.AWAKE, enteredAtMs = inputs.nowMs,
                                      lastFreshHrSampleMs = newState.lastFreshHrSampleMs,
-                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak)
+                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak,
+                                     phoneStepSamples = newState.phoneStepSamples)
                     transitioned = true
                     debug.append(" | →AWAKE (left window without sleeping)")
                 } else if (anyQualifies) {
@@ -492,7 +526,8 @@ internal object SleepStateDetector {
                             newState = State(state = SleepState.SLEEPING, enteredAtMs = inputs.nowMs,
                                              lastFreshHrSampleMs = newState.lastFreshHrSampleMs,
                                              sleepEntryReason = when { hrQualifies -> "hr"; avgHr == null -> "drought"; else -> "time" },
-                                             stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak)
+                                             stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak,
+                                     phoneStepSamples = newState.phoneStepSamples)
                             transitioned = true
                             debug.append(" | →SLEEPING (held ${heldMin}m${if (droughtQualifies && !hrQualifies) " — drought" else ""})")
                         } else {
@@ -512,7 +547,8 @@ internal object SleepStateDetector {
                 if (!inHoldWindow) {
                     newState = State(state = SleepState.AWAKE, enteredAtMs = inputs.nowMs,
                                      lastFreshHrSampleMs = newState.lastFreshHrSampleMs,
-                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak)
+                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak,
+                                     phoneStepSamples = newState.phoneStepSamples)
                     transitioned = true
                     wakeReason = "boundary"   // hard night-window exit — NOT a genuine wake; excluded from learning
                     debug.append(" | →AWAKE (outer window exit)")
@@ -522,7 +558,8 @@ internal object SleepStateDetector {
                     // and is strongly correlated with wake on batched-HR platforms.
                     newState = State(state = SleepState.AWAKE, enteredAtMs = inputs.nowMs,
                                      lastFreshHrSampleMs = newState.lastFreshHrSampleMs,
-                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak)
+                                     stepSamples = newState.stepSamples, hrHighStreak = newState.hrHighStreak,
+                                     phoneStepSamples = newState.phoneStepSamples)
                     transitioned = true
                     wakeReason = "resume"   // genuine wake signal
                     debug.append(" | →AWAKE (transmission resumed — ${freshSamplesInLast15Min} fresh after ${priorDroughtMinutes}m drought)")
@@ -544,7 +581,10 @@ internal object SleepStateDetector {
                     val stepsConfirmWake = inputs.stepsLast15Min >= 100 || stepsInLookback >= WAKE_STEP_THRESHOLD
                     val hrAboveWakeFloor = avgHr != null && avgHr > wakeFloor &&
                         newState.hrHighStreak >= wakeHrSustainCycles(inputs.cycleSpacingMinutes)
-                    val gentleWake = stepsConfirmWake && hrAboveWakeFloor && nearScheduledWake
+                    // 2026-10-15: trusted through the lie-in too. The lie-in follows the end of sleep,
+                    // configured or learned, and a detected wake must end it; before this the HR rule
+                    // stopped at the (learned) scheduled wake and only steps-alone could end a lie-in.
+                    val gentleWake = stepsConfirmWake && hrAboveWakeFloor && (nearScheduledWake || inLieIn)
                     val strongStepsWake = stepsInLookback >= strongStepsThreshold && (droughtEstablished || inLieIn)
                     if (gentleWake || strongStepsWake) {
                         if (newState.wakeCandidateSinceMs == null) {
@@ -557,7 +597,7 @@ internal object SleepStateDetector {
                                                  lastFreshHrSampleMs = newState.lastFreshHrSampleMs)
                                 transitioned = true
                                 wakeReason = if (gentleWake) "hr_steps" else "steps"   // both genuine wakes
-                                debug.append(" | →AWAKE (held ${heldMin}m — ${if (gentleWake) "HR+steps" else "steps-only (HR unreliable)"})")
+                                debug.append(" | →AWAKE (held ${heldMin}m — ${if (gentleWake) "HR+steps" else "steps-only (HR unreliable or lie-in)"})")
                             } else {
                                 debug.append(" | wake-candidate-held=${heldMin}m")
                             }
@@ -571,7 +611,8 @@ internal object SleepStateDetector {
         }
 
         aapsLogger?.debug(LTag.APS, "SleepStateDetector: ${newState.state} ${if (transitioned) "[T]" else "" } $debug")
-        return Result(newState, transitioned, debug.toString(), wakeReason)
+        return Result(newState, transitioned, debug.toString(), wakeReason,
+                      stepsLbWatch = stepsLbWatch, stepsLbPhone = stepsLbPhone, inLieIn = inLieIn)
     }
 
     /**

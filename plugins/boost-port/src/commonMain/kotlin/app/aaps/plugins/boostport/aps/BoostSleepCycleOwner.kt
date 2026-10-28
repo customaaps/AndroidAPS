@@ -13,8 +13,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 
 /**
- * Sequential, end-of-calculation sleep/history owner from source invoke(),
- * lines 2075–2195. Current activity/V5 use the previous cycle's snapshot.
+ * Sequential sleep/history evaluation before activity, night policy and V5.
+ * The meal likelihood is from the previous completed calculation, as in source 6.2.
  * This owner is confined to the calculator mutex and its invalidatable store.
  */
 internal class BoostSleepCycleOwner(
@@ -46,6 +46,7 @@ internal class BoostSleepCycleOwner(
         val stepsToday: Int,
         /** Same captured query used by the detector; never reread for telemetry. */
         val heartRates: List<HR>,
+        val stepsLast15Min: Int = 0,
     )
 
     private var state: SleepStateDetector.State? = null
@@ -63,11 +64,12 @@ internal class BoostSleepCycleOwner(
             state = SleepStateDetector.State.deserialize(sleep)
             history = SleepHistoryTracker.History.deserialize(past)
         }
-        return Snapshot(checkNotNull(state).copy(stepSamples = checkNotNull(state).stepSamples.toMutableList()),
+        return Snapshot(checkNotNull(state).copy(stepSamples = checkNotNull(state).stepSamples.toMutableList(),
+            phoneStepSamples = checkNotNull(state).phoneStepSamples.toMutableList()),
             lastBoundaryExitMs, learnedDaytimeHrBpm)
     }
 
-    suspend fun completeCycle(
+    suspend fun evaluateCycle(
         nowMs: Long,
         offsetMinutes: Int,
         settings: Settings,
@@ -94,17 +96,24 @@ internal class BoostSleepCycleOwner(
         val dayStart = DailyStepHistoryTracker.dayIndex(nowMs, offsetMs) * 86_400_000L - offsetMs
         // A failed read is not an empty day. Exceptions/cancellation reach the APS boundary.
         val rows = persistence.getStepsCountFromTimeToTime(dayStart, nowMs)
-        val stepsToday = maxOf(WearStepSource.stepsToday(rows, dayStart, nowMs), phoneStepsToday)
+        val watchStepsToday = WearStepSource.stepsToday(rows, dayStart, nowMs)
+        // Keep cumulative series separate: max(phone, watch) can hide every watch increment.
+        // The latest timestamp can have one SC row per window in the target sampler.
+        val latestStepTime = rows.filter { it.timestamp >= nowMs - 15 * 60_000L }.maxOfOrNull { it.timestamp }
+        val watchSteps15 = latestStepTime?.let { at -> rows.filter { it.timestamp == at }.maxOf { it.steps15min } } ?: 0
+        val combinedSteps15 = maxOf(stepsLast15Min, watchSteps15)
+        val stepsToday = maxOf(watchStepsToday, phoneStepsToday)
         val minute = (((nowMs / 60_000L + offsetMinutes) % 1440 + 1440) % 1440).toInt()
         val evaluated = SleepStateDetector.evaluate(previous, SleepStateDetector.Inputs(
             nowMs = nowMs, minuteOfDay = minute, hrReadings = recentHr,
             hrWindowMinutes = 5, hrResting = learned.restingHrBpm ?: settings.restingHr,
-            stepsLast15Min = stepsLast15Min, mlMealLikely = mealLikelihood,
+            stepsLast15Min = combinedSteps15, mlMealLikely = mealLikelihood,
             nightStartMin = start, nightEndMin = end, preSleepLeadMin = settings.preSleepLeadMin,
             minSleepHysteresisMin = settings.sleepHysteresisMin,
             wakeHrHysteresisMin = settings.wakeHysteresisMin,
-            stepsToday = stepsToday, sleepInStepsThreshold = settings.sleepInSteps,
+            stepsToday = watchStepsToday, sleepInStepsThreshold = settings.sleepInSteps,
             sleepInWindowMin = settings.sleepInWindowMin, cycleSpacingMinutes = cycleSpacingMinutes,
+            stepsTodayPhone = phoneStepsToday,
         ))
         var nextHistory = past
         if (evaluated.transitioned) {
@@ -135,7 +144,7 @@ internal class BoostSleepCycleOwner(
         history = nextHistory
         if (evaluated.wakeReason == "boundary") lastBoundaryExitMs = nowMs
         learnedDaytimeHrBpm = learned.daytimeHrBpm
-        return Update(evaluated, learned, start, end, stepsToday, recentHr.toList())
+        return Update(evaluated, learned, start, end, stepsToday, recentHr.toList(), combinedSteps15)
     }
 
     private suspend fun heartRates(startMs: Long, endMs: Long) =

@@ -61,6 +61,7 @@ class BoostApsCalculatorFactoryImpl(
         private val needOwner = BoostInsulinNeedOwner(storage, persistence, tdd, dateUtil::beginOfDay)
         private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
+        private var previousMealLikelihood: Double? = null
         private val activityLease = activitySource?.open()
         private val clock = object : V1ReplayClock {
             override fun hourAt(timestampMs: Long): Int = (localMinute(timestampMs) / 60).toInt()
@@ -104,8 +105,12 @@ class BoostApsCalculatorFactoryImpl(
                 val phone = activityLease?.snapshot(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs))
                     ?: BoostApsActivitySource.Snapshot()
                 require(listOf(phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.stepsToday).all { it >= 0 })
-                val previousSleep = sleepOwner.snapshot()
-                val sleep = previousSleep.state
+                // This cycle's HR/steps determine sleep before any night/activity/V5 decision.
+                // Meal evidence comes from the last completed model call, never from the future.
+                val sleepUpdate = sleepOwner.evaluateCycle(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs),
+                    settings.sleep(), phone.steps15, previousMealLikelihood, input.cycleSpacingMinutes, phone.stepsToday)
+                val currentSleep = sleepOwner.snapshot()
+                val sleep = currentSleep.state
                 // Source MidnightUtils uses a 24-hour wall-clock day even on
                 // DST changes, rather than the UTC instant of civil midnight.
                 val offsetMs = dateUtil.getTimeZoneOffsetMinutes(input.atMs) * 60_000L
@@ -118,7 +123,7 @@ class BoostApsCalculatorFactoryImpl(
                 val activitySettings = settings.activity()
                 val snapshot = BoostActivitySnapshot(sourceDayStartMs,
                     "${clock.hourAt(input.atMs)}:${clock.minuteAt(input.atMs).toString().padStart(2, '0')}",
-                    phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.phoneFeedLive, sleep, previousSleep.lastBoundaryExitMs, previousSleep.learnedDaytimeHrBpm)
+                    phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.phoneFeedLive, sleep, currentSleep.lastBoundaryExitMs, currentSleep.learnedDaytimeHrBpm)
                 val context = BoostProfileContext(input.atMs, input.glucose.glucose, input.profilePercent,
                     input.profile.target_bg, input.profile.min_bg, input.profile.max_bg, input.profile.target_bg,
                     input.insulinPeak, false, settings.d(BoostApsSettingKeys.ApsBoostBolus),
@@ -190,11 +195,8 @@ class BoostApsCalculatorFactoryImpl(
                         mealDecision?.reason?.let { result.reason.append(it) }
                         mealOwner.completeCycle(input.atMs, calculated.frame.v5?.mealSessionStarted == true,
                             checkNotNull(mealDecision).inNightWindow, sleep.state)
-                        // Source evaluates sleep after V1/V5/V6: this result's meal
-                        // model feeds the next cycle, never the current activity/V5.
-                        val sleepUpdate = sleepOwner.completeCycle(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs),
-                            settings.sleep(), cycle.profile.recentSteps15Minutes,
-                            calculated.frame.v1.mlMealLikely, input.cycleSpacingMinutes, phone.stepsToday)
+                        previousMealLikelihood = calculated.frame.v1.mlMealLikely
+                        result.reason.append(BoostSleepTelemetry.debugTag(sleepUpdate, input.atMs))
                         val hrSource = BoostSleepTelemetry.write(result, sleepUpdate, input.atMs)
                         val dark = hrDark.onCycle(hrSource, input.atMs, clock.hourAt(input.atMs))
                         dark.wentDarkNote?.let { result.reason.append("$it; ") }

@@ -194,22 +194,72 @@ class BoostApsBoundaryTest {
         assertFalse(disk.values.containsKey(BoostApsSettingKeys.Session.key))
     }
 
-    @Test fun calculatorCompletesSleepAfterProducingTheCycleAndRestoresOnNewOwner() {
-        val disk = Disk()
-        val initial = input()
+    @Test fun calculatorEvaluatesSleepBeforeProducingTheCycleAndRestoresOnNewOwner() {
+        val disk = Disk().apply {
+            values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true
+            values[BoostApsSettingKeys.ApsBoostNightModeAutoBySleep.key] = true
+            values[BoostApsSettingKeys.ApsBoostStartTime.key] = "00:00"
+            values[BoostApsSettingKeys.ApsBoostEndTime.key] = "23:59"
+            values[BoostApsSettingKeys.ApsBoostSleepInHours.key] = 0.0
+            values[BoostApsSettingKeys.ApsBoostInactivitySteps.key] = 100
+            values[BoostApsSettingKeys.ApsBoostInactivityPct.key] = 130.0
+        }
+        val activity = object : BoostApsActivitySource {
+            override fun open() = object : BoostApsActivitySource.Lease {
+                override fun snapshot(nowMs: Long, offsetMinutes: Int) = BoostApsActivitySource.Snapshot(phoneFeedLive = true)
+                override fun healthConnect(enabled: Boolean, nowMs: Long, pollMinutes: Int) {}
+                override fun close() {}
+            }
+        }
+        val initial = input(true)
         val nightLead = initial.atMs / 86_400_000L * 86_400_000L + 21 * 3_600_000L
         val glucose = object : GlucoseStatus by initial.glucose { override val date = nightLead }
-        val request = initial.copy(atMs = nightLead, glucose = glucose)
-        val calculated = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk).calculate(request) })
+        val request = initial.copy(atMs = nightLead, glucose = glucose, originalProfileTargetMgDl = 180.0,
+            profile = initial.profile.copy(temptargetSet = false))
+        val calculated = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk, activity = activity).calculate(request) })
         assertEquals("PRE_SLEEP", calculated.result.sleepState)
         assertEquals(nightLead, calculated.result.sleepStateEnteredAtMs)
         assertEquals(0, calculated.result.sleepLearnedSessionCount)
+        assertTrue(calculated.nightModeActive, "this cycle's PRE_SLEEP must suppress SMB before the engine runs")
+        assertFalse(calculated.result.boostActive ?: true)
+        assertEquals(100, calculated.result.boostProfileSwitch)
+        assertEquals(initial.profile.current_basal, calculated.profile.current_basal,
+            "zero steps while entering PRE_SLEEP must not apply the 130% inactivity raise")
+        assertEquals(0.0, calculated.result.units ?: 0.0)
+        assertTrue(calculated.result.reason.toString().contains("sleepDbg="))
         val raw = disk.values[BoostApsSettingKeys.ApsBoostSleepState.key] as String
         assertEquals(app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector.SleepState.PRE_SLEEP,
             app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector.State.deserialize(raw).state)
         assertIs<BoostApsCalculator.Result.Calculated>(immediate {
             calculator(disk).calculate(request.copy(atMs = nightLead + 60_000L))
         })
+    }
+
+    @Test fun wakingByTheClockUpdatesNightAndBoostDecisionsInTheSameCycle() {
+        val initial = input(true)
+        val at = initial.atMs / 86_400_000L * 86_400_000L + 12 * 3_600_000L
+        val disk = Disk().apply {
+            values[BoostApsSettingKeys.ApsBoostSleepState.key] =
+                """{"state":"SLEEPING","enteredAtMs":${at - 6 * 3_600_000L}}"""
+            values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true
+            values[BoostApsSettingKeys.ApsBoostNightModeAutoBySleep.key] = true
+            values[BoostApsSettingKeys.ApsBoostStartTime.key] = "00:00"
+            values[BoostApsSettingKeys.ApsBoostEndTime.key] = "23:59"
+            values[BoostApsSettingKeys.ApsBoostSleepInHours.key] = 0.0
+        }
+        val request = initial.copy(atMs = at, glucose = object : GlucoseStatus by initial.glucose { override val date = at },
+            originalProfileTargetMgDl = 180.0, profile = initial.profile.copy(temptargetSet = false))
+        val owner = calculator(disk)
+        val result = assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(request) })
+        assertEquals("AWAKE", result.result.sleepState)
+        assertFalse(result.nightModeActive)
+        // The existing boundary-exit hold remains active even though the detector has woken.
+        assertFalse(result.result.boostActive ?: true)
+        val afterHold = at + 11 * 60_000L
+        val next = assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(request.copy(
+            atMs = afterHold, glucose = object : GlucoseStatus by initial.glucose { override val date = afterHold })) })
+        assertFalse(next.nightModeActive)
+        assertTrue(next.result.boostActive ?: false)
     }
 
     @Test fun invalidSleepHistoryRejectsBeforeCreatingAnEngineSession() {

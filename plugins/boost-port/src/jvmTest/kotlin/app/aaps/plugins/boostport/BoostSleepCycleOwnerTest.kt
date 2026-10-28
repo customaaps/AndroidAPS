@@ -25,6 +25,10 @@ class BoostSleepCycleOwnerTest {
     private val historyKey = BoostApsSettingKeys.ApsBoostSleepHistory.key
     private val settings = BoostSleepCycleOwner.Settings(1320, 420, 60, 60, 10, 5, 250, 0)
 
+    private fun step(at: Long, five: Int = 0, fifteen: Int = 0) = SC(duration = 300_000L,
+        timestamp = at, steps5min = five, steps10min = 0, steps15min = fifteen,
+        steps30min = 0, steps60min = 0, steps180min = 0, device = "wear")
+
     private class Fixture {
         val stored = mutableMapOf<String, String>()
         val edits = mutableListOf<Set<String>>()
@@ -80,12 +84,12 @@ class BoostSleepCycleOwnerTest {
         return checkNotNull(completed).getOrThrow()
     }
 
-    @Test fun endOfCycleStateIsVisibleOnlyInNextSnapshotAndSavedAtomically() {
+    @Test fun startOfCycleStateIsVisibleImmediatelyAndSavedAtomically() {
         val f = Fixture()
         val owner = f.owner()
         val before = owner.snapshot()
         val now = day + 21 * 3_600_000L
-        val update = immediate { owner.completeCycle(now, 0, settings, 0, null) }
+        val update = immediate { owner.evaluateCycle(now, 0, settings, 0, null) }
         assertEquals(SleepStateDetector.SleepState.AWAKE, before.state.state)
         assertEquals(SleepStateDetector.SleepState.PRE_SLEEP, update.evaluation.newState.state)
         assertEquals(SleepStateDetector.SleepState.PRE_SLEEP, owner.snapshot().state.state)
@@ -100,14 +104,14 @@ class BoostSleepCycleOwnerTest {
         for (n in 0..2) {
             val at = now + n * 5 * 60_000L
             f.hrs = (1..5).map { HR(duration = 60_000L, timestamp = at - it * 60_000L, beatsPerMinute = 58.0, device = "watch") }
-            immediate { owner.completeCycle(at, 0, settings, 0, 0.1) }
+            immediate { owner.evaluateCycle(at, 0, settings, 0, 0.1) }
         }
         assertEquals(SleepStateDetector.SleepState.SLEEPING, owner.snapshot().state.state)
         assertEquals(setOf(stateKey, historyKey), f.edits.last())
         val open = SleepHistoryTracker.History.deserialize(f.stored.getValue(historyKey))
         assertNotNull(open.openSleepStartMs)
         val wakeAt = day + 86_400_000L + 7 * 3_600_000L
-        val wake = immediate { owner.completeCycle(wakeAt, 0, settings, 0, null) }
+        val wake = immediate { owner.evaluateCycle(wakeAt, 0, settings, 0, null) }
         assertEquals("boundary", wake.evaluation.wakeReason)
         assertEquals(wakeAt, owner.snapshot().lastBoundaryExitMs)
         val closed = SleepHistoryTracker.History.deserialize(f.stored.getValue(historyKey))
@@ -117,7 +121,7 @@ class BoostSleepCycleOwnerTest {
         BoostSleepTelemetry.write(result, wake, wakeAt)
         assertEquals("AWAKE", result.sleepState)
         assertEquals(0, result.sleepLearnedSessionCount, "source uploads the aggregate from before this wake")
-        val next = immediate { owner.completeCycle(wakeAt + 5 * 60_000L, 0, settings, 0, null) }
+        val next = immediate { owner.evaluateCycle(wakeAt + 5 * 60_000L, 0, settings, 0, null) }
         assertEquals(1, next.learned.sessionCount)
         assertEquals("boundary", closed.sessions.single().wakeReason)
         assertNull(SleepHistoryTracker.aggregate(closed, 0L).wakeMinAvg)
@@ -128,7 +132,7 @@ class BoostSleepCycleOwnerTest {
         val at = day + 12 * 3_600_000L
         val row = HR(duration = 60_000L, timestamp = at - 60_000L, beatsPerMinute = 65.0, device = "Garmin")
         f.hrs = listOf(row)
-        val update = immediate { f.owner().completeCycle(at, 0, settings, 0, null) }
+        val update = immediate { f.owner().evaluateCycle(at, 0, settings, 0, null) }
         val queries = f.queries.toList()
         row.beatsPerMinute = 99.0
         row.isValid = false
@@ -156,7 +160,7 @@ class BoostSleepCycleOwnerTest {
             val expected = Source.evaluate(source, Source.Inputs(at, minute, f.hrs,
                 hrResting = 60, stepsLast15Min = steps, mlMealLikely = 0.1,
                 nightStartMin = 1320, nightEndMin = 420, stepsToday = 0,
-                sleepInStepsThreshold = 250, sleepInWindowMin = 0))
+                sleepInStepsThreshold = 250, sleepInWindowMin = 0, stepsTodayPhone = 0))
             source = expected.newState
             if (expected.transitioned) past = when {
                 previous != Source.SleepState.SLEEPING && source.state == Source.SleepState.SLEEPING ->
@@ -165,7 +169,7 @@ class BoostSleepCycleOwnerTest {
                     SourceHistory.onWake(past, at, wakeReason = expected.wakeReason)
                 else -> past
             }
-            val actual = immediate { owner.completeCycle(at, 0, settings, steps, 0.1) }
+            val actual = immediate { owner.evaluateCycle(at, 0, settings, steps, 0.1) }
             assertEquals(expected.toString(), actual.evaluation.toString(), "cycle $n")
             assertEquals(past.sessions.map { it.wakeReason },
                 SleepHistoryTracker.History.deserialize(f.stored[historyKey] ?: "").sessions.map { it.wakeReason })
@@ -188,7 +192,7 @@ class BoostSleepCycleOwnerTest {
     @Test fun capturedTimezoneAnchorsTheSameLocalDayForAllReads() {
         val f = Fixture()
         val now = day + 22 * 3_600_000L
-        immediate { f.owner().completeCycle(now, 420, settings, 0, null, phoneStepsToday = 500) }
+        immediate { f.owner().evaluateCycle(now, 420, settings, 0, null, phoneStepsToday = 500) }
         assertEquals(Triple("getHeartRatesFromTimeToTime", now - 30 * 60_000L, now), f.queries.first())
         assertEquals(Triple("getStepsCountFromTimeToTime", day + 17 * 3_600_000L, now), f.queries[1])
     }
@@ -205,7 +209,7 @@ class BoostSleepCycleOwnerTest {
         f.hrs = (1..5).map { HR(duration = 60_000L, timestamp = now - it * 60_000L,
             beatsPerMinute = 64.0, device = "watch") }
         val owner = f.owner()
-        val result = immediate { owner.completeCycle(now, 0, settings, 0, 0.1) }
+        val result = immediate { owner.evaluateCycle(now, 0, settings, 0, 0.1) }
         assertEquals(1230, result.effectiveNightStartMin)
         assertEquals(420, result.effectiveNightEndMin)
         assertEquals(50, result.learned.restingHrBpm)
@@ -231,7 +235,7 @@ class BoostSleepCycleOwnerTest {
                 beatsPerMinute = 75.0 + n, device = "watch") } +
             listOf(HR(duration = 60_000L, timestamp = sleepStart + 60_000L,
                 beatsPerMinute = 1.0, device = "invalid", isValid = false))
-        immediate { f.owner().completeCycle(now, 0, settings, 0, null) }
+        immediate { f.owner().evaluateCycle(now, 0, settings, 0, null) }
         val actual = SleepHistoryTracker.History.deserialize(f.stored.getValue(historyKey))
         val expected = SourceHistory.onWake(SourceHistory.History.deserialize(history.serialize()), now,
             sleepHrBpms = (1..25).map { 50.0 + it }, daytimeHrBpms = (1..25).map { 75.0 + it }, wakeReason = "boundary")
@@ -244,7 +248,7 @@ class BoostSleepCycleOwnerTest {
     @Test fun queryFailureAndCancellationAreNotEmptyHistoryAndDoNotWriteState() {
         for (error in listOf(IllegalStateException("read failed"), CancellationException("cancelled"))) {
             val f = Fixture().apply { failQuery = error }
-            val thrown = assertFailsWith<Exception> { immediate { f.owner().completeCycle(day, 0, settings, 0, null) } }
+            val thrown = assertFailsWith<Exception> { immediate { f.owner().evaluateCycle(day, 0, settings, 0, null) } }
             assertSame(error, thrown)
             assertTrue(f.edits.isEmpty())
         }
@@ -254,7 +258,7 @@ class BoostSleepCycleOwnerTest {
         val f = Fixture().apply { failWrite = true }
         val owner = f.owner()
         assertFailsWith<IllegalStateException> {
-            immediate { owner.completeCycle(day + 21 * 3_600_000L, 0, settings, 0, null) }
+            immediate { owner.evaluateCycle(day + 21 * 3_600_000L, 0, settings, 0, null) }
         }
         assertEquals(SleepStateDetector.SleepState.AWAKE, owner.snapshot().state.state)
         assertTrue(f.stored.isEmpty())
@@ -278,6 +282,66 @@ class BoostSleepCycleOwnerTest {
         assertEquals(SleepStateDetector.SleepState.AWAKE, f.owner().snapshot().state.state)
     }
 
+    @Test fun parkedHigherPhoneCounterCannotHideWatchWakeEvidenceInTheRealOwner() {
+        val f = Fixture()
+        val start = day + 503 * 60_000L
+        f.stored[stateKey] = SleepStateDetector.State(state = SleepStateDetector.SleepState.SLEEPING,
+            enteredAtMs = start - 6 * 3_600_000L, lastFreshHrSampleMs = start - 60_000L).serialize()
+        val owner = f.owner()
+        val lieIn = settings.copy(nightStartMin = 1410, nightEndMin = 492, restingHr = 63,
+            sleepInSteps = 75, sleepInWindowMin = 120)
+        var wake: BoostSleepCycleOwner.Update? = null
+        for ((n, increment) in listOf(120, 0, 0, 11, 66, 0, 0).withIndex()) {
+            val at = start + n * 5 * 60_000L
+            f.steps = f.steps + step(at, five = increment)
+            f.hrs = (1..15).map { HR(duration = 60_000L, timestamp = at - it * 60_000L,
+                beatsPerMinute = 64.0, device = "watch") }
+            val update = immediate { owner.evaluateCycle(at, 0, lieIn, 0, null, phoneStepsToday = 900) }
+            if (update.evaluation.wakeReason != null) { wake = update; break }
+        }
+        val actual = assertNotNull(wake)
+        assertEquals("steps", actual.evaluation.wakeReason)
+        assertEquals(77, actual.evaluation.stepsLbWatch)
+        assertEquals(0, actual.evaluation.stepsLbPhone)
+        assertEquals(900, actual.stepsToday)
+        assertEquals(SleepStateDetector.SleepState.AWAKE, owner.snapshot().state.state)
+        assertEquals(SleepStateDetector.SleepState.AWAKE, f.owner().snapshot().state.state)
+    }
+
+    @Test fun sleepUsesAllStepWindowsAtTheLatestTimestampInsteadOfOneSamplerRow() {
+        val f = Fixture()
+        val at = day + 12 * 3_600_000L
+        f.steps = listOf(step(at - 60_000L, fifteen = 900), step(at, five = 3), step(at, fifteen = 140))
+        val update = immediate { f.owner().evaluateCycle(at, 0, settings, 20, null) }
+        assertEquals(140, update.stepsLast15Min)
+        assertEquals(3, update.stepsToday)
+        assertTrue(update.evaluation.debug.contains("steps15=140"))
+    }
+
+    @Test fun snapshotCopiesBothStepSeriesAndLegacyStateWithoutPhoneSeriesStillRestores() {
+        val f = Fixture()
+        f.stored[stateKey] = """{"state":"AWAKE","stepSamples":[[1000,5]]}"""
+        val owner = f.owner()
+        assertTrue(owner.snapshot().state.phoneStepSamples.isEmpty())
+        immediate { owner.evaluateCycle(day + 12 * 3_600_000L, 0, settings, 0, null, phoneStepsToday = 900) }
+        val copy = owner.snapshot().state
+        assertTrue(copy.phoneStepSamples.isNotEmpty())
+        copy.stepSamples.clear()
+        copy.phoneStepSamples.clear()
+        assertTrue(owner.snapshot().state.stepSamples.isNotEmpty())
+        assertTrue(owner.snapshot().state.phoneStepSamples.isNotEmpty())
+    }
+
+    @Test fun failedWriteDoesNotAdvanceEitherStepSeriesDuringASleepTransition() {
+        val f = Fixture().apply { failWrite = true }
+        val owner = f.owner()
+        assertFailsWith<IllegalStateException> {
+            immediate { owner.evaluateCycle(day + 21 * 3_600_000L, 0, settings, 0, null, phoneStepsToday = 900) }
+        }
+        assertTrue(owner.snapshot().state.phoneStepSamples.isEmpty())
+        assertTrue(owner.snapshot().state.stepSamples.isEmpty())
+    }
+
     @Test fun closedStorageOwnerCannotPersistAnOldSleepTransitionAfterImport() {
         val f = Fixture()
         val guarded = BoostOwnerStorage(f.storage)
@@ -286,7 +350,7 @@ class BoostSleepCycleOwnerTest {
         guarded.close()
         f.stored[stateKey] = "imported"
         assertFailsWith<IllegalStateException> {
-            immediate { owner.completeCycle(day + 21 * 3_600_000L, 0, settings, 0, null) }
+            immediate { owner.evaluateCycle(day + 21 * 3_600_000L, 0, settings, 0, null) }
         }
         assertEquals("imported", f.stored[stateKey])
         assertTrue(f.edits.isEmpty())

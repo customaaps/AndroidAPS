@@ -28,12 +28,15 @@ class ActivitySourceParityTest {
                 }
                 val steps = if (sleeping) 0 else 200
                 val today = if (sleeping) 0 else (minute - 360) * 8
+                // Independent totals, including a parked phone larger than the moving watch,
+                // and daily resets. Restart serialization must preserve both series.
+                val phoneToday = if (sleeping) 3000 else 3000 + (minute - 360) * 3
                 val actual = Port.evaluate(port, Port.Inputs(now, minute, hr, hrResting = 60,
                     stepsLast15Min = steps, mlMealLikely = null, nightStartMin = 1320, nightEndMin = 420,
-                    stepsToday = today, sleepInWindowMin = 60, sleepInStepsThreshold = 150))
+                    stepsToday = today, sleepInWindowMin = 60, sleepInStepsThreshold = 150, stepsTodayPhone = phoneToday))
                 val expected = Source.evaluate(source, Source.Inputs(now, minute, hr, hrResting = 60,
                     stepsLast15Min = steps, mlMealLikely = null, nightStartMin = 1320, nightEndMin = 420,
-                    stepsToday = today, sleepInWindowMin = 60, sleepInStepsThreshold = 150))
+                    stepsToday = today, sleepInWindowMin = 60, sleepInStepsThreshold = 150, stepsTodayPhone = phoneToday))
                 assertEquals(expected.toString(), actual.toString(), "cycle $n dead=$deadFeed")
                 port = actual.newState
                 source = expected.newState
@@ -49,6 +52,7 @@ class ActivitySourceParityTest {
     @Test fun historicalJsonUsesOriginalFieldNamesDefaultsAndNullHandling() {
         val inputs = listOf("", "{broken", "{}", "null",
             """{"state":"SLEEPING","enteredAtMs":5000,"stepSamples":[[1000,3],[5000,100]],"sleepCandidateSinceMs":null}""",
+            """{"state":"SLEEPING","phoneStepSamples":[[1000,900],[5000,901]],"hrHighStreak":3}""",
             """{"sessions":[{"sleepStartMs":1000,"wakeMs":2000,"wakeReason":"hr_steps","sleepHrP10":60}],"openSleepStartMs":null}""",
             """{"events":[1000,2000,3000]}""",
             """{"days":[{"d":1,"s":5000,"src":"wear"}]}""",

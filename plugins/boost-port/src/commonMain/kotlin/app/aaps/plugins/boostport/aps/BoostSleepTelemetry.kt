@@ -5,7 +5,7 @@ import app.aaps.core.interfaces.utils.Round
 import app.aaps.plugins.aps.openAPSBoost.HrSourceResolver
 import app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector
 
-/** Source end-of-cycle upload snapshot; no new DB query or effect on the dosing candidate. */
+/** The same start-of-cycle sleep/HR snapshot used by policy; never queries again. */
 internal object BoostSleepTelemetry {
     fun write(result: RT, update: BoostSleepCycleOwner.Update, nowMs: Long): HrSourceResolver.Resolution {
         val state = update.evaluation.newState
@@ -35,8 +35,16 @@ internal object BoostSleepTelemetry {
         return source
     }
 
+    /** Source 6.2 breadcrumb, separate from the RT field writer's unchanged reason contract. */
+    fun debugTag(update: BoostSleepCycleOwner.Update, nowMs: Long): String {
+        val state = update.evaluation.newState
+        val candidate = state.wakeCandidateSinceMs?.let { ((nowMs - it) / 60_000L).toString() } ?: "-"
+        return "sleepDbg=${update.evaluation.stepsLbWatch},${update.evaluation.stepsLbPhone},${update.stepsLast15Min},${state.hrHighStreak},$candidate,${if (update.evaluation.inLieIn) 1 else 0}; "
+    }
+
     private fun rounded(value: Double): Double {
         require(value.isFinite()) { "nonfinite Boost HR telemetry" }
         return Round.roundTo(value, 0.1)
     }
 }
+

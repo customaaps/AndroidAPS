@@ -9,7 +9,7 @@ import app.aaps.plugins.aps.openAPSBoost.activity.BoostActivitySettings
 import app.aaps.plugins.aps.openAPSBoost.activity.BoostActivitySnapshot
 import kotlinx.coroutines.CancellationException
 
-/** Complete source activity preparation; services and previous-cycle state are explicit. */
+/** Complete source activity preparation; services and the captured cycle state are explicit. */
 internal class BoostActivityPreparation(
     private val settings: BoostActivitySettings,
     private val snapshot: BoostActivitySnapshot,
@@ -146,8 +146,8 @@ internal class BoostActivityPreparation(
         // PRE_SLEEP is the wind-down before it, and the user is in bed for both. This covers the
         // CORE NIGHT, which the lie-in window cannot reach — a sleeping user has near-zero steps by
         // definition, so the INACTIVE branch would otherwise read "asleep" as "sedentary" and RAISE
-        // the profile (ApsBoostInactivityPct), adding insulin overnight. snapshot.sleep is last
-        // cycle's state (this cycle's is evaluated later); a one-cycle (~5 min) lag is acceptable.
+        // the profile (ApsBoostInactivityPct), adding insulin overnight. snapshot.sleep is the current
+        // cycle's state, evaluated before this activity preparation.
         val boundaryHold = sleepBoundaryHoldActive(
             now, snapshot.lastSleepBoundaryExitMs, settings.sleepHysteresisMin
         )
@@ -409,3 +409,4 @@ internal fun boostExerciseStepsMet(
 
 internal fun boostNightGateOpen(inNightWindow: Boolean, detectorAsleep: Boolean): Boolean =
             !inNightWindow && !detectorAsleep
+

@@ -111,4 +111,13 @@ class BoostSleepTelemetryTest {
         assertNull(result.hrBpmLatest)
         assertEquals("""{"runningDynamicIsf":false,"sensitivityRatio":1.2,"reason":""}""", result.serialize())
     }
+
+    @Test fun wakeBreadcrumbReportsBothSeriesAndTheCapturedHysteresisWithoutChangingTheRt() {
+        val state = SleepStateDetector.State(wakeCandidateSinceMs = now - 5 * 60_000L, hrHighStreak = 3)
+        val captured = update(emptyList(), state).copy(evaluation = SleepStateDetector.Result(
+            state, false, "test", stepsLbWatch = 77, stepsLbPhone = 0, inLieIn = true), stepsLast15Min = 131)
+        assertEquals("sleepDbg=77,0,131,3,5,1; ", BoostSleepTelemetry.debugTag(captured, now))
+        val noCandidate = update(emptyList())
+        assertEquals("sleepDbg=0,0,0,0,-,0; ", BoostSleepTelemetry.debugTag(noCandidate, now))
+    }
 }

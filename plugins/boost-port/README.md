@@ -39,6 +39,10 @@ skips across these suites, plus Boost KMP assembly and fullDebug APK compilation
 sources](APS_ACTIVATION_20261028.md). The earlier checkpoint below predates
 activation and records its own tested source revisions.
 
+The current [6.2 sleep/wake transfer](APS_SLEEP_FRESHNESS_62_20261028.md) adds
+same-cycle sleep evaluation and independent phone/watch wake evidence. Its CI
+verification is pending; the activation totals above describe the previous block.
+
 ## Earlier verified checkpoint
 
 The final implementation passed **1399 Boost JVM tests and 73 Android host tests**
