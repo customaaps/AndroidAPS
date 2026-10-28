@@ -15,7 +15,6 @@ import app.aaps.core.keys.decimalPlaces
 import app.aaps.core.keys.interfaces.DoublePreferenceKey
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.keys.interfaces.VisibilityContext
-import app.aaps.core.keys.step
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.LocalPreferences
 import app.aaps.core.ui.compose.isDuration
@@ -57,7 +56,7 @@ fun AdaptiveDoublePreferenceItem(
     // Get formatting info from UnitType
     val unitType = doubleKey.unitType
     val decimalPlaces = unitType.decimalPlaces()
-    val step = unitType.step()
+    val step = doubleKey.stepSize
     val valueFormatRef = unitType.valueFormat()
 
     // Get unit label from UnitType (for dialog input suffix)

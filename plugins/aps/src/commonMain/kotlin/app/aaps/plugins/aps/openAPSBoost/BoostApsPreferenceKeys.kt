@@ -1,6 +1,7 @@
 package app.aaps.plugins.aps.openAPSBoost
 
 import app.aaps.core.keys.PreferenceType
+import app.aaps.core.keys.UnitType
 import app.aaps.core.keys.interfaces.*
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.plugins.aps.ApsStrings
@@ -24,8 +25,11 @@ internal object BoostApsPreferenceKeys {
         override val showInNsClientMode = false
         override val showInPumpControlMode = false
     }
+    // Keep hundredths visible (for example a saved 0.48 threshold), but nudge decimals by 0.1.
     private class D(val raw: BoostApsSettingKeys.DoubleValue, override val title: TextRef,
-        override val min: Double, override val max: Double) : DoublePreferenceKey {
+        override val min: Double, override val max: Double,
+        override val unitType: UnitType = UnitType.DOUBLE_2) : DoublePreferenceKey {
+        override val stepSize: Double get() = if (unitType == UnitType.NONE) 1.0 else 0.1
         override val key = raw.key
         override val defaultValue = raw.defaultValue
         override val calculatedBySM = false
@@ -93,13 +97,13 @@ internal object BoostApsPreferenceKeys {
         I(BoostApsSettingKeys.ApsBoostHealthConnectPollMin, ApsStrings.boost_pref_health_connect_poll_min, 1, 30),
         D(BoostApsSettingKeys.ApsBoostBolus, ApsStrings.boost_pref_bolus, 0.1, 10.0),
         D(BoostApsSettingKeys.ApsBoostMaxIob, ApsStrings.boost_pref_max_iob, 0.1, 12.0),
-        D(BoostApsSettingKeys.ApsBoostInsulinReqPct, ApsStrings.boost_pref_insulin_req_pct, 30.0, 100.0),
+        D(BoostApsSettingKeys.ApsBoostInsulinReqPct, ApsStrings.boost_pref_insulin_req_pct, 30.0, 100.0, UnitType.NONE),
         D(BoostApsSettingKeys.ApsBoostScale, ApsStrings.boost_pref_scale, 0.1, 3.0),
-        D(BoostApsSettingKeys.ApsBoostPercentScale, ApsStrings.boost_pref_percent_scale, 50.0, 500.0),
-        D(BoostApsSettingKeys.ApsBoostDynIsfVelocity, ApsStrings.boost_pref_dyn_isf_velocity, 0.0, 100.0),
+        D(BoostApsSettingKeys.ApsBoostPercentScale, ApsStrings.boost_pref_percent_scale, 50.0, 500.0, UnitType.NONE),
+        D(BoostApsSettingKeys.ApsBoostDynIsfVelocity, ApsStrings.boost_pref_dyn_isf_velocity, 0.0, 100.0, UnitType.NONE),
         D(BoostApsSettingKeys.ApsBoostSleepInHours, ApsStrings.boost_pref_sleep_in_hours, 0.0, 18.0),
-        D(BoostApsSettingKeys.ApsBoostInactivityPct, ApsStrings.boost_pref_inactivity_pct, 100.0, 200.0),
-        D(BoostApsSettingKeys.ApsBoostActivityPct, ApsStrings.boost_pref_activity_pct, 30.0, 150.0),
+        D(BoostApsSettingKeys.ApsBoostInactivityPct, ApsStrings.boost_pref_inactivity_pct, 100.0, 200.0, UnitType.NONE),
+        D(BoostApsSettingKeys.ApsBoostActivityPct, ApsStrings.boost_pref_activity_pct, 30.0, 150.0, UnitType.NONE),
         D(BoostApsSettingKeys.ApsBoostPostExerciseRecoveryHours, ApsStrings.boost_pref_post_exercise_recovery_hours, 0.5, 8.0),
         D(BoostApsSettingKeys.ApsBoostPostExerciseRecoveryScale, ApsStrings.boost_pref_post_exercise_recovery_scale, 0.0, 1.0),
         D(BoostApsSettingKeys.ApsBoostV5Aggression, ApsStrings.boost_pref_v5_aggression, 0.7, 1.6),
@@ -111,11 +115,11 @@ internal object BoostApsPreferenceKeys {
         D(BoostApsSettingKeys.ApsBoostV5TrancheFraction, ApsStrings.boost_pref_v5_tranche_fraction, 0.3, 1.0),
         D(BoostApsSettingKeys.ApsBoostV5TrancheThreshold, ApsStrings.boost_pref_v5_tranche_threshold, 0.2, 0.8),
         D(BoostApsSettingKeys.ApsBoostV5PrimerCapU, ApsStrings.boost_pref_v5_primer_cap_u, 0.0, 2.5),
-        D(BoostApsSettingKeys.ApsBoostV6PreMealTargetMgdl, ApsStrings.boost_pref_v6_pre_meal_target_mgdl, 65.0, 90.0),
-        D(BoostApsSettingKeys.ApsBoostV6PreMealLeadMin, ApsStrings.boost_pref_v6_pre_meal_lead_min, 30.0, 90.0),
+        D(BoostApsSettingKeys.ApsBoostV6PreMealTargetMgdl, ApsStrings.boost_pref_v6_pre_meal_target_mgdl, 65.0, 90.0, UnitType.NONE),
+        D(BoostApsSettingKeys.ApsBoostV6PreMealLeadMin, ApsStrings.boost_pref_v6_pre_meal_lead_min, 30.0, 90.0, UnitType.NONE),
         U(BoostApsSettingKeys.ApsBoostDynIsfBgCap, ApsStrings.boost_pref_dyn_isf_bg_cap, 100, 300),
         U(BoostApsSettingKeys.ApsBoostDynIsfNormalTarget, ApsStrings.boost_pref_dyn_isf_normal_target, 70, 120),
-        D(BoostApsSettingKeys.ApsBoostNightModeBgOffset, ApsStrings.boost_pref_night_mode_bg_offset, 0.0, 90.0),
+        D(BoostApsSettingKeys.ApsBoostNightModeBgOffset, ApsStrings.boost_pref_night_mode_bg_offset, 0.0, 90.0, UnitType.NONE),
         U(BoostApsSettingKeys.ApsBoostPostExerciseRecoveryTarget, ApsStrings.boost_pref_post_exercise_recovery_target, 90, 200),
         S(BoostApsSettingKeys.ApsBoostNightModeStart, ApsStrings.boost_pref_night_mode_start),
         S(BoostApsSettingKeys.ApsBoostNightModeEnd, ApsStrings.boost_pref_night_mode_end),
