@@ -87,7 +87,7 @@ class BoostLiveTbrGateTest {
         db.failure = null
         assertTrue(gate.allowed(now + hour + 1))
     }
-    @Test fun cancellationPropagatesInsteadOfProducingAPolicyDecision() = runBlocking {
+    @Test fun cancellationPropagatesInsteadOfProducingAPolicyDecision(): Unit = runBlocking {
         val db = Db(); db.failure = CancellationException("owner closed")
         assertFailsWith<CancellationException> { BoostFloorHistoryGate(db.api).forCycle(now, false, true) }
     }
