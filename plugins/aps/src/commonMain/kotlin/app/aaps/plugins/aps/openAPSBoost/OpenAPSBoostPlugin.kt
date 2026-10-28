@@ -340,6 +340,20 @@ class OpenAPSBoostPlugin(
                                     rh.gs(ApsStrings.boost_auto_config_notice, notice.applied, notice.redriven, notice.held),
                                     level = NotificationLevel.INFO, validMinutes = 0)
                             }
+                            calculated.insulinNeedNotice?.let { notice ->
+                                val direction = rh.gs(if (notice.above) ApsStrings.boost_need_watch_above else ApsStrings.boost_need_watch_below)
+                                val detail = if (notice.recentBg != null && notice.baselineBg != null)
+                                    rh.gs(ApsStrings.boost_need_watch_glucose,
+                                        profileUtil.fromMgdlToStringInUnits(notice.recentBg),
+                                        profileUtil.fromMgdlToStringInUnits(notice.baselineBg)) else ""
+                                notificationManager.post(NotificationId.BOOST_NEED_WATCH,
+                                    rh.gs(ApsStrings.boost_need_watch_notice,
+                                        app.aaps.core.data.format.NumberFormat.withDecimalsHalfUp(1).format(notice.recentU),
+                                        app.aaps.core.data.format.NumberFormat.withDecimalsHalfUp(1).format(notice.baselineU),
+                                        notice.baselineDays, direction, detail),
+                                    level = NotificationLevel.INFO, validMinutes = 0)
+                                owner.acknowledgeInsulinNeedNotice(notice)
+                            }
                             calculated.hrFeedDarkMinutes?.let { minutes ->
                                 notificationManager.post(NotificationId.BOOST_HR_FEED_DARK,
                                     rh.gs(ApsStrings.boost_hr_feed_dark, minutes),
@@ -428,3 +442,4 @@ class OpenAPSBoostPlugin(
         return value
     }
 }
+

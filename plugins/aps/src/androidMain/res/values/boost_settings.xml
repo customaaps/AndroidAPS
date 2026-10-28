@@ -77,4 +77,9 @@
     <string name="boost_data_permissions">Step and heart-rate permissions</string>
     <string name="boost_floor_safety" formatted="false">Insulin-adding floors require at least 1000 readings in 14 days, with below-63 mg/dL under 2% and below-70 mg/dL under 3.5%. They remain blocked after a low, during sleep and by the normal SMB gates.</string>
     <string name="boost_auto_config_notice">Boost settings: initialized %1$d, adjusted %2$d; suggestions held due to low-glucose exposure: %3$d.</string>
+    <string name="boost_need_watch_notice">Insulin averaged %1$s U/day over the last 3 complete days, compared with %2$s U/day over the previous %3$d days. %4$s%5$s No setting has been changed.</string>
+    <string name="boost_need_watch_above">This is above the usual range. Food, activity, illness or an infusion site may contribute.</string>
+    <string name="boost_need_watch_below">This is below the usual range. Food, activity or a gap in pump history may contribute.</string>
+    <string name="boost_need_watch_glucose"> Glucose averaged %1$s compared with %2$s.</string>
 </resources>
+

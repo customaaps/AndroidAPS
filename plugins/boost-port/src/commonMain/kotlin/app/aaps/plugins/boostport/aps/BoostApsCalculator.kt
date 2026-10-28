@@ -39,6 +39,7 @@ interface BoostApsCalculator {
             val nightModeActive: Boolean = false,
             val hrFeedDarkMinutes: Long? = null,
             val autoConfigNotice: BoostAutoConfigNotice? = null,
+            val insulinNeedNotice: BoostInsulinNeedNotice? = null,
         ) : Result
         data class Rejected(val reason: String) : Result
     }
@@ -46,6 +47,7 @@ interface BoostApsCalculator {
     suspend fun calculate(input: Input): Result
     /** Stop/import invalidates this owner's access to state before preferences are replaced. */
     fun close() {}
+    fun acknowledgeInsulinNeedNotice(notice: BoostInsulinNeedNotice) {}
 }
 
 interface BoostApsCalculatorFactory {
@@ -58,3 +60,4 @@ interface BoostApsCalculatorFactory {
 fun interface BoostApsModelSource {
     fun readAsset(name: String): String?
 }
+

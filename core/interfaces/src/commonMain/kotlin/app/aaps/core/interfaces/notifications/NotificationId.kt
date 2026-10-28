@@ -254,10 +254,12 @@ enum class NotificationId(
 
     // Append: persisted notification ordinals must stay stable.
     BOOST_HR_FEED_DARK(LOW, SYSTEM),
-    BOOST_AUTOCONFIG(INFO, SYSTEM);
+    BOOST_AUTOCONFIG(INFO, SYSTEM),
+    BOOST_NEED_WATCH(INFO, SYSTEM);
 
     companion object {
 
         fun fromOrdinal(ordinal: Int): NotificationId? = entries.getOrNull(ordinal)
     }
 }
+

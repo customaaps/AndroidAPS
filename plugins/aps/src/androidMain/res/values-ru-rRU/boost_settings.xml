@@ -77,4 +77,9 @@
     <string name="boost_data_permissions">Разрешения для шагов и пульса</string>
     <string name="boost_floor_safety" formatted="false">Для дополнительных нижних границ дозы требуется не менее 1000 показаний за 14 дней: доля BG ниже 63 mg/dL менее 2%, ниже 70 mg/dL менее 3,5%. После гипогликемии, во сне и при запрете SMB они остаются отключёнными.</string>
     <string name="boost_auto_config_notice">Настройки Boost: настроено %1$d, скорректировано %2$d; отложено предложений из-за низкой глюкозы: %3$d.</string>
+    <string name="boost_need_watch_notice">За последние 3 полных дня средняя доза инсулина — %1$s ЕД/сутки, за предыдущие %3$d дней — %2$s ЕД/сутки. %4$s%5$s Настройки не изменены.</string>
+    <string name="boost_need_watch_above">Это выше обычного диапазона. Возможные причины: питание, активность, болезнь или место инфузии.</string>
+    <string name="boost_need_watch_below">Это ниже обычного диапазона. Возможные причины: питание, активность или неполная история помпы.</string>
+    <string name="boost_need_watch_glucose"> Средняя глюкоза — %1$s, ранее — %2$s.</string>
 </resources>
+

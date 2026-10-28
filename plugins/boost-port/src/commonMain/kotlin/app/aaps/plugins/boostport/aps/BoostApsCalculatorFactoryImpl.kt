@@ -38,7 +38,7 @@ class BoostApsCalculatorFactoryImpl(
     private val texts: TextResolver? = null,
     private val activePlugin: app.aaps.core.interfaces.plugin.ActivePlugin? = null,
 ) : BoostApsCalculatorFactory {
-    override val ownedKeys = BoostApsSettingKeys.all + BoostAutoConfigOwner.ownedKeys + BoostHistorySyncOwner.ownedKeys
+    override val ownedKeys = BoostApsSettingKeys.all + BoostAutoConfigOwner.ownedKeys + BoostHistorySyncOwner.ownedKeys + BoostInsulinNeedOwner.ownedKeys
     override fun create(): BoostApsCalculator = Calculator()
     override fun requestDataPermissions() { activitySource?.requestPermissions() }
 
@@ -58,6 +58,7 @@ class BoostApsCalculatorFactoryImpl(
             persistence.getLastTherapyRecordUpToNow(if (site) app.aaps.core.data.model.TE.Type.CANNULA_CHANGE
                 else app.aaps.core.data.model.TE.Type.INSULIN_CHANGE)?.takeIf { it.isValid }?.timestamp
         }
+        private val needOwner = BoostInsulinNeedOwner(storage, persistence, tdd, dateUtil::beginOfDay)
         private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
         private val activityLease = activitySource?.open()
@@ -66,6 +67,7 @@ class BoostApsCalculatorFactoryImpl(
             override fun minuteAt(timestampMs: Long): Int = (localMinute(timestampMs) % 60).toInt()
         }
         override fun close() { if (storage.close()) { historySync.close(); activityLease?.close() } }
+        override fun acknowledgeInsulinNeedNotice(notice: BoostInsulinNeedNotice) { needOwner.acknowledge(notice) }
         private fun localMinute(atMs: Long): Long =
             ((atMs / 60_000L + dateUtil.getTimeZoneOffsetMinutes(atMs)) % 1440 + 1440) % 1440
 
@@ -200,6 +202,11 @@ class BoostApsCalculatorFactoryImpl(
                             } catch (cancelled: CancellationException) { throw cancelled }
                             catch (_: Exception) { result.reason.append("activityLoad: history unavailable; ") }
                         }
+                        val needNotice = try { needOwner.evaluate(input.atMs) }
+                            catch (cancelled: CancellationException) { throw cancelled }
+                            catch (_: Exception) { null }
+                        storage.getString(BoostInsulinNeedOwner.summary.key, "").takeIf { it.isNotEmpty() }
+                            ?.let { result.reason.append("$it; ") }
                         storage.getString(BoostApsSettingKeys.ApsBoostHistorySyncSummary.key, "").takeIf { it.isNotEmpty() }
                             ?.let { result.reason.append("history=$it; ") }
                         BoostApsCalculator.Result.Calculated(result, input.profile.copy(
@@ -208,7 +215,7 @@ class BoostApsCalculatorFactoryImpl(
                             current_basal = cycle.profile.current_basal, carb_ratio = result.carbRatio ?: input.originalProfileCr,
                             variable_sens = result.variable_sens ?: 0.0, TDD = cycle.profile.TDD,
                             insulinDivisor = cycle.profile.insulinDivisor), cycle.autosens.copy(), nightModeActive = nightActive,
-                            hrFeedDarkMinutes = dark.darkMinutes.takeIf { dark.raiseNotification }, autoConfigNotice = configNotice)
+                            hrFeedDarkMinutes = dark.darkMinutes.takeIf { dark.raiseNotification }, autoConfigNotice = configNotice, insulinNeedNotice = needNotice)
                     }
                 }
             } } catch (cancelled: CancellationException) {

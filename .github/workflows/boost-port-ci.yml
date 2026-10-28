@@ -5,7 +5,7 @@ on:
   push:
     # Always validate the dedicated port branch: changes in shared Gradle/build logic
     # and core libraries can break Boost without touching plugins/boost-port/**.
-    branches: [nigthscout-dev-boost-port-20261026]
+    branches: [nigthscout-dev-boost-port-20261026, 'boost-verify/**']
 
 concurrency:
   group: boost-port-${{ github.ref }}
