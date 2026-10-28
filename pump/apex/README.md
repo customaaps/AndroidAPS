@@ -12,4 +12,12 @@ Extended boluses remain unsupported, as in the source driver, and are not advert
 
 ## Validation status
 
-No build, tests, CI or device execution was performed for this port at the owner's request. The 3.4 source test files are retained unchanged under `upstream-tests` with a `.source` suffix for reference; they are not runnable coverage for the Metro/Compose integration. The source commit is the reference for its previous validation history, not a validation claim for this branch.
+Verified in GitHub Actions on 2026-10-29 (Asia/Krasnoyarsk):
+
+- [fullRelease duplicate-class check and fullDebug APK build](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40762750488/job/123078722232): passed. The debug APK is retained as an artifact of that run.
+- [Boost APS activation, preference/lifecycle, metadata, CGM cadence, Loop and application-graph integration tests](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40762750488/job/123078722265): passed.
+- [Boost common/JVM tests, exact reviewed-source transformation checks and Android KMP module assembly](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40763892562): passed after removing an extra trailing blank line in V6ReplayOverride.kt.
+
+The APK and integration jobs tested the Joda dependency fix in c49f2f8; the repeated engine job also includes the format-only correction in 0242cad. The initial engine job in run 40762750488 failed that strict whitespace comparison and is superseded by the successful engine run linked above.
+
+The original 3.4 source tests remain unchanged under `upstream-tests` with a `.source` suffix. They are reference material, not runnable coverage for this integration. No physical Apex Bluetooth session or on-device insulin delivery was verified by these checks.
