@@ -68,13 +68,43 @@ class AndroidBoostActivitySource(private val context: Context, private val persi
                 }
         }
         val ingest = BoostHealthConnectIngest(persistence, reader)
+        val stepHistory = BoostHealthConnectStepHistory(object : BoostStepHistoryReader {
+            override suspend fun read(nowMs: Long): BoostStepHistoryReader.Result = when (val result = adapter.readStepIntervals(nowMs)) {
+                is AndroidHealthConnectReadOnlyAdapter.ReadOutcome.Data -> BoostStepHistoryReader.Result.Ready(result.items.map {
+                    BoostStepHistoryReader.Sample(it.dataOrigin, it.startMs, it.endMs, it.stepCount, it.phoneDevice)
+                })
+                is AndroidHealthConnectReadOnlyAdapter.ReadOutcome.Blocked -> BoostStepHistoryReader.Result.Unavailable(result.access.name)
+                is AndroidHealthConnectReadOnlyAdapter.ReadOutcome.Failed -> BoostStepHistoryReader.Result.Unavailable(result.code)
+            }
+        })
         return object : BoostApsActivitySource.Lease {
             private var closed = false
             private var ingestJob: Job? = null
+            private var stepsJob: Job? = null
+            private var stepsEnabled = false
+            override fun stepHistorySnapshot(nowMs: Long, offsetMinutes: Int): BoostStepHistorySnapshot? = synchronized(lock) {
+                if (closed || !stepsEnabled) null else stepHistory.snapshot(nowMs, offsetMinutes)
+            }
+            override fun stepHistory(enabled: Boolean, nowMs: Long, offsetMinutes: Int) = synchronized(lock) {
+                if (closed) return@synchronized
+                stepsEnabled = enabled
+                if (!enabled) { stepsJob?.cancel(); stepsJob = null; stepHistory.clear(); return@synchronized }
+                if (stepsJob?.isActive == true) return@synchronized
+                stepsJob = scope.launch {
+                    try { stepHistory.syncIfDue(nowMs, offsetMinutes) }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (error: Exception) { stepHistory.clear(); logger.warn(LTag.APS, "Boost HC step history failed: ${error.message}") }
+                }
+            }
             override fun snapshot(nowMs: Long, offsetMinutes: Int): BoostApsActivitySource.Snapshot {
                 synchronized(lock) { if (closed) return BoostApsActivitySource.Snapshot() }
                 refreshRegistration()
-                return if (synchronized(lock) { registered }) tracker.snapshot(nowMs, offsetMinutes) else BoostApsActivitySource.Snapshot()
+                val hc = stepHistorySnapshot(nowMs, offsetMinutes)
+                val today = (nowMs + offsetMinutes * 60_000L) / 86_400_000L
+                val seed = hc?.takeIf { it.todayIndex == today }?.let { it.chosenSource?.let { source -> it.perSourceDay[source]?.get(today) } }
+                seed?.let { tracker.seedToday(today, it) }
+                return if (synchronized(lock) { registered }) tracker.snapshot(nowMs, offsetMinutes)
+                else BoostApsActivitySource.Snapshot(stepsToday = (seed ?: 0L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
             }
             override fun healthConnect(enabled: Boolean, nowMs: Long, pollMinutes: Int) = synchronized(lock) {
                 if (closed) return@synchronized
@@ -88,9 +118,10 @@ class AndroidBoostActivitySource(private val context: Context, private val persi
             }
             override fun close() = synchronized(lock) {
                 if (closed) return@synchronized
-                closed = true; scope.cancel(); leases--
+                closed = true; scope.cancel(); stepHistory.clear(); leases--
                 if (leases == 0 && registered) { sensors?.unregisterListener(listener); registered = false }
             }
         }
     }
 }
+

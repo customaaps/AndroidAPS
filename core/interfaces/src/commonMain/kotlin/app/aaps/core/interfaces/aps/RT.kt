@@ -69,6 +69,20 @@ data class RT(
     var consoleLog: MutableList<String>? = null,
     var consoleError: MutableList<String>? = null,
 
+    // Source activity-load shadow: diagnostics only, never applied to dosing.
+    var boostActivityLoad_baselineSteps: Int? = null,
+    var boostActivityLoad_lastDaySteps: Int? = null,
+    var boostActivityLoad_ratio: Double? = null,
+    var boostActivityLoad_wouldDeltaIsfPct: Double? = null,
+    var boostActivityLoad_source: String? = null,
+    var boostActivitySource_resolved: String? = null,
+    var boostActivitySource_states: String? = null,
+    var boostActivitySource_bridge: String? = null,
+    var boostActivityLoad_stepsToday: Int? = null,
+    var boostActivityLoad_stepsSource: String? = null,
+    var boostActivityLoad_intradayRatio: Double? = null,
+    var boostActivityLoad_intradayDeltaIsfPct: Double? = null,
+
     // HR telemetry
     var hrBpmLatest: Double? = null,                 // most recent HR reading at cycle time
     var hrBpmAvg5m: Double? = null,                  // duration-weighted average over last 5 min
@@ -157,3 +171,4 @@ data class RT(
         fun deserialize(jsonString: String) = serializer.decodeFromString(serializer(), jsonString)
     }
 }
+

@@ -8,6 +8,8 @@ interface BoostApsActivitySource {
         fun snapshot(nowMs: Long, offsetMinutes: Int): Snapshot
         /** Source-style asynchronous backfill; close cancels the owned worker. */
         fun healthConnect(enabled: Boolean, nowMs: Long, pollMinutes: Int)
+        fun stepHistory(enabled: Boolean, nowMs: Long, offsetMinutes: Int) {}
+        fun stepHistorySnapshot(nowMs: Long, offsetMinutes: Int): BoostStepHistorySnapshot? = null
         fun close()
     }
     fun requestPermissions() {}
@@ -22,3 +24,4 @@ interface BoostHeartRateReader {
     }
     suspend fun read(nowMs: Long, coveredMinutes: Set<Long>): Result
 }
+

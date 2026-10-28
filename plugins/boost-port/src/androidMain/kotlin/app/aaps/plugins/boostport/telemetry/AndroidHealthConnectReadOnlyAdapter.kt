@@ -159,6 +159,7 @@ internal class AndroidHealthConnectReadOnlyAdapter(private val context: Context)
                         startMs = record.startTime.toEpochMilli(),
                         endMs = record.endTime.toEpochMilli(),
                         stepCount = record.count,
+                        phoneDevice = record.metadata.device?.type == androidx.health.connect.client.records.metadata.Device.TYPE_PHONE,
                     )
                 }
                 token = page.pageToken
@@ -184,3 +185,4 @@ internal class AndroidHealthConnectReadOnlyAdapter(private val context: Context)
         }
     }
 }
+

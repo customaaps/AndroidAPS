@@ -13,6 +13,10 @@ internal class BoostPhoneStepTracker {
     fun accept(raw: Long, atMs: Long) = lock.withLock {
         StepBucketWindowDiagnostics.accept(buckets, raw, atMs)?.let { buckets = it }
     }
+    fun seedToday(localDay: Long, steps: Long) = lock.withLock {
+        PhoneStepDayLedgerDiagnostics.observeRaw(day, localDay, buckets.previousRawCount)?.let { day = it.state }
+        PhoneStepDayLedgerDiagnostics.seedHealthConnect(day, localDay, steps, buckets.previousRawCount)?.let { day = it.state }
+    }
     fun snapshot(nowMs: Long, offsetMinutes: Int): BoostApsActivitySource.Snapshot = lock.withLock {
         val localDay = (nowMs + offsetMinutes * 60_000L) / 86_400_000L
         val daily = PhoneStepDayLedgerDiagnostics.observeRaw(day, localDay, buckets.previousRawCount)
@@ -28,3 +32,4 @@ internal class BoostPhoneStepTracker {
             windows.all { it.feedKnown })
     }
 }
+

@@ -39,8 +39,11 @@ history gate, phone steps, Health Connect heart rate, HR dark-feed notifications
 and 67 source settings with Russian labels. These opt-in policies no longer
 reject a direct factory call solely because the owner is missing.
 [V5 automatic configuration and scheduled re-derivation](APS_AUTOCONFIG_20261028.md)
-are now connected. Automatic sensor-cadence wiring, Health Connect step-history/
-baseline owners, bounded history-gap repair and remaining activity/V5/V6
+are now connected. The [bounded history-repair owner](APS_HISTORY_BACKFILL_20261028.md) and
+[Health Connect step-history/baseline owner](APS_STEP_HISTORY_20261028.md)
+are now staged; these increments are uncompiled/untested and use `[skip ci]`
+per the user's instruction to verify at the end. Automatic sensor-cadence wiring,
+newer upstream 6.2 features in the KMP port and remaining activity/V5/V6
 telemetry/lifecycle scenarios are still open. Full integration coverage is required before removing
 the gate.
 The earlier GENERAL inspection plugin also remains hidden and disabled.

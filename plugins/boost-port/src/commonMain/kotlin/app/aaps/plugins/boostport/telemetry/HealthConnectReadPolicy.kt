@@ -27,6 +27,7 @@ internal object HealthConnectReadPolicy {
         val startMs: Long,
         val endMs: Long,
         val stepCount: Long,
+        val phoneDevice: Boolean = false,
     )
 
     /**
@@ -80,3 +81,4 @@ internal object HealthConnectReadPolicy {
             .toList()
     }
 }
+

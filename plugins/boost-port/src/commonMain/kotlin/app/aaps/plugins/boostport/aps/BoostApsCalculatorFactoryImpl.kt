@@ -53,6 +53,7 @@ class BoostApsCalculatorFactoryImpl(
         private val floorGate = BoostFloorHistoryGate(persistence)
         private val historySync = BoostHistorySyncOwner(storage, { activePlugin?.activeSyncs?.filterIsInstance<app.aaps.core.interfaces.sync.NsClient>()?.firstOrNull() }, dateUtil::toISOString)
         private val autoConfig = BoostAutoConfigOwner(storage, persistence, tdd, historySync, dateUtil::toISOString)
+        private val stepsOwner = BoostStepHistoryOwner(storage, persistence)
         private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
         private val activityLease = activitySource?.open()
@@ -88,6 +89,8 @@ class BoostApsCalculatorFactoryImpl(
                 reconcileSettings()
                 activityLease?.healthConnect(settings.b(BoostApsSettingKeys.ApsBoostHealthConnectHrEnabled),
                     input.atMs, settings.i(BoostApsSettingKeys.ApsBoostHealthConnectPollMin))
+                activityLease?.stepHistory(settings.b(BoostApsSettingKeys.ApsBoostActivityShadowEnabled),
+                    input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs))
                 val phone = activityLease?.snapshot(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs))
                     ?: BoostApsActivitySource.Snapshot()
                 require(listOf(phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.stepsToday).all { it >= 0 })
@@ -182,6 +185,14 @@ class BoostApsCalculatorFactoryImpl(
                         val configNotice = input.maxBolusAllowed?.let { autoConfig.evaluate(input.atMs, input.profile.max_iob, it) }
                         storage.getString(BoostApsSettingKeys.ApsBoostV5RedriveSummary.key, "").takeIf { it.isNotEmpty() }
                             ?.let { result.reason.append("autordv=$it; ") }
+                        if (settings.b(BoostApsSettingKeys.ApsBoostActivityShadowEnabled)) {
+                            try {
+                                val offset = dateUtil.getTimeZoneOffsetMinutes(input.atMs)
+                                stepsOwner.completeCycle(result, input.atMs, offset, phone,
+                                    activityLease?.stepHistorySnapshot(input.atMs, offset))
+                            } catch (cancelled: CancellationException) { throw cancelled }
+                            catch (_: Exception) { result.reason.append("activityLoad: history unavailable; ") }
+                        }
                         storage.getString(BoostApsSettingKeys.ApsBoostHistorySyncSummary.key, "").takeIf { it.isNotEmpty() }
                             ?.let { result.reason.append("history=$it; ") }
                         BoostApsCalculator.Result.Calculated(result, input.profile.copy(
