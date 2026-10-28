@@ -41,8 +41,9 @@ reject a direct factory call solely because the owner is missing.
 [V5 automatic configuration and scheduled re-derivation](APS_AUTOCONFIG_20261028.md)
 are now connected. The [bounded history-repair owner](APS_HISTORY_BACKFILL_20261028.md) and
 [Health Connect step-history/baseline owner](APS_STEP_HISTORY_20261028.md)
-are now staged; these increments are uncompiled/untested and use `[skip ci]`
-per the user's instruction to verify at the end. Automatic sensor-cadence wiring,
+are now connected. CI [40664319017](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40664319017)
+at `d9acedff` passed the complete 1240-test JVM suite, module assembly and
+fullDebug APK build, covering compilation of these increments. Automatic sensor-cadence wiring,
 newer upstream 6.2 features in the KMP port and remaining activity/V5/V6
 telemetry/lifecycle scenarios are still open. Full integration coverage is required before removing
 the gate.
@@ -60,7 +61,12 @@ characters. A fresh remote run is needed to assess the shutdown mitigation.
 
 ## Validation
 
-Latest automatic-configuration checkpoint: 1218 Boost JVM tests and 13 selected
+Latest completed remote checkpoint: CI `40664319017` at `d9acedff` passed
+1240 JVM tests with zero failures/errors/skips, module assembly and fullDebug
+APK compilation. This includes the [insulin-need watch](APS_INSULIN_NEED_20261028.md)
+and all seven device-age tests. It does not cover later commits.
+
+Earlier automatic-configuration checkpoint: 1218 Boost JVM tests and 13 selected
 APS/settings host tests passed without failures/errors/skips. Frozen-source
 comparisons cover 1440 onboarding cases and 324 re-derivation steps. The Boost
 module and full-debug phone/Wear APKs assembled; APK v2 signatures verify.
@@ -93,5 +99,13 @@ No patient/device validation or Apple test execution is claimed.
 
 The [device-age telemetry helper](APS_DEVICE_AGE_20261028.md) now reads cached
 infusion-site/reservoir change times and appends the source tags to the APS
-reason. Seven targeted regression scenarios are authored but not executed.
-This increment uses `[skip ci]`; earlier validation numbers above do not cover it.
+reason. All seven targeted device-age regression scenarios passed in CI `40664319017`
+at `d9acedff`; the module and fullDebug APK also assembled.
+
+
+## Live early-confirm gate — verification candidate
+
+The [source audit-16 gate](APS_EARLY_CONFIRM_TBR_20261028.md) is now connected
+at the APS/V5 handoff, sharing the 14-day history decision with both floors.
+Six source predicate tests and ten owner scenarios are added. Validation of
+this increment is pending in a separate branch before the working-branch push.

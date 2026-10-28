@@ -148,16 +148,19 @@ class BoostApsCalculatorFactoryImpl(
                     })
                 val manualBolus = persistence.getBolusesFromTimeToTime(input.atMs - MEAL_ANNOUNCED_BOLUS_WINDOW_MS, input.atMs, true)
                     .any { it.type == BS.Type.NORMAL && it.isValid && it.amount > 0.0 }
+                val tbrGates = floorGate.forCycle(input.atMs,
+                    settings.b(BoostApsSettingKeys.ApsBoostV5ComposedFloorActive) ||
+                        settings.b(BoostApsSettingKeys.ApsBoostV5VelocityBudgetActive),
+                    settings.b(BoostApsSettingKeys.ApsBoostV5AggressiveEarlyConfirm))
                 val v5 = V5ReplayContext(input.profile.bolus_increment, activeMode = true,
                     asleep = sleep.state == SleepStateDetector.SleepState.SLEEPING,
                     profileSwitched = input.profileSwitched, pumpDisconnected = input.pumpDisconnected,
                     loopSuspended = input.loopSuspended, manualBolusInAnnouncementWindow = manualBolus,
                     composedFloorRequested = settings.b(BoostApsSettingKeys.ApsBoostV5ComposedFloorActive),
                     velocityBudgetRequested = settings.b(BoostApsSettingKeys.ApsBoostV5VelocityBudgetActive),
-                    insulinAddingFloorsAllowed = if (settings.b(BoostApsSettingKeys.ApsBoostV5ComposedFloorActive) ||
-                        settings.b(BoostApsSettingKeys.ApsBoostV5VelocityBudgetActive)) floorGate.allowed(input.atMs) else false,
+                    insulinAddingFloorsAllowed = tbrGates.floorsAllowed,
                     fastCarbConfirmEnabled = settings.b(BoostApsSettingKeys.ApsBoostV5FastCarbConfirm),
-                    aggressiveEarlyConfirmEnabled = settings.b(BoostApsSettingKeys.ApsBoostV5AggressiveEarlyConfirm),
+                    aggressiveEarlyConfirmEnabled = tbrGates.aggressiveEarlyConfirmAllowed,
                     aggression = settings.d(BoostApsSettingKeys.ApsBoostV5Aggression),
                     hypoCaution = settings.d(BoostApsSettingKeys.ApsBoostV5HypoCaution),
                     sensitivity = settings.d(BoostApsSettingKeys.ApsBoostV5Sensitivity),
