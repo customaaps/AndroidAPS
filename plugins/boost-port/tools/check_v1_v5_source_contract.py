@@ -20,7 +20,7 @@ for expected in ("V1_ENGINE_UNAVAILABLE", "liveInvocationAllowed: Boolean = fals
         raise AssertionError(f"Offline delegation remains incomplete/unsafe: {expected}")
 print("Archived V5/V1 delegation and state obligations preserved (source-only audit).")
 
-# A replay core does not supply the missing live V1-to-V5 plugin delegation.
+# The offline inspection route stays isolated; plugins/aps owns the runtime boundary.
 v1_port = module / "src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost"
 v1_sources = {p.name for p in v1_port.glob("*.kt")}
 if "OpenAPSBoostPlugin.kt" in v1_sources:
@@ -29,6 +29,6 @@ required_helpers = {"BoostV1SafetyRules.kt", "HrSourceResolver.kt", "StepSourceR
 if not required_helpers.issubset(v1_sources):
     raise AssertionError("Offline V1 helper coverage regressed")
 if "BoostV1ReplayEngine.kt" in v1_sources:
-    print("V1 replay core is present; live V1/V5 delegation remains disconnected.")
+    print("V1 replay core is present; offline route remains disabled. Runtime APS integration is checked separately.")
 else:
     print("V1 core engine remains absent; helper-only migration cannot activate V5.")

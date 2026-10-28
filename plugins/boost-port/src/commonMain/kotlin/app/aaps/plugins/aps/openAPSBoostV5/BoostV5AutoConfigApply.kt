@@ -1,6 +1,7 @@
 package app.aaps.plugins.aps.openAPSBoostV5
 
 import kotlin.math.abs
+import kotlin.math.roundToLong
 
 /**
  * Pure helpers for applying a [BoostV5AutoConfig.V5Suggestion] to preferences while respecting any
@@ -382,7 +383,8 @@ internal object BoostV5AutoConfigApply {
         return out
     }
 
-    private fun round2(x: Double) = kotlin.math.round(x * 100.0) / 100.0
+    // Source Math.round breaks half ties toward positive infinity, rather than ties-to-even.
+    private fun round2(x: Double) = (x * 100.0).roundToLong() / 100.0
 
     /**
      * Per-knob classification record. [suggestedValue] is the final derived value for the knob
