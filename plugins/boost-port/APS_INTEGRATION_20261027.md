@@ -87,3 +87,11 @@ APKs and embedded CWF; the resource audit still passes for this increment. Apple
 
 Local debug assembly cannot establish success of a signed remote release build.
 No patient/device validation or Apple test execution is claimed.
+
+
+## Staged device-age increment — 2026-10-28
+
+The [device-age telemetry helper](APS_DEVICE_AGE_20261028.md) now reads cached
+infusion-site/reservoir change times and appends the source tags to the APS
+reason. Seven targeted regression scenarios are authored but not executed.
+This increment uses `[skip ci]`; earlier validation numbers above do not cover it.

@@ -54,6 +54,10 @@ class BoostApsCalculatorFactoryImpl(
         private val historySync = BoostHistorySyncOwner(storage, { activePlugin?.activeSyncs?.filterIsInstance<app.aaps.core.interfaces.sync.NsClient>()?.firstOrNull() }, dateUtil::toISOString)
         private val autoConfig = BoostAutoConfigOwner(storage, persistence, tdd, historySync, dateUtil::toISOString)
         private val stepsOwner = BoostStepHistoryOwner(storage, persistence)
+        private val deviceAgeTag = DeviceAgeTag { site ->
+            persistence.getLastTherapyRecordUpToNow(if (site) app.aaps.core.data.model.TE.Type.CANNULA_CHANGE
+                else app.aaps.core.data.model.TE.Type.INSULIN_CHANGE)?.takeIf { it.isValid }?.timestamp
+        }
         private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
         private val activityLease = activitySource?.open()
@@ -169,6 +173,9 @@ class BoostApsCalculatorFactoryImpl(
                         if (!calculated.persistence.persisted) return@cycle BoostApsCalculator.Result.Rejected(
                             calculated.persistence.problem ?: "Boost state was not saved")
                         val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, effectiveInput)
+                        try { result.reason.append(deviceAgeTag.tag(input.atMs)) }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (_: Exception) { /* Optional device-age telemetry must not discard a calculated candidate. */ }
                         mealDecision?.reason?.let { result.reason.append(it) }
                         mealOwner.completeCycle(input.atMs, calculated.frame.v5?.mealSessionStarted == true,
                             checkNotNull(mealDecision).inNightWindow, sleep.state)
