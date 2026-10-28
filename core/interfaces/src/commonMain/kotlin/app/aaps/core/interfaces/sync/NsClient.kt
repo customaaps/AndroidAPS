@@ -181,4 +181,11 @@ interface NsClient : Sync {
      * Next synchronization will start from scratch
      */
     suspend fun resetToFullSync()
+
+    /** Queue a bounded download of glucose/treatment history. No upload reset or global full sync.
+     * False means unsupported, paused, unavailable or already queued; no request was accepted. */
+    suspend fun requestHistoryBackfill(fromMs: Long, toMs: Long): Boolean = false
+
+    /** Invalidate queued/in-flight bounded history work without resetting normal sync. */
+    fun cancelHistoryBackfill() {}
 }

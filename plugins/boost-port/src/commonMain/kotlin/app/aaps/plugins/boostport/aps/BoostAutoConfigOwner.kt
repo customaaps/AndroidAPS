@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 /** Sequential APS owner. Proposals and ledgers commit together after all history reads succeed. */
 internal class BoostAutoConfigOwner(private val store: KeyValueStore,
     private val persistence: PersistenceLayer, private val tdd: TddCalculator,
+    private val historySync: BoostHistorySyncOwner? = null,
     private val iso: (Long) -> String) {
     companion object {
         const val SCHEMA = "boost_v5_autoconfig_schema_version"
@@ -168,6 +169,15 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
         val bgs = persistence.getBgReadingsDataFromTimeToTime(since, now, true)
         require(bgs.all { it.value.isFinite() } && boluses.all { it.amount.isFinite() }) { "invalid Boost auto-config history" }
         val n = bgs.size
+        if (days == Derive.LOOKBACK_DAYS) {
+            try {
+                historySync?.evaluate(now, app.aaps.plugins.aps.openAPSBoostV5.BoostHistorySync.History(amounts.size, n, boluses.size))
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // History repair is optional. Failed state/queue writes cannot stop onboarding.
+            }
+        }
         return Derive.V1Profile(amounts.size, n, Derive.percentile(amounts, 50.0),
             boluses.filter { it.type == BS.Type.NORMAL && it.amount > 0 }.map { it.amount },
             boluses.filter { it.type == BS.Type.SMB && it.amount > 0 }.map { it.amount },
@@ -179,3 +189,4 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
 
 /** Presentation counts; canonical source policy reasons remain in the persisted ledgers. */
 data class BoostAutoConfigNotice(val applied: Int, val redriven: Int, val held: Int)
+

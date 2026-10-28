@@ -36,8 +36,9 @@ class BoostApsCalculatorFactoryImpl(
     private val modelSource: BoostApsModelSource? = null,
     private val activitySource: BoostApsActivitySource? = null,
     private val texts: TextResolver? = null,
+    private val activePlugin: app.aaps.core.interfaces.plugin.ActivePlugin? = null,
 ) : BoostApsCalculatorFactory {
-    override val ownedKeys = BoostApsSettingKeys.all + BoostAutoConfigOwner.ownedKeys
+    override val ownedKeys = BoostApsSettingKeys.all + BoostAutoConfigOwner.ownedKeys + BoostHistorySyncOwner.ownedKeys
     override fun create(): BoostApsCalculator = Calculator()
     override fun requestDataPermissions() { activitySource?.requestPermissions() }
 
@@ -50,7 +51,8 @@ class BoostApsCalculatorFactoryImpl(
         private val mealOwner = BoostMealPolicyOwner(storage)
         private val recoveryOwner = BoostRecoveryOwner(persistence)
         private val floorGate = BoostFloorHistoryGate(persistence)
-        private val autoConfig = BoostAutoConfigOwner(storage, persistence, tdd, dateUtil::toISOString)
+        private val historySync = BoostHistorySyncOwner(storage, { activePlugin?.activeSyncs?.filterIsInstance<app.aaps.core.interfaces.sync.NsClient>()?.firstOrNull() }, dateUtil::toISOString)
+        private val autoConfig = BoostAutoConfigOwner(storage, persistence, tdd, historySync, dateUtil::toISOString)
         private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
         private val activityLease = activitySource?.open()
@@ -58,7 +60,7 @@ class BoostApsCalculatorFactoryImpl(
             override fun hourAt(timestampMs: Long): Int = (localMinute(timestampMs) / 60).toInt()
             override fun minuteAt(timestampMs: Long): Int = (localMinute(timestampMs) % 60).toInt()
         }
-        override fun close() { if (storage.close()) activityLease?.close() }
+        override fun close() { if (storage.close()) { historySync.close(); activityLease?.close() } }
         private fun localMinute(atMs: Long): Long =
             ((atMs / 60_000L + dateUtil.getTimeZoneOffsetMinutes(atMs)) % 1440 + 1440) % 1440
 
@@ -180,6 +182,8 @@ class BoostApsCalculatorFactoryImpl(
                         val configNotice = input.maxBolusAllowed?.let { autoConfig.evaluate(input.atMs, input.profile.max_iob, it) }
                         storage.getString(BoostApsSettingKeys.ApsBoostV5RedriveSummary.key, "").takeIf { it.isNotEmpty() }
                             ?.let { result.reason.append("autordv=$it; ") }
+                        storage.getString(BoostApsSettingKeys.ApsBoostHistorySyncSummary.key, "").takeIf { it.isNotEmpty() }
+                            ?.let { result.reason.append("history=$it; ") }
                         BoostApsCalculator.Result.Calculated(result, input.profile.copy(
                             min_bg = cycle.profile.min_bg, max_bg = cycle.profile.max_bg, target_bg = cycle.profile.target_bg,
                             temptargetSet = cycle.profile.temptargetSet,
@@ -230,3 +234,4 @@ class BoostApsCalculatorFactoryImpl(
         }
     }
 }
+

@@ -32,10 +32,13 @@ class LoadBgRunner(
     private val nsClientSource: NSClientSource,
     private val nsIncomingDataProcessor: NsIncomingDataProcessor,
     private val storeDataForDb: StoreDataForDb,
-    private val nsClientRepository: NSClientRepository
+    private val nsClientRepository: NSClientRepository,
+    private val historyBackfill: LoadHistoryBackfillRunner? = null
 ) {
 
     suspend fun run(): WorkOutcome {
+        historyBackfill?.run()
+
         if (!nsClientSource.isEnabled() && !preferences.get(BooleanKey.NsClientAcceptCgmData) && !nsClientV3Plugin.doingFullSync)
             return WorkOutcome.Skipped("Load not enabled")
 
@@ -114,3 +117,4 @@ class LoadBgRunner(
         return WorkOutcome.Success
     }
 }
+

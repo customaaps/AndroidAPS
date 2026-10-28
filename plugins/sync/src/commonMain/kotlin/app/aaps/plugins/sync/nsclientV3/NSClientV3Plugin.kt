@@ -117,6 +117,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.concurrent.Volatile
+import app.aaps.core.interfaces.concurrent.AapsLock
+import app.aaps.core.interfaces.concurrent.withLock as withHistoryLock
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import dev.zacsweers.metro.IntKey as MetroIntKey
@@ -228,6 +232,49 @@ class NSClientV3Plugin(
 
     internal val isAllowed get() = receiverDelegate.allowed
     internal val blockingReason get() = receiverDelegate.blockingReason
+
+    internal data class HistoryBackfill(val fromMs: Long, val toMs: Long, val client: NSAndroidClient, val address: String)
+    private val historyLock = AapsLock()
+    private var historyBackfill: HistoryBackfill? = null
+    private var historyBackfillClaimed = false
+    private fun hasPendingHistoryBackfill() = historyLock.withHistoryLock { historyBackfill != null && !historyBackfillClaimed }
+    internal fun takeHistoryBackfill(): HistoryBackfill? = historyLock.withHistoryLock {
+        if (historyBackfillClaimed) null else historyBackfill?.also { historyBackfillClaimed = true }
+    }
+    internal fun finishHistoryBackfill(request: HistoryBackfill) = historyLock.withHistoryLock {
+        if (historyBackfill === request) { historyBackfill = null; historyBackfillClaimed = false }
+    }
+    override fun cancelHistoryBackfill() = historyLock.withHistoryLock {
+        historyBackfill = null; historyBackfillClaimed = false
+    }
+    internal fun historyBackfillAllowed(request: HistoryBackfill): Boolean =
+        historyLock.withHistoryLock { historyBackfill === request } &&
+            isEnabled() && scope.isActive && !preferences.get(NsclientBooleanKey.NsPaused) && isAllowed &&
+            nsAndroidClient === request.client && address == request.address &&
+            dateUtil.now() >= request.toMs && dateUtil.now() - request.toMs <= T.hours(6).msecs()
+
+    override suspend fun requestHistoryBackfill(fromMs: Long, toMs: Long): Boolean {
+        currentCoroutineContext().ensureActive()
+        val now = dateUtil.now()
+        if (fromMs < 0 || toMs <= fromMs || toMs > now || toMs - fromMs > T.days(14).msecs() ||
+            now - toMs > T.hours(6).msecs()) return false
+        val client = nsAndroidClient ?: return false
+        val request = HistoryBackfill(fromMs, toMs, client, address)
+        if (address.isBlank() || !isEnabled() || !scope.isActive ||
+            preferences.get(NsclientBooleanKey.NsPaused) || !isAllowed) return false
+        val queued = historyLock.withHistoryLock {
+            if (historyBackfill != null) false
+            else { historyBackfill = request; historyBackfillClaimed = false; true }
+        }
+        if (!queued) return false
+        try {
+            executeLoop("BOOST_HISTORY_BACKFILL")
+        } catch (error: Exception) {
+            finishHistoryBackfill(request)
+            throw error
+        }
+        return true
+    }
 
     val maxAge = T.days(100).msecs()
     internal var newestDataOnServer: LastModified? = null // timestamp of last modification for every collection provided by server
@@ -490,6 +537,7 @@ class NSClientV3Plugin(
     }
 
     override suspend fun onStop() {
+        cancelHistoryBackfill()
         runningConfigurationPublisher.stop()
         preferencesClientPublisher.stop()
         // Cancel and then WAIT. cancel() only asks: a coroutine keeps running until it reaches its
@@ -707,7 +755,7 @@ class NSClientV3Plugin(
         // Cancel any in-flight WorkManager job so a stuck worker can't keep
         // workIsRunning() == true after unpause and silently block all uploads
         // (every DB_CHANGED would otherwise just log "Already running").
-        if (newState) nsLoadExecutor.cancel()
+        if (newState) { cancelHistoryBackfill(); nsLoadExecutor.cancel() }
         preferences.put(NsclientBooleanKey.NsPaused, newState)
     }
 
@@ -1182,7 +1230,7 @@ class NSClientV3Plugin(
 
     internal fun executeLoop(origin: String) {
         // After the first load, data comes over the websocket while it is up; the loop is needed only without it.
-        if (initialLoadFinished && !needsPolling()) return
+        if (initialLoadFinished && !needsPolling() && !hasPendingHistoryBackfill()) return
         if (preferences.get(NsclientBooleanKey.NsPaused)) {
             nsClientRepository.addLog("● RUN", "paused  $origin")
             return
@@ -1318,3 +1366,4 @@ class NSClientV3Plugin(
         icon = pluginDescription.icon
     )
 }
+
