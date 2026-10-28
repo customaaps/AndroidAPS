@@ -61,9 +61,9 @@ characters. A fresh remote run is needed to assess the shutdown mitigation.
 
 ## Validation
 
-Latest completed remote checkpoint: CI `40664319017` at `d9acedff` passed
-1240 JVM tests with zero failures/errors/skips, module assembly and fullDebug
-APK compilation. This includes the [insulin-need watch](APS_INSULIN_NEED_20261028.md)
+Latest completed remote checkpoint: CI `40671066881` at `da27329a` passed
+1256 JVM tests with zero failures/errors/skips, module assembly and fullDebug
+APK compilation. This includes all 16 live-TBR gate scenarios, the [insulin-need watch](APS_INSULIN_NEED_20261028.md)
 and all seven device-age tests. It does not cover later commits.
 
 Earlier automatic-configuration checkpoint: 1218 Boost JVM tests and 13 selected
@@ -103,9 +103,11 @@ reason. All seven targeted device-age regression scenarios passed in CI `4066431
 at `d9acedff`; the module and fullDebug APK also assembled.
 
 
-## Live early-confirm gate — verification candidate
+## Live early-confirm gate — verified checkpoint
 
 The [source audit-16 gate](APS_EARLY_CONFIRM_TBR_20261028.md) is now connected
 at the APS/V5 handoff, sharing the 14-day history decision with both floors.
-Six source predicate tests and ten owner scenarios are added. Validation of
-this increment is pending in a separate branch before the working-branch push.
+Six source predicate tests and ten owner scenarios are added. CI `40671066881` at `da27329a` passed all 1256 JVM tests, Boost module
+assembly and fullDebug APK compilation. XML reports confirm all six source
+predicate tests and ten owner tests, including cancellation. The follow-up
+README/checkpoint update changes documentation only.
