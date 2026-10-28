@@ -26,6 +26,8 @@ import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpRate
+import app.aaps.core.ui.compose.ComposablePluginContent
+import app.aaps.core.ui.compose.ToolbarConfig
 import app.aaps.pump.apex.ApexPumpPlugin
 import app.aaps.pump.apex.R
 import app.aaps.pump.apex.events.EventApexPumpDataChanged
@@ -36,8 +38,20 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Created lazily by PluginDescription; composition starts only when the host calls Render. */
+class ApexComposeContent(private val plugin: ApexPumpPlugin) : ComposablePluginContent {
+    @Composable
+    override fun Render(
+        setToolbarConfig: (ToolbarConfig) -> Unit,
+        onNavigateBack: () -> Unit,
+        onSettings: (() -> Unit)?
+    ) {
+        ApexOverviewScreen(plugin)
+    }
+}
+
 @Composable
-fun ApexComposeContent(plugin: ApexPumpPlugin) {
+private fun ApexOverviewScreen(plugin: ApexPumpPlugin) {
     var revision by remember { mutableIntStateOf(0) }
     var refreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
