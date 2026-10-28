@@ -16,7 +16,8 @@ Boost V2 and V7 remain excluded.
 
 - Full V1/V5 calculation, final V6 override, ML model loading, replay/state
   persistence and guarded APS result mapping.
-- Profile/IOB/meal/TDD preparation and shared Dynamic CR integration.
+- Profile/IOB/meal/TDD preparation, source implausible-TDD profile-ISF fallback
+  and shared Dynamic CR integration.
 - Night/sleep/recovery/premeal policies, source settings and English/Russian UI.
 - APS-owned phone steps, Health Connect HR and step history, persisted daily
   step maxima and diagnostic activity baseline.
@@ -50,10 +51,13 @@ comparisons, guard traces and version metadata. Mapping all files remains distin
 from behavioral and clinical validation; target platform and ISF/CR adaptations
 are recorded explicitly.
 
-The subsequent [diagnostic transfer](APS_DIAGNOSTICS_62_20261029.md) connects the
-remaining source counterfactuals, guard traces and version identity. Its full CI
-result was pending at publication; the preceding test/APK counts do not validate
-that new patch. The already-running CI builds its APK separately from the tests.
+The [diagnostic transfer](APS_DIAGNOSTICS_62_20261029.md) produced a successful APK
+in CI 40733233356, and the user reported Boost working on the phone on 29 October.
+That run's JVM and configuration suites stopped at two test-fixture compilation
+errors; it did not pass the full regression suite. The
+[TDD fallback follow-up](APS_TDD_FALLBACK_62_20261029.md) corrects those types and
+connects the current source profile-ISF fallback for implausibly low TDD. No new
+test run or APK-build success is claimed for that follow-up.
 
 The earlier [sleep checkpoint](APS_SLEEP_FRESHNESS_62_20261028.md) records 1414 JVM
 and 137 Android tests. The [activation checkpoint](APS_ACTIVATION_20261028.md)
@@ -94,7 +98,8 @@ read as proof that later changes passed.
 ## Device validation and intended differences
 
 The user reported Boost selection, settings and calculation checks as working on
-28 October 2026. Real CGM/pump delivery timing and clinical validation remain
+28 October, then the diagnostic APK/Boost as working on 29 October 2026.
+Real CGM/pump delivery timing and clinical validation remain
 separate from those checks and from JVM/host/build results. The source V1/V5/V6
 scope in the inventory is implemented with explicit target adaptations: Dmitry's
 ISF/Autosens order, shared Dynamic CR, target defensive checks and platform UI

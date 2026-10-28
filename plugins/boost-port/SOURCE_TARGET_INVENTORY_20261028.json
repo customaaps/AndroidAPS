@@ -126,7 +126,7 @@
       "source_blob_sha": "85b34774c353c652dea091ec26cb7586eadf5045",
       "target_path": "plugins/aps/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/OpenAPSBoostPlugin.kt",
       "status": "adapted",
-      "note": "Selected target APS owner connects V1/V5/V6, activity/sleep/policies and diagnostic state. Version metadata uses RT and target running-config settings channel; source UI is replaced by target UI."
+      "note": "Selected target APS owner connects V1/V5/V6, activity/sleep/policies and diagnostic state. Version metadata uses RT and target running-config settings channel; source UI is replaced by target UI. Source 6.2 implausible-TDD fallback is connected before dynamic ISF derivation; target correction order is preserved."
     },
     {
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/SleepHistoryTracker.kt",

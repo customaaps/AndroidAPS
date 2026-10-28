@@ -47,11 +47,20 @@ of scope. Source widgets are replaced by the target platform UI.
 
 ## Verification
 
-Full regression and APK results were still pending at publication; this checkpoint
-is not labelled fully tested. The already-started [CI 40733233356](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40733233356)
-uses source commit `c16d7097185c1e38a38b3d87e9b9b4f3c6668624`. The working-branch
-transfer preserves its production, test and workflow sources exactly and adds only
-README, inventory and this evidence. It does not launch a duplicate CI run.
+At publication of `85fa815`, full regression and APK results were pending.
+The already-started [CI 40733233356](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40733233356)
+uses source commit `c16d7097185c1e38a38b3d87e9b9b4f3c6668624`; production/tests/workflow
+in that diagnostic transfer match it exactly, with four evidence documents added.
+Its APK assembly subsequently succeeded and published
+[artifact 12836933831](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40733233356/artifacts/12836933831).
+
+The full run did not pass: Boost JVM test compilation failed on an inferred
+`Map<String, String>` versus `Map<String, Any>` assertion, and configuration host
+test compilation failed because the fake active pump used `Pump` instead of
+`PumpWithConcentration`. These two test-fixture types are corrected in the
+[subsequent TDD fallback patch](APS_TDD_FALLBACK_62_20261029.md). No test rerun is
+claimed. The user reported the APK and Boost working on the phone on 29 October;
+that statement does not imply every diagnostic/history case was exercised.
 
 A local 1001-cycle comparison of the original pinned EMA implementation against
 the portable formula passed. Repository regressions additionally cover persisted
@@ -61,5 +70,5 @@ APS connection and read-only configuration metadata. Their presence is not a
 claim that the full suite has passed for this checkpoint.
 
 The prior **1559-test and APK success** belongs to the earlier eligibility
-checkpoint `81dec3f`, not this diagnostic transfer. The new APK still needs its
-own successful build and device check.
+checkpoint `81dec3f`, not this diagnostic transfer. The diagnostic APK build succeeded as recorded above; the later TDD fallback
+patch has its own unverified build/test status.

@@ -271,7 +271,7 @@ internal class RunningConfigurationImplTest {
     fun selectedApsMetadataIsPublishedReadOnlyAlongsideTargetBuild() {
         whenever(config.appInitialized).thenReturn(true)
         whenever(config.VERSION_NAME).thenReturn("target-test-build")
-        val pump = mock<Pump>()
+        val pump = mock<PumpWithConcentration>()
         whenever(activePlugin.activePump).thenReturn(pump)
         whenever(pump.isInitialized()).thenReturn(true)
         whenever(pump.model()).thenReturn(PumpType.ACCU_CHEK_COMBO)

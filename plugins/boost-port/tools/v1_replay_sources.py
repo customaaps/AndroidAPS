@@ -288,9 +288,27 @@ def isf_preparation(reference=False):
     """Full upstream source ISF arithmetic, with TDD/settings supplied explicitly.
 
     EMA/VWA shadows, their history reads and log I/O are diagnostic only and are
-    omitted. No source ISF/TDD/TT/autosens branch is changed by that omission.
+    omitted. The current pinned implausible-TDD fallback is inserted before the
+    derivation. Target Autosens/TT/CR correction order is retained.
     """
     source = V1_PLUGIN.read_text()
+    current_path = MODULE / 'port-source/6.2.0/OpenAPSBoostPlugin.kt.source'
+    if blob(current_path) != '85b34774c353c652dea091ec26cb7586eadf5045':
+        raise ValueError('Unreviewed source 6.2 ISF fallback')
+    current = current_path.read_text()
+    # Lift only the current implausible-TDD branch. Keep target Autosens/TT/CR ordering.
+    start = current.index('                val logTerm = ln((bgNormalTarget / insulinDivisor) + 1.0)')
+    end = current.index('                    sensNormalTarget = 1800.0 / (tdd * logTerm)', start)
+    guard = current[start:end]
+    log_start = guard.index('                    aapsLogger.info(')
+    log_end = guard.index('\n                    )', log_start) + len('\n                    )')
+    guard = guard[:log_start] + guard[log_end:]
+    old_guard = ('                val logTerm = ln((bgNormalTarget / insulinDivisor) + 1.0)\n'
+                 '                if (tdd > 0 && logTerm > 0) {\n')
+    source = replace_once(source, old_guard, guard)
+    start = current.index('private const val DYNISF_MIN_TDD_FRACTION =')
+    end = current.index('// @Singleton MUST stay adjacent', start)
+    guard_helpers = current[start:end].rstrip()
     a = source.index('    private fun calculateBoostIsf(')
     b = source.index('    // ---- Boost Time Window & Activity Detection', a)
     body = source[a:b]
@@ -333,7 +351,7 @@ def isf_preparation(reference=False):
         raise ValueError('Unadapted source ISF runtime boundary')
     a = source.index('        internal fun autosensAdjustedIsf(')
     b = source.index('        /** Only cancel a recovery target', a)
-    helpers = textwrap.dedent(source[a:b])
+    helpers = guard_helpers + '\n\n' + textwrap.dedent(source[a:b])
     a = source.index('        internal fun selectSensitivityRatio(')
     b = source.index('        /** Outcome of the V6-override dose caps', a)
     helpers += textwrap.dedent(source[a:b])

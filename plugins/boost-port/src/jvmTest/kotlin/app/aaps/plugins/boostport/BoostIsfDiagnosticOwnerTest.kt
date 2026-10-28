@@ -116,7 +116,7 @@ class BoostIsfDiagnosticOwnerTest {
         val disk = Disk(); val key = BoostApsSettingKeys.ApsBoostIsfShadowState.key
         val owner = BoostIsfDiagnosticOwner(disk.store, tdd { disk.values[key] = "imported"; null })
         assertFailsWith<IllegalStateException> { owner.complete(rt(), v1(), input(), start) }
-        assertEquals(mapOf(key to "imported"), disk.values)
+        assertEquals(mapOf<String, Any>(key to "imported"), disk.values)
     }
 
     @Test fun malformedAndFutureDiagnosticStateIsNotPromotedToTelemetry() = runBlocking {

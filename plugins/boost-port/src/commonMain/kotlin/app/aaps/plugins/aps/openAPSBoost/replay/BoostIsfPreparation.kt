@@ -78,7 +78,34 @@ internal object BoostIsfPreparation {
 
                 // Safety: TDD must be positive and produce a sane ISF
                 val logTerm = ln((bgNormalTarget / insulinDivisor) + 1.0)
-                if (tdd > 0 && logTerm > 0) {
+                // 2026-07-30 IMPLAUSIBLE-TDD GUARD. The old condition was `tdd > 0` only, and the
+                // comment above claimed it ensured "a sane ISF" — it did not. A TDD of 0.1 U/day
+                // passes, and 1800/(tdd × logTerm) then explodes. Observed in the field on a
+                // cross-fork migration: a fresh AAPS database reported TDD 3.1–4.1 U/day against a
+                // true ~20, dynamic ISF reached 5550–8944 mg/dL/U against a profile ISF of 100
+                // (~88×), insulinReq computed at or below zero, and the loop delivered NOTHING for
+                // 3.5 h while BG climbed to 276 — 19 consecutive zero temp basals, no lows, no alarm.
+                //
+                // The floor is anchored on the profile's OWN implied TDD via the 1800 rule
+                // (profileISF ≈ 1800/TDD), so it is self-scaling per user and needs no magic ISF
+                // multiplier: a U200 user, a child and a high-TDD adult are all handled by their own
+                // profile. Falling back is SAFE-SIGNED — profileSens is the value the user/clinician
+                // configured, so a false positive costs dynamic responsiveness for that cycle and
+                // nothing else, which is why the fraction is set liberally rather than tightly.
+                val impliedTdd = if (profileSens > 0) 1800.0 / profileSens else 0.0
+                val tddImplausible = tddImplausibleForProfile(tdd, profileSens)
+                if (tddImplausible) {
+                    // Leave sensNormalTarget at profileSens (its initial value) — do NOT derive.
+                    debug.append(
+                        "\n⚠ dynISF=PROFILE-FALLBACK: TDD ${Round.roundTo(tdd, 0.1)} U/day is below " +
+                            "${Round.roundTo(impliedTdd * DYNISF_MIN_TDD_FRACTION, 0.1)} " +
+                            "(${(DYNISF_MIN_TDD_FRACTION * 100).toInt()}% of the ${Round.roundTo(impliedTdd, 0.1)} " +
+                            "implied by profile ISF ${Round.roundTo(profileSens, 0.1)}) — insulin history looks " +
+                            "incomplete; using profile ISF instead of a derived one this cycle"
+                    )
+
+                }
+                if (tdd > 0 && logTerm > 0 && !tddImplausible) {
                     shadowEligible = true
                     sensNormalTarget = 1800.0 / (tdd * logTerm)
                     sensNormalTarget *= globalScale
@@ -143,6 +170,20 @@ internal object BoostIsfPreparation {
         )
     }
 
+
+    private const val DYNISF_MIN_TDD_FRACTION = 0.35
+
+    /**
+     * True when [tdd] is too low to be believed given what [profileSens] implies, so dynamic ISF must NOT
+     * be derived from it. Extracted as a pure function so the guard is unit-testable independently of the
+     * plugin's DI graph. Returns false when [profileSens] is non-positive (no reference to judge against —
+     * fail OPEN there, because the existing `tdd > 0` check still applies downstream).
+     */
+    internal fun tddImplausibleForProfile(tdd: Double, profileSens: Double): Boolean {
+        if (profileSens <= 0.0) return false
+        val impliedTdd = 1800.0 / profileSens
+        return tdd < impliedTdd * DYNISF_MIN_TDD_FRACTION
+    }
 
     internal fun autosensAdjustedIsf(sensNormalTarget: Double, useTdd: Boolean, autosensWhenNoTdd: Boolean, tempTargetRatio: Double, orefAutosensRatio: Double): Double =
         if (useTdd || !autosensWhenNoTdd || tempTargetRatio != 1.0 || !orefAutosensRatio.isFinite() || orefAutosensRatio <= 0.0) sensNormalTarget

@@ -26,7 +26,10 @@ removes this fork's Dynamic CR path. Those changes are deliberately not applied:
 Dmitry's ISF/Autosens correction order and the shared Dynamic CR integration are
 requirements of this target. The post-rescue named source constant remains 75
 mg/dL, equal to the target's default; the explicit target trial remains separate.
-This eligibility block retires the fixed Boost clock window and brings current
+The [TDD follow-up](APS_TDD_FALLBACK_62_20261029.md) also connects the current
+source implausible-TDD profile-ISF fallback before derivation; its threshold,
+profile-percentage basis and debug explanation are copied from the pinned source.
+The eligibility block retires the fixed Boost clock window and brings current
 night/sleep/learned-lie-in/genuine-wake policy into the active owner.
 
 ## Diagnostic transfer and target adaptations
@@ -41,7 +44,8 @@ The target removed the legacy devicestatus configuration piggyback. Boost versio
 identity therefore travels in every RT and the separate running-config settings
 document. Clients do not apply it as a preference. Existing target Overview/Wear/
 platform UI is retained. The user's device checks of selection/settings/calculation
-were reported successful on 28 October; this is distinct from controlled validation
+were reported successful on 28 October, followed by an APK/Boost check on
+29 October; this is distinct from controlled validation
 of actual sensor/pump delivery timing and from JVM/host/build verification.
 
 | Source unit | Target entry point | Status |
