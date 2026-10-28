@@ -3,7 +3,7 @@ package app.aaps.plugins.boostport.aps
 import app.aaps.core.interfaces.aps.*
 import app.aaps.core.keys.interfaces.NonPreferenceKey
 
-/** APS boundary. No pump commands are issued by the calculator. Loop owns delivery constraints. */
+/** Live APS calculation boundary: RT requests enter the standard Loop for constrained pump enactment. */
 interface BoostApsCalculator {
     data class Input(
         val glucose: GlucoseStatus,

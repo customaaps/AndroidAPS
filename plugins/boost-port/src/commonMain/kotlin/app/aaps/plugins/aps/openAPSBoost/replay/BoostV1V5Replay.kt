@@ -39,7 +39,7 @@ internal data class V5ReplayContext(
 )
 
 /**
- * Full V1 -> V5 calculation, confined to caller-owned, sequential replay.
+ * Full V1 -> V5 calculation for live APS and recorded replay, owned by one sequential caller.
  * V1 retains the feature ring; V5's next state is returned for the caller to
  * retain/serialize. Neither result is an APSResult or a delivery command.
  * The final source V6 override returns a separate candidate, preserving V1's result.
@@ -150,3 +150,4 @@ internal object V1ToV5ReplayInputs {
         )
     }
 }
+

@@ -152,7 +152,12 @@ class DetermineBasalResult(
         } else rh.gs(CoreUiStrings.nochangerequested)
     }
 
-    override fun newAndClone(): APSResult = apsResultProvider().with(result)
+    override fun newAndClone(): APSResult = apsResultProvider().with(result).also { clone ->
+        // Loop resolves the pump's percentage representation before applying constraints.
+        // Those two fields are computed by the caller and are not stored in RT.
+        clone.usePercent = usePercent
+        clone.percent = percent
+    }
     override fun json(): JsonObject {
         reportNonFiniteResultFields()
         // Straight to a tree. This used to serialise to text and parse it back with org.json, once per

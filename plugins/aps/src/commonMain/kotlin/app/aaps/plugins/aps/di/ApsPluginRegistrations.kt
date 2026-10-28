@@ -13,7 +13,7 @@ import dev.zacsweers.metro.IntoMap
 import dev.zacsweers.metro.Provides
 
 /**
- * Registers the three openAPS plugins.
+ * Registers the four openAPS plugins, including the live Boost APS at key 236.
  *
  * The plugins are built from their own `@Inject` constructors in `commonMain`, so nothing about them
  * lives in `:app` any more. Only the registration stays behind in `androidMain`, because a plugin map

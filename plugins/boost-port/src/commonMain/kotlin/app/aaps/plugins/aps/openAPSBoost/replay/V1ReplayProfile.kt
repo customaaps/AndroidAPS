@@ -1,4 +1,4 @@
-// Source profile schema; replay-only. Not registered as an AAPS profile.
+// Internal source profile schema for live Boost and replay; target profile conversion is explicit.
 package app.aaps.plugins.aps.openAPSBoost.replay
 
 

@@ -91,7 +91,7 @@ def portable(source):
     s = s.replace('Math.floorMod(block, 2L)', 'block.mod(2L)')
     for name in ('min', 'max', 'abs', 'floor'):
         s = s.replace('Math.' + name + '(', name + '(')
-    return '// Full source V1 arithmetic, replay-only; platform boundaries are explicit.\n' + s
+    return '// Source V1 arithmetic used by live Boost and recorded replay; explicit platform boundaries.\n' + s
 
 
 def reference(source):
@@ -103,7 +103,7 @@ def portable_profile():
     text = PROFILE.read_text().replace('package app.aaps.core.interfaces.aps', 'package ' + REPLAY)
     text = text.replace('import kotlinx.serialization.Serializable\n', '').replace('@Serializable\n', '')
     text = text.replace('data class OapsProfileBoost(', 'internal data class V1ReplayProfile(')
-    return '// Source profile schema; replay-only. Not registered as an AAPS profile.\n' + text
+    return '// Internal source profile schema for live Boost and replay; target profile conversion is explicit.\n' + text
 
 
 def portable_features():
@@ -243,7 +243,7 @@ def v6_override(reference=False):
     helpers = textwrap.indent(helpers, '    ')
     imports = (f'import {REPLAY}.*\n' if reference else
                'import app.aaps.core.interfaces.utils.Round\nimport app.aaps.plugins.aps.openAPSBoostV5.ConfirmTrancheController\nimport kotlin.math.roundToLong\n')
-    return f'''// Source V6 final override, replay-only; no live APS/pump binding.
+    return f'''// Source V6 final override used by live Boost and replay; pump enactment belongs to Loop.
 package {REFERENCE if reference else REPLAY}
 
 {imports}import app.aaps.plugins.aps.openAPSBoostV5.V5Decision

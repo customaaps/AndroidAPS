@@ -297,5 +297,33 @@
       "source_blob_sha": "3f28e7c798e31a0c68173f842f6bbf529653a365",
       "matches_frozen_archive": true
     }
-  ]
+  ],
+  "delivery_closeout": {
+    "date": "2026-10-29",
+    "reviewed_base_commit": "b814ad546df6f9e71525436d4b2e74651ee6bee1",
+    "scope": [
+      "V1",
+      "V5",
+      "V6"
+    ],
+    "mapped_implementation_units": 39,
+    "known_unconnected_delivery_stages": [],
+    "live_route": [
+      "OpenAPSBoostPlugin",
+      "BoostApsCalculatorFactoryImpl",
+      "BoostApsResultMapper.toRt",
+      "DetermineBasalResult.with",
+      "LoopPlugin.invoke",
+      "commandQueue",
+      "selectedPump"
+    ],
+    "remaining_validation": [
+      "latest APK on phone with virtual pump",
+      "TBR and SMB enactment/history",
+      "restart and import lifecycle"
+    ],
+    "latest_patch_test_execution": "not run",
+    "latest_patch_apk_build": "not run",
+    "report": "APS_DELIVERY_CLOSEOUT_20261029.md"
+  }
 }

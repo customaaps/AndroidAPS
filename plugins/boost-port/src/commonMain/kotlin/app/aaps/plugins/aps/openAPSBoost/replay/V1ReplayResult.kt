@@ -2,7 +2,7 @@ package app.aaps.plugins.aps.openAPSBoost.replay
 
 import app.aaps.core.interfaces.aps.Predictions
 
-/** Source numeric output for offline replay; does not implement RT or APSResult. */
+/** Source numeric output for live Boost and replay; the APS boundary maps it to RT. */
 internal enum class V1ReplayAlgorithm { UNKNOWN, BOOST, SMB }
 
 internal data class V1ReplayResult(

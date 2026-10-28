@@ -1,4 +1,4 @@
-// Source V6 final override, replay-only; no live APS/pump binding.
+// Source V6 final override used by live Boost and replay; pump enactment belongs to Loop.
 package app.aaps.plugins.aps.openAPSBoost.replay
 
 import app.aaps.core.interfaces.utils.Round
@@ -303,3 +303,4 @@ internal class V6ReplayOverride {
 
 
 }
+

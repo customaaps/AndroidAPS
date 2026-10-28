@@ -2,15 +2,20 @@
 
 Working branch: `Vlad747kja/AndroidAPS:nigthscout-dev-boost-port-20261026`.
 
-The portable V1 → V5 → V6 calculation pipeline is connected to the standard
-AndroidAPS APSResult boundary. **Boost V6 is selectable in Configuration → APS**
-in an APS build; selecting it uses the standard Loop and pump constraints.
-It is not forced on or made the default algorithm. The earlier General inspection
-plugin remains disabled.
+The agreed V1 → V5 → V6 port is implemented and connected to pump enactment
+through the standard AndroidAPS Loop. **Select Boost V6 in Configuration → APS**
+in an APS build. Its RT carries basal rate/duration and SMB units into the normal
+APSResult, constraints, command queue and selected pump. The selected Loop mode
+and SMB settings determine which requests can be enacted.
 
-This is a partial semantic port, not a byte-for-byte replacement of Dmitry's
-algorithm. Dmitry's existing Autosens/ISF correction order is retained.
-Boost V2 and V7 remain excluded.
+The [delivery closeout](APS_DELIVERY_CLOSEOUT_20261029.md) records the complete
+route review and the percentage-basal clone correction. No known unconnected
+delivery stage remains in the agreed scope. The latest patch has not been built
+or run through automated tests; the requested next check is on the phone with a
+virtual pump.
+
+The port retains Dmitry's Autosens/ISF correction order, shared Dynamic CR and
+the recorded target platform adaptations. Boost V2/V7 are outside this scope.
 
 ## Integrated components
 
@@ -31,10 +36,10 @@ Boost V2 and V7 remain excluded.
 - Native CGM history/deltas, sensor-cadence sleep telemetry and an opt-in global
   Loop cadence setting; five-minute IOB/COB and autosens buckets are retained.
 
-The APS adapter issues no pump-delivery commands; the existing Loop owns that
-boundary. Activity-load and insulin-need diagnostics do not change a dosing
-candidate. Source arithmetic is isolated from Android readers, storage and
-presentation dependencies.
+The selected APS publishes the live V6 candidate. Loop applies its basal/bolus
+constraints and sends the resulting TBR/SMB commands through the selected pump
+interface. Activity-load, ISF/VWA and insulin-need comparison fields are diagnostic;
+source arithmetic remains separate from platform readers and command enactment.
 
 The latest [6.2 eligibility transfer](APS_ELIGIBILITY_62_20261028.md) passed
 **1422 Boost JVM tests and 137 Android host/application tests**, zero failures,

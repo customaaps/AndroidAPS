@@ -1,4 +1,4 @@
-// Full source V1 arithmetic, replay-only; platform boundaries are explicit.
+// Source V1 arithmetic used by live Boost and recorded replay; explicit platform boundaries.
 package app.aaps.plugins.aps.openAPSBoost
 
 import app.aaps.plugins.aps.openAPSBoost.replay.V1ReplayAlgorithm

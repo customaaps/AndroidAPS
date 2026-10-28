@@ -32,6 +32,16 @@ profile-percentage basis and debug explanation are copied from the pinned source
 The eligibility block retires the fixed Boost clock window and brings current
 night/sleep/learned-lie-in/genuine-wake policy into the active owner.
 
+## Delivery closeout — 29 October 2026
+
+All 39 implementation entries remain mapped. The
+[delivery route review](APS_DELIVERY_CLOSEOUT_20261029.md) follows selected Boost
+through the final V6 result, APSResult, standard Loop constraints, command queue
+and selected pump. No known missing delivery hookup remains in this inventory.
+The shared result clone now retains Loop's computed percentage-basal mode and
+value, including for the virtual pump. Remaining work is phone validation of the
+latest build, TBR/SMB history and restarts; no new test/build pass is claimed.
+
 ## Diagnostic transfer and target adaptations
 
 The live persisted ISF-EMA and VWA-TDD comparisons, RT/Nightscout fields, V1 guard
