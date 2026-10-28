@@ -1,0 +1,301 @@
+{
+  "source_repository": "tim2000s/Boost-in-AAPS_3.4",
+  "source_commit": "3f75d6a36c84e048c5ddf8a5dfce935184842d11",
+  "implementation_units": [
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostIsfShadow.kt",
+      "source_blob_sha": "ece9e8f4d81663a05f9aa42f2ba3f9983d2faa3d",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostV1IsfShadowCalculation.kt",
+      "status": "diagnostic_partial",
+      "note": "Pure comparisons exist; live EMA shadow state and upload fields are not connected."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostMealModel.kt",
+      "source_blob_sha": "3cb022777238019a2f6ae52c33ff1236a9d5fd05",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/replay/V1ReplayTreeModels.kt",
+      "status": "adapted",
+      "note": "Live model asset parsing/inference."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostMlFeatureBuilder.kt",
+      "source_blob_sha": "6c7800863a2edf16b20033a8654378a8ec8b3ab4",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/replay/V1ReplayFeatures.kt",
+      "status": "adapted",
+      "note": "Live ring state; retains target nonfinite feature hardening."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostRiskModel.kt",
+      "source_blob_sha": "7ebce3db204cef709ec13773722d1905a5a1c7a2",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/replay/V1ReplayTreeModels.kt",
+      "status": "adapted",
+      "note": "Retains strict malformed-model/nonfinite input guards."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostV1SafetyRules.kt",
+      "source_blob_sha": "1a6ee787120bdd1e8a209a0e325dfe1b859cd18b",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostV1SafetyRules.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostVwaTddShadow.kt",
+      "source_blob_sha": "a0787acec53c0411b5579f5b6ddc39e712d1b2da",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/boostport/telemetry/BoostVwaTddShadowMath.kt",
+      "status": "diagnostic_partial",
+      "note": "Pure VWA math exists; live counterfactual state/upload fields remain."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/DailyStepHistoryTracker.kt",
+      "source_blob_sha": "9805031e54ab7f7bb3937ca3c29a66cd9bfda023",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/activity/DailyStepHistoryTracker.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/DetermineBasalBoost.kt",
+      "source_blob_sha": "3d1e715b350bbf54654998bb465fd9420ec0650e",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostV1ReplayEngine.kt",
+      "status": "adapted_with_diagnostic_gap",
+      "note": "Dmitry ISF/Autosens and shared Dynamic CR are intentionally retained; source minGuard curve labels remain a trace difference."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/DeviceAgeTag.kt",
+      "source_blob_sha": "f9943e9a1232511370a516800294cbc3d171bea9",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/DeviceAgeTag.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/HealthConnectHrIngest.kt",
+      "source_blob_sha": "3399d5671804df9fbdbddfb2d656795fe81d97ff",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/boostport/aps/BoostHealthConnectIngest.kt",
+      "status": "adapted",
+      "note": "Owned Android asynchronous ingest, cancellation and permission boundary."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/HealthConnectPermissionActivity.kt",
+      "source_blob_sha": "dfe2f1707579032980c41c466a142efd6ef507f2",
+      "target_path": "plugins/boost-port/src/androidMain/kotlin/app/aaps/plugins/boostport/aps/BoostDataPermissionsActivity.kt",
+      "status": "adapted",
+      "note": "Target platform permission flow replaces source activity."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/HealthConnectPrivacyActivity.kt",
+      "source_blob_sha": "0987779e858ab8ccb9fd9871ab4ab2151380cda6",
+      "target_path": "plugins/boost-port/src/androidMain/kotlin/app/aaps/plugins/boostport/aps/BoostDataPermissionsActivity.kt",
+      "status": "adapted",
+      "note": "Target Health Connect permission/privacy route; source UI activity is not copied."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/HealthConnectStepsIngest.kt",
+      "source_blob_sha": "74c30d01199002dadaf63eb87b3ea64f014a8645",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/boostport/aps/BoostHealthConnectStepHistory.kt",
+      "status": "adapted",
+      "note": "Source difference from frozen blob is a raw-read comment; owner uses unmasked storage."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/HrActivityCalculator.kt",
+      "source_blob_sha": "db6e43ec45f6be6c8df4ed27cee923c88e6167af",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/activity/HrActivityCalculator.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/HrSourceResolver.kt",
+      "source_blob_sha": "3cf94c20f831d1f4cde72fca781212e6fe72cda3",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/HrSourceResolver.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/MealTimeLearner.kt",
+      "source_blob_sha": "b67d535fec18d716d89c0567fca7187f58a66fb4",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/activity/MealTimeLearner.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/NightWindow.kt",
+      "source_blob_sha": "ada0ef76711816f8d3d0825d7c193a5feca019b7",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/NightWindow.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/OpenAPSBoostPlugin.kt",
+      "source_blob_sha": "85b34774c353c652dea091ec26cb7586eadf5045",
+      "target_path": "plugins/aps/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/OpenAPSBoostPlugin.kt",
+      "status": "adapted_with_diagnostic_gap",
+      "note": "Selectable APS adapter plus sequential calculator/owners; source shadow and boostVersion upload metadata are not complete."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/SleepHistoryTracker.kt",
+      "source_blob_sha": "6e0a4ddbb3649a95d02915ca861902019760449e",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/activity/SleepHistoryTracker.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/SleepStateDetector.kt",
+      "source_blob_sha": "415f3fbba53e0f68ae2056ccd0ea40cf22acc7e1",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/activity/SleepStateDetector.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/StepFeed.kt",
+      "source_blob_sha": "50beab9dd2d2bb8312cb95e9926501c18351a75b",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/StepFeed.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/StepService.kt",
+      "source_blob_sha": "afb6447750e15d5ffc514623bbf920e0a7c7e73b",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/boostport/aps/BoostPhoneStepTracker.kt",
+      "status": "adapted",
+      "note": "Calculator-owned sensor lease replaces static service; counter reset/spike guards retained."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/StepSourceResolver.kt",
+      "source_blob_sha": "bb3617a8ffa32fcd3cebe6584731db363e21cc3f",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/StepSourceResolver.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/WearStepSource.kt",
+      "source_blob_sha": "99c8f90c8fbcdfa85a44df5f1f1e2b6f146db13a",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/activity/WearStepSource.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/AggressionBudget.kt",
+      "source_blob_sha": "0323cd0116f866f82f0a29e77453593615c4142b",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/AggressionBudget.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/BoostHistorySync.kt",
+      "source_blob_sha": "5de66b5013d44cbf63a293da24fb234362787536",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/BoostHistorySync.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/BoostV5AutoConfig.kt",
+      "source_blob_sha": "2720697d21eb55c1ce3f6489c9f4d7ab442f8bbc",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/BoostV5AutoConfig.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/BoostV5AutoConfigApply.kt",
+      "source_blob_sha": "72305da2a65a1c85d0b77bb702bbe26756718bbb",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/BoostV5AutoConfigApply.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/ConfirmTrancheController.kt",
+      "source_blob_sha": "1b0e9f306548f650d070516fed901866900d53bb",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/ConfirmTrancheController.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/DetermineBasalBoostV5.kt",
+      "source_blob_sha": "12121ccca48622e25d9350a23a8f66027d1817ae",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/DetermineBasalBoostV5.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/InsulinNeedWatch.kt",
+      "source_blob_sha": "4862ea65ad69969116d59d635dd0f4ebf94b4496",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/InsulinNeedWatch.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/MealActionMultiplier.kt",
+      "source_blob_sha": "2b3f139d7a0172ea27e764d868b8ea08c8b86393",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/MealActionMultiplier.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/MealHypothesis.kt",
+      "source_blob_sha": "c2aa8b9a6699ccbcf4c79883610de4b35297a726",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/MealHypothesis.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/MealSignalScore.kt",
+      "source_blob_sha": "b3c2dc23961d8f42978ac7dff21fb7559a6510af",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/MealSignalScore.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/OpenAPSBoostV5Plugin.kt",
+      "source_blob_sha": "82460b89d4140fee860e6c83fe2c4fbf4337e2dd",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/boostport/aps/BoostApsCalculatorFactoryImpl.kt",
+      "status": "adapted",
+      "note": "Combined V1/V5/V6 APS owner replaces a separate V5 plugin; auto-config/history/need watch are connected."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/SafetyGates.kt",
+      "source_blob_sha": "751a3c2afde69130776e90405fe030990da8d047",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/SafetyGates.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/TrancheThresholdDeriver.kt",
+      "source_blob_sha": "3f44dc8070fd7f622ac79408aba8b6d48f44e853",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoostV5/TrancheThresholdDeriver.kt",
+      "status": "adapted",
+      "note": "See component checkpoint reports and source-oracle tests; an inventory mapping is not a parity claim."
+    },
+    {
+      "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/V5StateStore.kt",
+      "source_blob_sha": "71feebea5eeffe0527aefba392cf1b948e6673c9",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/replay/BoostReplayStateCodec.kt",
+      "status": "adapted",
+      "note": "Sequential persisted session plus legacy state import, cancellation and ownership."
+    },
+    {
+      "source_path": "core/interfaces/src/main/kotlin/app/aaps/core/interfaces/aps/OapsProfileBoost.kt",
+      "source_blob_sha": "c878fe20a0498403aaaedb03a662eb34c4887e42",
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/replay/BoostTargetProfileAdapter.kt",
+      "status": "adapted",
+      "note": "Portable source profile plus constrained target OapsProfile boundary; preserves canonical units and target Dynamic CR/ISF order."
+    }
+  ],
+  "model_assets": [
+    {
+      "source_path": "app/src/main/assets/boost/hypo_risk_meta.json",
+      "source_blob_sha": "c34a3247177620bed5e06898821db74796eb717a",
+      "matches_frozen_archive": true
+    },
+    {
+      "source_path": "app/src/main/assets/boost/hypo_risk_model.json",
+      "source_blob_sha": "ada7ad9f8907bca1a4d7b50a2cb086a60a8dea49",
+      "matches_frozen_archive": true
+    },
+    {
+      "source_path": "app/src/main/assets/boost/meal_likelihood_meta.json",
+      "source_blob_sha": "9cb089af1670d7468d1583e4250b7cb4de383fc2",
+      "matches_frozen_archive": true
+    },
+    {
+      "source_path": "app/src/main/assets/boost/meal_likelihood_model.json",
+      "source_blob_sha": "3f28e7c798e31a0c68173f842f6bbf529653a365",
+      "matches_frozen_archive": true
+    }
+  ]
+}

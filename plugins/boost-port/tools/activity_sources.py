@@ -2,6 +2,7 @@
 """Mechanically port the source activity/sleep/learning arithmetic and retain a JVM oracle."""
 import argparse
 import hashlib
+import textwrap
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,7 @@ SLEEP_BLOBS = {
     'SleepStateDetector.kt.source': '415f3fbba53e0f68ae2056ccd0ea40cf22acc7e1',
     'OpenAPSBoostPlugin.kt.source': '85b34774c353c652dea091ec26cb7586eadf5045',
     'SleepLieInWakeTest.kt.source': '4dd15130da14b22ee3a9fd1519c02a0320d6b466',
+    'StepFeed.kt.source': '50beab9dd2d2bb8312cb95e9926501c18351a75b',
 }
 
 def current_sleep_source():
@@ -54,6 +56,32 @@ def transform(name, reference=False):
         text = text.replace('Math.PI', 'kotlin.math.PI')
         text = text.replace('Math.round(WAKE_HR_SUSTAIN_MINUTES / spacing).toInt()',
                             'kotlin.math.floor(WAKE_HR_SUSTAIN_MINUTES / spacing + 0.5).toInt()')
+    return text
+
+
+def eligibility(reference=False):
+    current_sleep_source()  # independently pinned upstream plugin and StepFeed
+    source = (CURRENT_SLEEP / 'OpenAPSBoostPlugin.kt.source').read_text()
+    start = source.index('        internal fun boostGateOpen(')
+    end = source.index('        /**\n         * Why the learned pre-meal target', start)
+    body = textwrap.dedent(source[start:end]).rstrip()
+    package = REFERENCE if reference else PACKAGE
+    return 'package ' + package + '\n\n/** Pure, exact source 6.2 gate and boundary-exit signals. */\ninternal object BoostEligibilityPolicy {\n' + body + '\n}\n'
+
+def step_feed(reference=False):
+    current_sleep_source()
+    text = (CURRENT_SLEEP / 'StepFeed.kt.source').read_text()
+    package = REFERENCE if reference else 'app.aaps.plugins.aps.openAPSBoost'
+    text = text.replace('package app.aaps.plugins.aps.openAPSBoost', 'package ' + package, 1).replace('\nobject StepFeed {', '\ninternal object StepFeed {', 1)
+    if not reference:
+        # Preserve established common-port freshness, invalid-count and overflow guards.
+        text = text.replace('WearStepSource.FRESH_MS', 'WEAR_FRESH_MS')
+        text = text.replace('internal object StepFeed {', 'internal object StepFeed {\n    const val WEAR_FRESH_MS = 12 * 60_000L', 1)
+        text = text.replace('wearAgeMs <= WEAR_FRESH_MS', 'wearAgeMs in 0L..WEAR_FRESH_MS')
+        text = text.replace('stepsAvailable && currentProfileSwitch == 100 && recentSteps60Min < inactivitySteps',
+                            'stepsAvailable && currentProfileSwitch == 100 && recentSteps60Min >= 0 && inactivitySteps > 0 && recentSteps60Min < inactivitySteps')
+        text = text.replace('stepsAvailable && nowMs in nightEndMs until (nightEndMs + sleepInMs) && recentSteps60Min < sleepInSteps',
+                            'stepsAvailable && recentSteps60Min >= 0 && sleepInSteps > 0 && sleepInMs > 0 && nowMs >= nightEndMs && nowMs - nightEndMs < sleepInMs && recentSteps60Min < sleepInSteps')
     return text
 
 
@@ -98,11 +126,52 @@ def preparation(reference=False):
     body = body.replace('Math.round(dynIsfNormalTarget)', 'kotlin.math.floor(dynIsfNormalTarget + 0.5).toLong()')
     # The source catches Throwable for missing step rows. Keep coroutine cancellation meaningful.
     body = body.replace('catch (_: Throwable)', 'catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception)')
-    names = ('boostStartTime', 'boostEndTime', 'sleepInHours', 'sleepInSteps', 'allowBoostWithHighTt',
+    names = ('sleepInHours', 'sleepInSteps', 'allowBoostWithHighTt',
              'dynIsfNormalTarget', 'inactivitySteps', 'inactivityPct', 'activitySteps5', 'activitySteps15',
              'activitySteps30', 'activitySteps60', 'activityPct', 'hrIntegrationEnabled', 'hrWindowMinutes',
              'hrMaxBpm', 'hrRestingBpm', 'hrStressDetection')
     properties = '\n'.join(f'    private val {name} get() = settings.{name}' for name in names)
+    a = body.index('        var boostStart =')
+    b = body.index('        // Disable boost if high temp target', a)
+    body = body[:a] + """        val nightStartMs = midnight + settings.nightStartOfDayMs
+        val nightEndMs = midnight + settings.nightEndOfDayMs
+        val inNightWindow = NightWindow.contains(now, nightStartMs, nightEndMs)
+        val rawNightPeriod = settings.nightModeEnabled && (inNightWindow ||
+            (settings.autoBySleep && snapshot.sleep.state != SleepStateDetector.SleepState.AWAKE))
+        val sleepSig = BoostEligibilityPolicy.sleepSignals(snapshot.sleep.state, rawNightPeriod,
+            settings.nightModeEnabled, settings.autoBySleep, now, snapshot.lastSleepBoundaryExitMs,
+            BoostEligibilityPolicy.boundaryExitHoldMin(settings.sleepHysteresisMin))
+        val detectorAsleep = sleepSig.detectorAsleep
+        var boostActive = BoostEligibilityPolicy.boostGateOpen(sleepSig.nightSleepPeriod,
+            inNightWindow, v6Active = true, detectorSleeping = sleepSig.detectorSleeping)
+        var disableReason = when {
+            inNightWindow -> "Night window (clock)"
+            sleepSig.nightSleepPeriod -> "Night/sleep period"
+            !boostActive -> "Sleeping (V6 stands down; base oref SMB)"
+            else -> ""
+        }
+        debug.append("Boost gate: window=$inNightWindow period=${sleepSig.nightSleepPeriod} sleeping=${sleepSig.detectorSleeping} | Now: ${snapshot.localTimeText}")
+        if (sleepSig.boundaryHold) debug.append(" | sleep boundary-exit hold")
+
+""" + body[b:]
+    a = body.index('        // Sleep-in (lie-in) detection.')
+    b = body.index('        // Audit trail for the 2026-07-31 fix:', a)
+    body = body[:a] + """        // Current source anchors the lie-in to this cycle's learned/configured wake.
+        val lieInEndOfNightMs = snapshot.effectiveNightEndMin?.let { midnight + it * 60_000L } ?: nightEndMs
+        val sleepInActive = StepFeed.sleepInActive(stepsAvailable, now, lieInEndOfNightMs,
+            sleepInMillis, recentSteps60Min, sleepInSteps)
+""" + body[b:]
+    a = body.index('        if (boostActive && sleepInActive) {')
+    b = body.index('        var activityMinBg =', a)
+    body = body[:a] + """        val genuineWakeThisMorning = snapshot.lastGenuineWakeMs >= lieInEndOfNightMs -
+            SleepStateDetector.SLEEP_SCHEDULE_TOLERANCE_MIN * 60_000L
+        if (boostActive && StepFeed.lieInFailsafeEngages(sleepInActive, settings.nightModeEnabled,
+                settings.autoBySleep, sleepSig.detectorSleeping, genuineWakeThisMorning)) {
+            boostActive = false
+            disableReason = "Sleep-in failsafe (60m steps $recentSteps60Min < $sleepInSteps)"
+        }
+
+""" + body[b:]
     hold_start = source.index('internal fun sleepBoundaryHoldActive(')
     hold_end = source.index('/** Pure step-exercise evidence', hold_start)
     helpers = source[hold_start:hold_end] + source[source.index('internal fun boostExerciseStepsMet('):]
@@ -134,6 +203,7 @@ internal class BoostActivityPreparation(
 {helpers}'''
     if reference:
         text = text.replace('import app.aaps.plugins.aps.openAPSBoost.activity.BoostActivitySnapshot\n', '')
+        text = text.replace('import app.aaps.plugins.aps.openAPSBoost.StepFeed\n', '')
     return text
 
 

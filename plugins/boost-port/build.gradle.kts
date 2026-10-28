@@ -9,6 +9,7 @@ val v1ReferenceDir = layout.buildDirectory.dir("generated/v1Reference")
 val generateV1Reference = tasks.register<Exec>("generateV1ReplayReference") {
     inputs.file("tools/v1_replay_sources.py")
     inputs.file("tools/activity_sources.py")
+    inputs.file("src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/StepFeed.kt")
     inputs.file("tools/night_mode_sources.py")
     inputs.file("tools/sleep_telemetry_sources.py")
     inputs.file("tools/auto_config_sources.py")

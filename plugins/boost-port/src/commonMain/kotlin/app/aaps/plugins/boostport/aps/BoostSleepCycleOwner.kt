@@ -36,6 +36,7 @@ internal class BoostSleepCycleOwner(
         val state: SleepStateDetector.State,
         val lastBoundaryExitMs: Long?,
         val learnedDaytimeHrBpm: Int?,
+        val lastGenuineWakeMs: Long = 0L,
     )
 
     data class Update(
@@ -53,6 +54,7 @@ internal class BoostSleepCycleOwner(
     private var history: SleepHistoryTracker.History? = null
     private var lastBoundaryExitMs: Long? = null
     private var learnedDaytimeHrBpm: Int? = null
+    private var lastGenuineWakeMs = 0L
 
     fun snapshot(): Snapshot {
         if (state == null) {
@@ -66,7 +68,7 @@ internal class BoostSleepCycleOwner(
         }
         return Snapshot(checkNotNull(state).copy(stepSamples = checkNotNull(state).stepSamples.toMutableList(),
             phoneStepSamples = checkNotNull(state).phoneStepSamples.toMutableList()),
-            lastBoundaryExitMs, learnedDaytimeHrBpm)
+            lastBoundaryExitMs, learnedDaytimeHrBpm, lastGenuineWakeMs)
     }
 
     suspend fun evaluateCycle(
@@ -143,6 +145,7 @@ internal class BoostSleepCycleOwner(
         state = evaluated.newState
         history = nextHistory
         if (evaluated.wakeReason == "boundary") lastBoundaryExitMs = nowMs
+        if (evaluated.wakeReason == "steps" || evaluated.wakeReason == "hr_steps") lastGenuineWakeMs = nowMs
         learnedDaytimeHrBpm = learned.daytimeHrBpm
         return Update(evaluated, learned, start, end, stepsToday, recentHr.toList(), combinedSteps15)
     }

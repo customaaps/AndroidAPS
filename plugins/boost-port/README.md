@@ -33,15 +33,22 @@ boundary. Activity-load and insulin-need diagnostics do not change a dosing
 candidate. Source arithmetic is isolated from Android readers, storage and
 presentation dependencies.
 
-The latest [6.2 sleep/wake transfer](APS_SLEEP_FRESHNESS_62_20261028.md) passed
-**1414 Boost JVM tests and 137 Android host/application tests**, with zero
-failures, errors or skips, plus Boost KMP assembly and fullDebug APK compilation.
-Sleep is evaluated before this cycle's policy and V5 inputs; phone/watch cumulative
-wake evidence stays independent. The report records exact CI revisions, artifacts
-and the separate fixed-window eligibility policy still to be reconciled.
+The latest [6.2 eligibility transfer](APS_ELIGIBILITY_62_20261028.md) passed
+**1422 Boost JVM tests and 137 Android host/application tests**, zero failures,
+errors or skips, plus Boost KMP assembly and fullDebug APK compilation in
+[CI 40713999416](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40713999416).
+Boost no longer reads the retired start/end clocks: tiers follow source 6.2
+night/sleep/learned-lie-in/genuine-wake conditions. Standard Loop constraints,
+target StepFeed hardening and raw import/export keys are preserved.
 
-The previous [activation checkpoint](APS_ACTIVATION_20261028.md) records 1401 JVM,
-135 Android host and two application graph/catalog tests at its own source revisions.
+The [source inventory](SOURCE_TARGET_INVENTORY_20261028.md) accounts for all 39
+implementation units and four matching model/metadata assets. It records remaining
+ISF/VWA-TDD live shadow, guard-curve trace and source version-metadata gaps; mapping
+all files is not a claim of complete diagnostic or clinical parity.
+
+The earlier [sleep checkpoint](APS_SLEEP_FRESHNESS_62_20261028.md) records 1414 JVM
+and 137 Android tests. The [activation checkpoint](APS_ACTIVATION_20261028.md)
+records 1401 JVM, 135 host and two app graph/catalog tests at its own revisions.
 
 ## Earlier verified checkpoint
 
@@ -80,8 +87,8 @@ read as proof that later changes passed.
 1. Verify selected Boost V6 calculations and standard Loop interaction on a device.
 2. Validate native-cadence operation with real CGM/pump timing. Host/device/Apple
    tests remain distinct from JVM tests and APK builds.
-3. Reconcile remaining 6.2 eligibility differences, including upstream retirement
-   of the Boost start/end window, and finish the source inventory/device scenarios.
+3. Complete remaining source diagnostic parity: live ISF/VWA-TDD shadows, guard
+   curve-name breadcrumbs and source-specific Boost version upload metadata.
 
 The base archive remains the 114 original source blobs pinned in
 [SOURCE_MANIFEST.md](SOURCE_MANIFEST.md); it is not rewritten as later features

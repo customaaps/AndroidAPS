@@ -524,6 +524,8 @@ def main():
     ports.update({activity_sources.PORT / (name + '.kt'): activity_sources.transform(name)
                   for name in activity_sources.NAMES})
     ports[activity_sources.PORT / 'BoostActivityPreparation.kt'] = activity_sources.preparation()
+    ports[activity_sources.PORT / 'BoostEligibilityPolicy.kt'] = activity_sources.eligibility()
+    ports[activity_sources.PORT.parent / 'StepFeed.kt'] = activity_sources.step_feed()
     for path, expected in ports.items():
         if args.write_port:
             path.write_text(expected)
@@ -559,6 +561,8 @@ def main():
         (activity_out / 'BoostActivityInputs.kt').write_text((activity_sources.PORT / 'BoostActivityInputs.kt').read_text().replace(
             'package ' + activity_sources.PACKAGE, 'package ' + activity_sources.REFERENCE, 1))
         (activity_out / 'BoostActivityPreparation.kt').write_text(activity_sources.preparation(reference=True))
+        (activity_out / 'BoostEligibilityPolicy.kt').write_text(activity_sources.eligibility(reference=True))
+        (activity_out / 'StepFeed.kt').write_text(activity_sources.step_feed(reference=True))
         night_mode_sources.write_reference(args.reference_output)
         sleep_telemetry_sources.write_reference(args.reference_output)
         auto_config_sources.write_reference(args.reference_output)

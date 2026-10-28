@@ -17,8 +17,6 @@ internal class BoostActivityPreparation(
     private val aapsLogger: AAPSLogger? = null,
     private val formatHr: (Double?) -> String,
 ) {
-    private val boostStartTime get() = settings.boostStartTime
-    private val boostEndTime get() = settings.boostEndTime
     private val sleepInHours get() = settings.sleepInHours
     private val sleepInSteps get() = settings.sleepInSteps
     private val allowBoostWithHighTt get() = settings.allowBoostWithHighTt
@@ -64,23 +62,25 @@ internal class BoostActivityPreparation(
         val midnight = snapshot.dayStartMs
         val sleepInMillis = (3600000.0 * sleepInHours).toLong()
 
-        var boostStart = midnight + settings.boostStartOfDayMs
-        var boostEnd = midnight + settings.boostEndOfDayMs
-
-        debug.append("Boost window: $boostStartTime–$boostEndTime | Now: ${snapshot.localTimeText}")
-
-        if (boostStart > boostEnd) {
-            if (now > boostEnd) boostEnd += 86400000L
-            else boostStart -= 86400000L
-            debug.append(" (overnight wrap)")
+        val nightStartMs = midnight + settings.nightStartOfDayMs
+        val nightEndMs = midnight + settings.nightEndOfDayMs
+        val inNightWindow = NightWindow.contains(now, nightStartMs, nightEndMs)
+        val rawNightPeriod = settings.nightModeEnabled && (inNightWindow ||
+            (settings.autoBySleep && snapshot.sleep.state != SleepStateDetector.SleepState.AWAKE))
+        val sleepSig = BoostEligibilityPolicy.sleepSignals(snapshot.sleep.state, rawNightPeriod,
+            settings.nightModeEnabled, settings.autoBySleep, now, snapshot.lastSleepBoundaryExitMs,
+            BoostEligibilityPolicy.boundaryExitHoldMin(settings.sleepHysteresisMin))
+        val detectorAsleep = sleepSig.detectorAsleep
+        var boostActive = BoostEligibilityPolicy.boostGateOpen(sleepSig.nightSleepPeriod,
+            inNightWindow, v6Active = true, detectorSleeping = sleepSig.detectorSleeping)
+        var disableReason = when {
+            inNightWindow -> "Night window (clock)"
+            sleepSig.nightSleepPeriod -> "Night/sleep period"
+            !boostActive -> "Sleeping (V6 stands down; base oref SMB)"
+            else -> ""
         }
-
-        var boostActive = now in boostStart until boostEnd
-        var disableReason = ""
-
-        if (!boostActive) {
-            disableReason = "Outside boost time window"
-        }
+        debug.append("Boost gate: window=$inNightWindow period=${sleepSig.nightSleepPeriod} sleeping=${sleepSig.detectorSleeping} | Now: ${snapshot.localTimeText}")
+        if (sleepSig.boundaryHold) debug.append(" | sleep boundary-exit hold")
 
         // Disable boost if high temp target and not allowed
         if (boostActive && tempTargetSet && !allowBoostWithHighTt && targetBg > dynIsfNormalTarget) {
@@ -131,40 +131,10 @@ internal class BoostActivityPreparation(
         val stepsAvailable = stepFeed.available
         if (!stepsAvailable) debug.append("\n${stepFeed.unavailableNote()}")
 
-        // Sleep-in (lie-in) detection. UNLIKE the INACTIVE branch, the lie-in DISABLES Boost —
-        // that removes insulin (the safe direction) — so it is deliberately NOT gated on step-feed
-        // availability: a dark feed / zero steps during the lie-in window must still disable Boost,
-        // or a dawn rise could be amplified into a meal-SMB while the user is in bed. (StepFeed's
-        // availability guard applies to the insulin-ADDING branches only; tim's StepFeed.sleepInActive
-        // gates this for the night-mode-tracking model — our fixed-window model keeps the protection.
-        // For the same reason this fork does NOT use StepFeed.lieInFailsafeEngages: the fixed window
-        // never stands down for the detector, so the 2026-07-31 "failsafe disarmed by a SLEEPING
-        // detector" defeat path cannot exist here.)
-        val inSleepInWindow = now in boostStart until (boostStart + sleepInMillis)
-        val sleepInActive = inSleepInWindow && recentSteps60Min < sleepInSteps
-        // Sleep as the INACTIVE branch must see it (2026-07-31). SLEEPING is confirmed sleep;
-        // PRE_SLEEP is the wind-down before it, and the user is in bed for both. This covers the
-        // CORE NIGHT, which the lie-in window cannot reach — a sleeping user has near-zero steps by
-        // definition, so the INACTIVE branch would otherwise read "asleep" as "sedentary" and RAISE
-        // the profile (ApsBoostInactivityPct), adding insulin overnight. snapshot.sleep is the current
-        // cycle's state, evaluated before this activity preparation.
-        val boundaryHold = sleepBoundaryHoldActive(
-            now, snapshot.lastSleepBoundaryExitMs, settings.sleepHysteresisMin
-        )
-        val detectorAsleep = snapshot.sleep.state == SleepStateDetector.SleepState.SLEEPING ||
-            snapshot.sleep.state == SleepStateDetector.SleepState.PRE_SLEEP || boundaryHold
-        // The configured night window as a clock fact, read WHATEVER ApsBoostNightModeEnabled says.
-        // This is what makes "INACTIVE never fires overnight" hold by default instead of depending
-        // on the user having enabled night mode, and it needs no HR, no steps and no detector.
-        val nightStartMs = midnight + settings.nightStartOfDayMs
-        val nightEndMs = midnight + settings.nightEndOfDayMs
-        val inNightWindow = NightWindow.contains(now, nightStartMs, nightEndMs)
-        // Independently of the night-mode toggle, suppress Boost in the configured
-        // night window and while the sleep detector reports PRE_SLEEP or SLEEPING.
-        if (boostActive && !boostNightGateOpen(inNightWindow, detectorAsleep)) {
-            boostActive = false
-            disableReason = if (inNightWindow) "Night window (clock)" else "Sleeping (Boost gate closed)"
-        }
+        // Current source anchors the lie-in to this cycle's learned/configured wake.
+        val lieInEndOfNightMs = snapshot.effectiveNightEndMin?.let { midnight + it * 60_000L } ?: nightEndMs
+        val sleepInActive = StepFeed.sleepInActive(stepsAvailable, now, lieInEndOfNightMs,
+            sleepInMillis, recentSteps60Min, sleepInSteps)
         // Audit trail for the 2026-07-31 fix: record when the step test alone WOULD have raised the
         // profile but sleep blocked it, so the suppression is visible in NS rather than silent.
         if (StepFeed.inactivityStepsMet(stepsAvailable, profilePercent, recentSteps60Min, inactivitySteps) &&
@@ -173,12 +143,12 @@ internal class BoostActivityPreparation(
             debug.append("\nInactivity SUPPRESSED by sleep (60m steps $recentSteps60Min < $inactivitySteps; " +
                 "nightWindow=$inNightWindow sleepIn=$sleepInActive detector=${snapshot.sleep.state}) → profile held at 100%")
         }
-        if (boostActive && sleepInActive) {
+        val genuineWakeThisMorning = snapshot.lastGenuineWakeMs >= lieInEndOfNightMs -
+            SleepStateDetector.SLEEP_SCHEDULE_TOLERANCE_MIN * 60_000L
+        if (boostActive && StepFeed.lieInFailsafeEngages(sleepInActive, settings.nightModeEnabled,
+                settings.autoBySleep, sleepSig.detectorSleeping, genuineWakeThisMorning)) {
             boostActive = false
-            disableReason = "Sleep-in (60m steps $recentSteps60Min < threshold $sleepInSteps, within ${sleepInHours}h of start)"
-            aapsLogger?.debug(LTag.APS, "Boost disabled due to lie-in")
-        } else if (inSleepInWindow && boostActive) {
-            debug.append("\nSleep-in window active but overridden (steps $recentSteps60Min >= $sleepInSteps)")
+            disableReason = "Sleep-in failsafe (60m steps $recentSteps60Min < $sleepInSteps)"
         }
 
         var activityMinBg = minBg

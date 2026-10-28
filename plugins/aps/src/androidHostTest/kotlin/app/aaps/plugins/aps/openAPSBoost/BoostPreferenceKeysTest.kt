@@ -9,7 +9,7 @@ class BoostPreferenceKeysTest {
     @Test fun sourcePreferenceAliasesPreserveImportExportIdentityDefaultsAndRawMode() {
         val raw = BoostApsSettingKeys.all.associateBy { it.key }
         val editable = BoostApsPreferenceKeys.editable
-        assertEquals(67, editable.size)
+        assertEquals(65, editable.size)
         assertEquals(editable.size, editable.map { it.key }.distinct().size)
         assertEquals(BoostApsSettingKeys.all.map { it.key }, BoostApsPreferenceKeys.owned(BoostApsSettingKeys.all).map { it.key })
         editable.forEach { key ->
@@ -37,7 +37,7 @@ class BoostPreferenceKeysTest {
     }
     @Test fun clocksRejectMalformedValuesAndOffsetEditorCannotGuessMmolForSmallMgdlOffsets() {
         val clocks = BoostApsPreferenceKeys.editable.filterIsInstance<StringPreferenceKey>()
-        assertEquals(4, clocks.size)
+        assertEquals(2, clocks.size)
         clocks.forEach { key ->
             listOf("7:00", "07:00", "24:00", "00:00").forEach { assertTrue(key.validator.validate(it).isValid, it) }
             listOf("", "25:00", "24:01", "7:1", " 07:00").forEach { assertFalse(key.validator.validate(it).isValid, it) }
@@ -55,6 +55,8 @@ class BoostPreferenceKeysTest {
             assertFalse(it.key in names)
         }
         assertFalse(BoostApsSettingKeys.ApsBoostV5PrimerTbrFallback.key in names)
+        assertFalse(BoostApsSettingKeys.ApsBoostStartTime.key in names)
+        assertFalse(BoostApsSettingKeys.ApsBoostEndTime.key in names)
         assertFalse(BoostApsPreferenceKeys.permissions.exportable)
     }
 }

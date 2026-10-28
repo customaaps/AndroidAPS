@@ -102,4 +102,42 @@ class BoostActivityPreparationTest {
                 .calculate(day, false, 100.0, 100.0, 110.0, 100) }
         }
     }
+    private fun resolved(atHour: Double, options: BoostActivitySettings = settings(),
+        captured: BoostActivitySnapshot = snapshot(atHour.toInt(), live = false)): BoostActivityPreparation.BoostActivityResult {
+        val at = day + (atHour * 3_600_000L).toLong()
+        return immediate { BoostActivityPreparation(options, captured, db(at), formatHr = { "" })
+            .calculate(at, false, 100.0, 100.0, 110.0, 100) }
+    }
+    @Test fun retiredBoostClocksCannotSilentlyRestrictDaytimeToTheOldOneMinuteDefault() {
+        val options = settings().copy(boostStartTime = "bad", boostEndTime = "bad",
+            boostStartOfDayMs = 7 * 3_600_000L, boostEndOfDayMs = 7 * 3_600_000L + 60_000L)
+        assertTrue(resolved(13.0, options).boostActive)
+        assertTrue(resolved(9.0, options).boostActive)
+        assertFalse(resolved(23.0, options).boostActive)
+    }
+    @Test fun preSleepOnlyClosesTiersThroughTheSourceNightToggleButAlwaysExcludesInactivityRaise() {
+        val preSleep = snapshot(13).copy(sleep = SleepStateDetector.State(state = SleepStateDetector.SleepState.PRE_SLEEP))
+        for (enabled in listOf(false, true)) for (auto in listOf(false, true)) {
+            val actual = resolved(13.0, settings().copy(nightModeEnabled = enabled, autoBySleep = auto), preSleep)
+            assertEquals(!(enabled && auto), actual.boostActive)
+            assertEquals(100, actual.profileSwitch)
+        }
+    }
+    @Test fun learnedLaterWakeAnchorsTheLieInAndOnlyAGenuineWakeEndsItsBackstop() {
+        val at = day + 10 * 3_600_000L + 30 * 60_000L
+        val captured = snapshot(10).copy(effectiveNightEndMin = 600)
+        val held = resolved(10.5, captured = captured)
+        assertTrue(held.sleepInActive)
+        assertFalse(held.boostActive)
+        val woken = resolved(10.5, captured = captured.copy(lastGenuineWakeMs = at - 10 * 60_000L))
+        assertTrue(woken.boostActive)
+        assertEquals(100, woken.profileSwitch)
+        val unknown = resolved(10.5, captured = captured.copy(phoneFeedLive = false))
+        assertFalse(unknown.sleepInActive)
+        assertTrue(unknown.boostActive)
+        val sleeping = resolved(10.5, captured = captured.copy(phoneFeedLive = false,
+            sleep = SleepStateDetector.State(state = SleepStateDetector.SleepState.SLEEPING)))
+        assertFalse(sleeping.boostActive)
+    }
+
 }

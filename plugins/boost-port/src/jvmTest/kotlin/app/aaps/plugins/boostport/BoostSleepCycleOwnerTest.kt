@@ -114,6 +114,7 @@ class BoostSleepCycleOwnerTest {
         val wake = immediate { owner.evaluateCycle(wakeAt, 0, settings, 0, null) }
         assertEquals("boundary", wake.evaluation.wakeReason)
         assertEquals(wakeAt, owner.snapshot().lastBoundaryExitMs)
+        assertEquals(0L, owner.snapshot().lastGenuineWakeMs)
         val closed = SleepHistoryTracker.History.deserialize(f.stored.getValue(historyKey))
         assertNull(closed.openSleepStartMs)
         assertEquals(1, closed.sessions.size)
@@ -304,6 +305,8 @@ class BoostSleepCycleOwnerTest {
         assertEquals(77, actual.evaluation.stepsLbWatch)
         assertEquals(0, actual.evaluation.stepsLbPhone)
         assertEquals(900, actual.stepsToday)
+        assertTrue(owner.snapshot().lastGenuineWakeMs > 0L)
+        assertEquals(0L, f.owner().snapshot().lastGenuineWakeMs)
         assertEquals(SleepStateDetector.SleepState.AWAKE, owner.snapshot().state.state)
         assertEquals(SleepStateDetector.SleepState.AWAKE, f.owner().snapshot().state.state)
     }

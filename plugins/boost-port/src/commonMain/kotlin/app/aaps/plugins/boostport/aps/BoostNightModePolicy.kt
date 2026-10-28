@@ -24,6 +24,7 @@ internal object BoostNightModePolicy {
         val temporaryTargetMgDl: Double?,
         val mealCob: Double,
         val sleepState: SleepStateDetector.SleepState,
+        val lieInActive: Boolean = false,
     )
 
     fun isActive(settings: Settings, context: Context): Boolean {
@@ -32,7 +33,7 @@ internal object BoostNightModePolicy {
         val active = NightWindow.contains(context.nowMs,
             context.dayStartMs + settings.startOfDayMs, context.dayStartMs + settings.endOfDayMs)
         val sleepActive = settings.autoBySleep && context.sleepState != SleepStateDetector.SleepState.AWAKE
-        if (!active && !sleepActive) return false
+        if (!active && !sleepActive && !context.lieInActive) return false
         if (settings.disableWithCob && context.mealCob > 0.0) return false
         if (settings.disableWithLowTempTarget) {
             val profileTarget = context.profileTargetMgDl ?: return false

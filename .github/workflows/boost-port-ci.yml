@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [engine, android]
+        suite: [engine, android, apk]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -81,11 +81,11 @@ jobs:
         run: |
           ./gradlew :app:testFullDebugUnitTest --tests 'app.aaps.di.metro.BoostPluginRegistrationTest' --tests 'app.aaps.di.metro.ContributedPluginsTest.every contributed plugin*' --no-daemon --stacktrace
       - name: Compile complete Android fullDebug APK
-        if: matrix.suite == 'android'
+        if: matrix.suite == 'apk'
         run: |
           ./gradlew :app:assembleFullDebug --no-daemon --stacktrace
       - name: Publish fullDebug APK
-        if: success() && matrix.suite == 'android'
+        if: success() && matrix.suite == 'apk'
         uses: actions/upload-artifact@v4
         with:
           name: dmitry-boost-port-full-debug-apk
@@ -98,7 +98,7 @@ jobs:
           echo "## Boost port verification" >> "$GITHUB_STEP_SUMMARY"
           echo "Branch: $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
           echo "Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-          echo "Both matrix jobs must pass: source/assets/isolation, JVM and KMP assembly, Android host/app graph tests, and fullDebug APK." >> "$GITHUB_STEP_SUMMARY"
+          echo "All matrix jobs must pass: source/assets/isolation, JVM and KMP assembly, Android host/app graph tests, and fullDebug APK." >> "$GITHUB_STEP_SUMMARY"
       - name: Publish Boost KMP test reports
         if: always()
         uses: actions/upload-artifact@v4

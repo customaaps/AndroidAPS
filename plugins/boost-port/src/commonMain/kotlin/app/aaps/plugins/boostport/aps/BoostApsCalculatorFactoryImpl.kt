@@ -62,6 +62,7 @@ class BoostApsCalculatorFactoryImpl(
         private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
         private var previousMealLikelihood: Double? = null
+        private var previousSleepInActive = false
         private val activityLease = activitySource?.open()
         private val clock = object : V1ReplayClock {
             override fun hourAt(timestampMs: Long): Int = (localMinute(timestampMs) / 60).toInt()
@@ -118,12 +119,13 @@ class BoostApsCalculatorFactoryImpl(
                 val nightActive = BoostNightModePolicy.isActive(nightSettings, BoostNightModePolicy.Context(
                     input.atMs, sourceDayStartMs, input.glucose.glucose,
                     input.originalProfileTargetMgDl, input.profile.target_bg.takeIf { input.profile.temptargetSet },
-                    input.meal.mealCOB, sleep.state))
+                    input.meal.mealCOB, sleep.state, lieInActive = previousSleepInActive))
                 val effectiveInput = input.copy(microBolusAllowed = input.microBolusAllowed && !nightActive)
                 val activitySettings = settings.activity()
                 val snapshot = BoostActivitySnapshot(sourceDayStartMs,
                     "${clock.hourAt(input.atMs)}:${clock.minuteAt(input.atMs).toString().padStart(2, '0')}",
-                    phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.phoneFeedLive, sleep, currentSleep.lastBoundaryExitMs, currentSleep.learnedDaytimeHrBpm)
+                    phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.phoneFeedLive, sleep, currentSleep.lastBoundaryExitMs, currentSleep.learnedDaytimeHrBpm,
+                    sleepUpdate.effectiveNightEndMin, currentSleep.lastGenuineWakeMs)
                 val context = BoostProfileContext(input.atMs, input.glucose.glucose, input.profilePercent,
                     input.profile.target_bg, input.profile.min_bg, input.profile.max_bg, input.profile.target_bg,
                     input.insulinPeak, false, settings.d(BoostApsSettingKeys.ApsBoostBolus),
@@ -147,7 +149,8 @@ class BoostApsCalculatorFactoryImpl(
                         input.profile, input.originalProfileCr, input.autosens, isfSettings, context,
                         effectiveInput.microBolusAllowed, input.flatBg, settings.d(BoostApsSettingKeys.ApsBoostCumulativeSmbCap60Min), rampCap, history),
                     activitySettings, snapshot, { value -> value?.let { activityFormat("%.1f", it) } ?: "null" },
-                    resolveRecoveryAndMealContext = { c, _ ->
+                    resolveRecoveryAndMealContext = { c, activity ->
+                        previousSleepInActive = activity.sleepInActive
                         val recovery = recoveryOwner.prepare(settings.recovery(), c, history.recentLowBg60,
                             texts?.gs(InterfacesStrings.boost_recovery_tt_note),
                             texts?.gs(InterfacesStrings.boost_recovery_tt_rebound, history.recentLowBg60.toInt()))

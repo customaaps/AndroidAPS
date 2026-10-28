@@ -46,10 +46,9 @@ internal class BoostApsRuntimeSettings(private val store: KeyValueStore) {
         if (!b(ApsBoostNightModeEnabled)) return BoostNightModePolicy.Settings()
         return BoostNightModePolicy.Settings(
             enabled = true,
-            // isNightModeActiveImpl uses parseTimeToMillis: malformed clocks
-            // fall back to midnight, unlike the independent activity guard.
-            startOfDayMs = clock(s(ApsBoostNightModeStart)),
-            endOfDayMs = clock(s(ApsBoostNightModeEnd)),
+            // Current source uses the same defaulted night-period clock as eligibility.
+            startOfDayMs = clock(s(ApsBoostNightModeStart), "22:00"),
+            endOfDayMs = clock(s(ApsBoostNightModeEnd), "07:00"),
             autoBySleep = b(BoostApsSettingKeys.ApsBoostNightModeAutoBySleep),
             disableWithCob = b(BoostApsSettingKeys.ApsBoostNightModeDisableWithCob),
             disableWithLowTempTarget = b(BoostApsSettingKeys.ApsBoostNightModeDisableWithLowTt),
@@ -79,13 +78,14 @@ internal class BoostApsRuntimeSettings(private val store: KeyValueStore) {
     )
 
     fun activity(): BoostActivitySettings = BoostActivitySettings(
-        s(ApsBoostStartTime), s(ApsBoostEndTime), clock(s(ApsBoostStartTime)), clock(s(ApsBoostEndTime)),
+        "", "", 0L, 0L, // Legacy Boost start/end keys are no longer read.
         d(ApsBoostSleepInHours), i(ApsBoostSleepInSteps), b(ApsBoostAllowWithHighTt), d(ApsBoostDynIsfNormalTarget),
         i(ApsBoostInactivitySteps), d(ApsBoostInactivityPct), i(ApsBoostActivitySteps5), i(ApsBoostActivitySteps15),
         i(ApsBoostActivitySteps30), i(ApsBoostActivitySteps60), d(ApsBoostActivityPct),
         b(ApsBoostHrIntegrationEnabled), i(ApsBoostHrWindowMinutes), i(ApsBoostHrMaxBpm), i(ApsBoostHrRestingBpm),
         b(ApsBoostHrStressDetection), i(ApsBoostSleepHysteresisMin),
         clock(s(ApsBoostNightModeStart), "22:00"), clock(s(ApsBoostNightModeEnd), "07:00"),
+        b(ApsBoostNightModeEnabled), b(BoostApsSettingKeys.ApsBoostNightModeAutoBySleep),
     )
 
     companion object {

@@ -432,4 +432,63 @@ class BoostApsBoundaryTest {
         owner.close()
         assertEquals(1, cancelled)
     }
+    @Test fun realCalculatorIgnoresRetiredLegacyClocksAndStillHonorsIncomingSmbDenial() {
+        val base = input(false)
+        val at = base.atMs / 86_400_000L * 86_400_000L + 12 * 3_600_000L
+        val disk = Disk().apply {
+            values[BoostApsSettingKeys.ApsBoostStartTime.key] = "invalid legacy clock"
+            values[BoostApsSettingKeys.ApsBoostEndTime.key] = "invalid legacy clock"
+        }
+        val actual = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk).calculate(base.copy(
+            atMs = at, glucose = object : GlucoseStatus by base.glucose { override val date = at },
+            profile = base.profile.copy(temptargetSet = false))) })
+        assertTrue(actual.result.boostActive ?: false)
+        assertEquals(0.0, actual.result.units ?: 0.0)
+        assertEquals("invalid legacy clock", disk.values[BoostApsSettingKeys.ApsBoostStartTime.key])
+    }
+    @Test fun nightSmbPolicyUsesThePreviousLieInFlagAndFreshOwnersDoNotRetainIt() {
+        val base = input(false)
+        val at = base.atMs / 86_400_000L * 86_400_000L + 7 * 3_600_000L + 30 * 60_000L
+        val disk = Disk().apply {
+            values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true
+            values[BoostApsSettingKeys.ApsBoostSleepInHours.key] = 2.0
+        }
+        val activity = object : BoostApsActivitySource {
+            override fun open() = object : BoostApsActivitySource.Lease {
+                override fun snapshot(nowMs: Long, offsetMinutes: Int) = BoostApsActivitySource.Snapshot(phoneFeedLive = true)
+                override fun healthConnect(enabled: Boolean, nowMs: Long, pollMinutes: Int) {}
+                override fun close() {}
+            }
+        }
+        fun request(time: Long) = base.copy(atMs = time, originalProfileTargetMgDl = 180.0,
+            glucose = object : GlucoseStatus by base.glucose { override val date = time },
+            profile = base.profile.copy(temptargetSet = false))
+        val owner = calculator(disk, activity = activity)
+        val first = assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(request(at)) })
+        assertFalse(first.nightModeActive)
+        assertFalse(first.result.boostActive ?: true)
+        val next = assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(request(at + 5 * 60_000L)) })
+        assertTrue(next.nightModeActive)
+        owner.close()
+        val fresh = assertIs<BoostApsCalculator.Result.Calculated>(immediate {
+            calculator(disk, activity = activity).calculate(request(at + 5 * 60_000L)) })
+        assertFalse(fresh.nightModeActive)
+        assertEquals(0.0, fresh.result.units ?: 0.0)
+    }
+
+    @Test fun malformedNightClocksUseTheSameSourceDefaultsForSmbSleepAndEligibility() {
+        val disk = Disk().apply {
+            values[BoostApsSettingKeys.ApsBoostNightModeEnabled.key] = true
+            values[BoostApsSettingKeys.ApsBoostNightModeStart.key] = "broken"
+            values[BoostApsSettingKeys.ApsBoostNightModeEnd.key] = "broken"
+        }
+        val settings = BoostApsRuntimeSettings(disk.store)
+        assertEquals(22 * 3_600_000L, settings.night().startOfDayMs)
+        assertEquals(7 * 3_600_000L, settings.night().endOfDayMs)
+        assertEquals(settings.night().startOfDayMs, settings.activity().nightStartOfDayMs)
+        assertEquals(settings.night().endOfDayMs, settings.activity().nightEndOfDayMs)
+        assertEquals(1320, settings.sleep().nightStartMin)
+        assertEquals(420, settings.sleep().nightEndMin)
+    }
+
 }

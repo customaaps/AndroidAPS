@@ -25,8 +25,6 @@ package app.aaps.plugins.aps.openAPSBoost
  * Pure / no I/O — unit-testable without the plugin.
  */
 internal object StepFeed {
-    /** Identical 12-minute freshness bound to the legacy WearStepSource; kept independent
-     * of SC persistence so the migration's pure feed-state logic builds in commonMain. */
     const val WEAR_FRESH_MS = 12 * 60_000L
 
     /**
@@ -142,7 +140,12 @@ internal object StepFeed {
         sleepInActive: Boolean,
         nightModeEnabled: Boolean,
         autoBySleepActive: Boolean,
-        detectorSleeping: Boolean
+        detectorSleeping: Boolean,
+        // 2026-10-15: the detector has confirmed a wake on steps or HR + steps this morning. A detected
+        // wake ends the lie-in; without this the failsafe kept Boost off after a genuine HR + steps
+        // wake until the 60-min steps reached the lie-in threshold. A resume burst alone does not
+        // count: a burst with no steps is the false-AWAKE this failsafe exists for.
+        genuineWakeThisMorning: Boolean = false
     ): Boolean =
-        sleepInActive && !(nightModeEnabled && autoBySleepActive && detectorSleeping)
+        sleepInActive && !genuineWakeThisMorning && !(nightModeEnabled && autoBySleepActive && detectorSleeping)
 }

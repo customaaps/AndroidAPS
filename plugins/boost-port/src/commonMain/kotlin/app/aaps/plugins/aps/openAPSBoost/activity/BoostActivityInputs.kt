@@ -25,9 +25,11 @@ internal data class BoostActivitySettings(
     val sleepHysteresisMin: Int,
     val nightStartOfDayMs: Long,
     val nightEndOfDayMs: Long,
+    val nightModeEnabled: Boolean = false,
+    val autoBySleep: Boolean = false,
 )
 
-/** Previous-cycle sleep/phone state and one captured local-clock interpretation. */
+/** Current-cycle sleep/phone state and one captured local-clock interpretation. */
 internal data class BoostActivitySnapshot(
     val dayStartMs: Long,
     val localTimeText: String,
@@ -39,4 +41,6 @@ internal data class BoostActivitySnapshot(
     val sleep: SleepStateDetector.State,
     val lastSleepBoundaryExitMs: Long?,
     val learnedDaytimeHrBpm: Int?,
+    val effectiveNightEndMin: Int? = null,
+    val lastGenuineWakeMs: Long = 0L,
 )

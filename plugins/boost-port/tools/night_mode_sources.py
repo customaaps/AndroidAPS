@@ -3,7 +3,8 @@
 from pathlib import Path
 
 MODULE = Path(__file__).resolve().parents[1]
-ARCHIVE = MODULE / 'legacy-snapshot/plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost'
+ARCHIVE = MODULE / 'port-source/6.2.0'
+FROZEN = MODULE / 'legacy-snapshot/plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost'
 PACKAGE = 'app.aaps.plugins.boostport.reference.night'
 
 
@@ -18,6 +19,9 @@ def write_reference(output):
     # Bind the original platform/service reads to one explicit, canonical snapshot.
     # The decisions, ordering, short-circuits and hard-limit call remain source code.
     body = body.replace('private fun isNightModeActiveImpl()', 'fun isActive()')
+    body = body.replace('getBoostDosing(BooleanKey.', 'get(BooleanKey.')
+    period = method('    private fun isInNightSleepPeriod(): Boolean {', '\n    private fun isNightModeActive(): Boolean {')
+    period = period.replace('System.currentTimeMillis()', 'context.nowMs').replace('MidnightUtils.milliSecFromMidnight(now)', '(now - context.dayStartMs)').replace('getBoostDosing(', 'get(')
     body = body.replace('System.currentTimeMillis()', 'context.nowMs')
     body = body.replace('MidnightUtils.milliSecFromMidnight(now)', '(now - context.dayStartMs)')
     body = body.replace('app.aaps.core.ui.R.string.temp_target_value', '0')
@@ -81,12 +85,13 @@ internal class ReferenceBoostNightMode(
     }
     private val dateUtil = object { fun now() = context.nowMs }
     private val sleepStateCached = SleepStateDetector.State(state = context.sleepState)
+    private val sleepInActiveCached = context.lieInActive
 
 '''.replace('PACKAGE', PACKAGE)
     out = output / Path(PACKAGE.replace('.', '/'))
     out.mkdir(parents=True, exist_ok=True)
-    (out / 'ReferenceBoostNightMode.kt').write_text(prefix + body + '\n\n' + clock + '\n}\n')
-    window = (ARCHIVE / 'NightWindow.kt.source').read_text()
+    (out / 'ReferenceBoostNightMode.kt').write_text(prefix + period + '\n\n' + body + '\n\n' + clock + '\n}\n')
+    window = (FROZEN / 'NightWindow.kt.source').read_text()
     (out / 'NightWindow.kt').write_text(window.replace('package app.aaps.plugins.aps.openAPSBoost', 'package ' + PACKAGE, 1))
 
 
