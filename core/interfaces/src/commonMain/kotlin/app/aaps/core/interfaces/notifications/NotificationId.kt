@@ -253,7 +253,8 @@ enum class NotificationId(
     COMBO_UNKNOWN_BOLUS(URGENT, PUMP),
 
     // Append: persisted notification ordinals must stay stable.
-    BOOST_HR_FEED_DARK(LOW, SYSTEM);
+    BOOST_HR_FEED_DARK(LOW, SYSTEM),
+    BOOST_AUTOCONFIG(INFO, SYSTEM);
 
     companion object {
 

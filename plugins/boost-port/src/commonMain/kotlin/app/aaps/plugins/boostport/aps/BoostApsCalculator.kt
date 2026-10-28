@@ -26,6 +26,8 @@ interface BoostApsCalculator {
         val cycleSpacingMinutes: Double? = null,
         /** Original profile target, before any temporary target or activity adjustment. */
         val originalProfileTargetMgDl: Double? = null,
+        /** Already constrained, in canonical pump insulin units; absent in older replay callers. */
+        val maxBolusAllowed: Double? = null,
     )
 
     sealed interface Result {
@@ -36,6 +38,7 @@ interface BoostApsCalculator {
             /** Presentation translates this policy explanation without changing source engine traces. */
             val nightModeActive: Boolean = false,
             val hrFeedDarkMinutes: Long? = null,
+            val autoConfigNotice: BoostAutoConfigNotice? = null,
         ) : Result
         data class Rejected(val reason: String) : Result
     }

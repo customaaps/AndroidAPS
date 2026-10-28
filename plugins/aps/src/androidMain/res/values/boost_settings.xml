@@ -76,4 +76,5 @@
     <string name="boost_hr_feed_dark">Boost: no heart-rate data for %1$d min. Check the watch/Garmin connection.</string>
     <string name="boost_data_permissions">Step and heart-rate permissions</string>
     <string name="boost_floor_safety" formatted="false">Insulin-adding floors require at least 1000 readings in 14 days, with below-63 mg/dL under 2% and below-70 mg/dL under 3.5%. They remain blocked after a low, during sleep and by the normal SMB gates.</string>
+    <string name="boost_auto_config_notice">Boost settings: initialized %1$d, adjusted %2$d; suggestions held due to low-glucose exposure: %3$d.</string>
 </resources>

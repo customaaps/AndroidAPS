@@ -5,6 +5,7 @@ import app.aaps.core.keys.interfaces.*
 /** Source key names/defaults for APS integration; UI exposure is added only as features are wired. */
 object BoostApsSettingKeys {
     data class BooleanValue(override val key: String, override val defaultValue: Boolean) : BooleanNonPreferenceKey
+    data class LongValue(override val key: String, override val defaultValue: Long) : LongNonPreferenceKey
     data class IntValue(override val key: String, override val defaultValue: Int) : IntNonPreferenceKey
     data class DoubleValue(override val key: String, override val defaultValue: Double) : DoubleNonPreferenceKey
     data class StringValue(override val key: String, override val defaultValue: String, override val exportable: Boolean = true) : StringNonPreferenceKey

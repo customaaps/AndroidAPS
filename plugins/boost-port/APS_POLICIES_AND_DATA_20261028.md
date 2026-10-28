@@ -63,9 +63,10 @@ contract and Russian resource audits pass. These source audits alone do not prov
 Android lifecycle or whole-policy parity. Apple tests and device tests were not run.
 
 Remaining integration work is listed in [the APS integration checkpoint](APS_INTEGRATION_20261027.md).
-In particular, source native CGM cadence, Health Connect step-history/baseline
-owners, V5 auto-configuration and remaining runtime telemetry/lifecycle coverage
-still precede enabling the APS plugin. Clinical/device validation is not claimed.
+The [later auto-configuration checkpoint](APS_AUTOCONFIG_20261028.md) connects
+V5 automatic derivation. Source native CGM cadence, Health Connect step-history/
+baseline owners and remaining runtime telemetry/lifecycle coverage still precede
+enabling the APS plugin. Clinical/device validation is not claimed.
 
 ## Full-debug Android artifacts
 

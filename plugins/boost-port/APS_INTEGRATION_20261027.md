@@ -38,9 +38,10 @@ post-exercise recovery, premeal learning/targets, tight-ramp trials, the V5 floo
 history gate, phone steps, Health Connect heart rate, HR dark-feed notifications
 and 67 source settings with Russian labels. These opt-in policies no longer
 reject a direct factory call solely because the owner is missing.
-Automatic sensor-cadence wiring, Health Connect step-history/baseline owners,
-V5 automatic configuration and remaining activity/V5/V6 telemetry/lifecycle
-scenarios are still open. Full integration coverage is required before removing
+[V5 automatic configuration and scheduled re-derivation](APS_AUTOCONFIG_20261028.md)
+are now connected. Automatic sensor-cadence wiring, Health Connect step-history/
+baseline owners, bounded history-gap repair and remaining activity/V5/V6
+telemetry/lifecycle scenarios are still open. Full integration coverage is required before removing
 the gate.
 The earlier GENERAL inspection plugin also remains hidden and disabled.
 
@@ -55,6 +56,13 @@ remain individual array elements, including passwords containing shell-special
 characters. A fresh remote run is needed to assess the shutdown mitigation.
 
 ## Validation
+
+Latest automatic-configuration checkpoint: 1218 Boost JVM tests and 13 selected
+APS/settings host tests passed without failures/errors/skips. Frozen-source
+comparisons cover 1440 onboarding cases and 324 re-derivation steps. The Boost
+module and full-debug phone/Wear APKs assembled; APK v2 signatures verify.
+See [the auto-configuration report](APS_AUTOCONFIG_20261028.md) for exact scope,
+rounding correction, artifacts and remaining work.
 
 Previous sleep/HR checkpoint (2026-10-28): 1185 Boost JVM tests, 8 APS converter
 tests, 3 SQLite tests, 10 result-wrapper host tests, 7 Boost APS host tests and

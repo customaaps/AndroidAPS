@@ -313,7 +313,8 @@ class OpenAPSBoostPlugin(
                 profile.iCfg.peak, now, allowed, bgQualityCheck.state == BgQualityCheck.State.FLAT,
                 runningMode == RM.Mode.DISCONNECTED_PUMP || runningMode == RM.Mode.SUSPENDED_BY_PUMP,
                 runningMode.pausesLoopExecution() && runningMode != RM.Mode.DISCONNECTED_PUMP && runningMode != RM.Mode.SUSPENDED_BY_PUMP,
-                switched, originalProfileTargetMgDl = originalTargetMgDl)
+                switched, originalProfileTargetMgDl = originalTargetMgDl,
+                maxBolusAllowed = constraintsChecker.getMaxBolusAllowed().value())
             when (val calculated = owner.calculate(request)) {
                 is BoostApsCalculator.Result.Rejected -> {
                     aapsLogger.error(LTag.APS, calculated.reason)
@@ -334,6 +335,11 @@ class OpenAPSBoostPlugin(
                         else {
                             lastAPSResult = result
                             lastAPSRun = now
+                            calculated.autoConfigNotice?.let { notice ->
+                                notificationManager.post(NotificationId.BOOST_AUTOCONFIG,
+                                    rh.gs(ApsStrings.boost_auto_config_notice, notice.applied, notice.redriven, notice.held),
+                                    level = NotificationLevel.INFO, validMinutes = 0)
+                            }
                             calculated.hrFeedDarkMinutes?.let { minutes ->
                                 notificationManager.post(NotificationId.BOOST_HR_FEED_DARK,
                                     rh.gs(ApsStrings.boost_hr_feed_dark, minutes),

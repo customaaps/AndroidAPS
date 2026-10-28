@@ -1,6 +1,7 @@
 package app.aaps.plugins.aps.openAPSBoostV5
 
-/** Offline-only source key definitions. NOT registered in AAPS Preferences. */
+/** Source key metadata shared by offline tests and the APS auto-config owner.
+ * UI aliases register the same raw names; this enum itself is not a preference registry. */
 internal enum class BoostV5OfflineDoubleKey(val key: String, val defaultValue: Double, val min: Double, val max: Double) {
     ApsBoostBolus("boost_bolus_cap", 2.5, 0.1, 10.0),
     ApsBoostMaxIob("boost_max_iob", 1.0, 0.1, 12.0),

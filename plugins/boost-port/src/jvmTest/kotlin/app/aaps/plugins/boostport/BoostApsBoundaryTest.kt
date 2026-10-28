@@ -32,8 +32,8 @@ class BoostApsBoundaryTest {
                     val pending = values.toMutableMap()
                     val editor = Proxy.newProxyInstance(KeyValueStore.Editor::class.java.classLoader,
                         arrayOf(KeyValueStore.Editor::class.java)) { _, method, args ->
-                        check(method.name == "putString")
-                        pending[args[0] as String] = args[1]
+                        if (method.name == "remove") pending.remove(args[0])
+                        else { check(method.name.startsWith("put")); pending[args[0] as String] = args[1] }
                         null
                     } as KeyValueStore.Editor
                     @Suppress("UNCHECKED_CAST")
@@ -44,6 +44,8 @@ class BoostApsBoundaryTest {
                     values.putAll(pending)
                     null
                 }
+                m.name == "getAll" -> values.toMap()
+                m.name == "contains" -> values.containsKey(a[0])
                 m.name.startsWith("get") -> values[a[0] as String] ?: a[1]
                 m.name.startsWith("put") -> {
                     if (failWrites) error("state write failed")
@@ -74,6 +76,7 @@ class BoostApsBoundaryTest {
                 if (zone == null) at - at % 86_400_000L else
                     java.time.Instant.ofEpochMilli(at).atZone(zone).toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
             }
+            "toISOString" -> "iso-${args[0]}"
             "getTimeZoneOffsetMinutes" -> if (zone == null) 0 else
                 zone.rules.getOffset(java.time.Instant.ofEpochMilli(args[0] as Long)).totalSeconds / 60
             else -> error("Unexpected clock call $name")
@@ -93,6 +96,27 @@ class BoostApsBoundaryTest {
             override fun resumeWith(result: Result<T>) { value = result }
         })
         return assertNotNull(value).getOrThrow()
+    }
+
+    @Test fun invalidAutoConfigurationLimitsRejectBeforeAnyStateWrite() {
+        for (limit in listOf(Double.NaN, Double.POSITIVE_INFINITY, -1.0)) {
+            val disk = Disk()
+            assertIs<BoostApsCalculator.Result.Rejected>(immediate {
+                calculator(disk).calculate(input().copy(maxBolusAllowed = limit))
+            })
+            assertTrue(disk.values.isEmpty())
+        }
+    }
+
+    @Test fun actualBoundaryRunsAutoConfigurationWhenConstrainedBolusLimitIsProvided() {
+        val disk = Disk()
+        val result = assertIs<BoostApsCalculator.Result.Calculated>(immediate {
+            calculator(disk).calculate(input().copy(maxBolusAllowed = 5.0))
+        })
+        assertNull(result.autoConfigNotice) // no history: never manufacture a derived setting
+        assertTrue(result.result.reason.toString().contains("autordv="))
+        assertEquals(2, disk.values["boost_v5_autoconfig_schema_version"])
+        assertFalse(disk.values.containsKey(BoostApsSettingKeys.ApsBoostV5PrimerCapU.key))
     }
 
     @Test fun realEngineProducesStandardRtWithSameCycleOverviewValuesAndLiveStateKey() {

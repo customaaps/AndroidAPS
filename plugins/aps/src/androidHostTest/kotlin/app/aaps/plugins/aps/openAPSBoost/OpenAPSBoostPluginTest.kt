@@ -32,6 +32,7 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
     private var reject = false
     private var nightModeActive = false
     private var hrDarkMinutes: Long? = null
+    private var configNotice: BoostAutoConfigNotice? = null
     private val factory = object : BoostApsCalculatorFactory {
         override val ownedKeys = emptyList<app.aaps.core.keys.interfaces.NonPreferenceKey>()
         override fun create(): BoostApsCalculator {
@@ -44,7 +45,7 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
                     return BoostApsCalculator.Result.Calculated(RT(algorithm = APSResult.Algorithm.BOOST,
                         runningDynamicIsf = true, timestamp = input.atMs, units = if (input.microBolusAllowed) 0.2 else 0.0,
                         rate = 1.0, duration = 30, profileCarbRatio = input.originalProfileCr,
-                        profileIsfMgdl = input.originalProfileIsf, effectiveIsf = 40.0), input.profile, input.autosens, nightModeActive = nightModeActive, hrFeedDarkMinutes = hrDarkMinutes)
+                        profileIsfMgdl = input.originalProfileIsf, effectiveIsf = 40.0), input.profile, input.autosens, nightModeActive = nightModeActive, hrFeedDarkMinutes = hrDarkMinutes, autoConfigNotice = configNotice)
                 }
             }
         }
@@ -63,6 +64,7 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
         whenever(quality.state).thenReturn(BgQualityCheck.State.FIVE_MIN_DATA)
         whenever(constraintsChecker.isAutosensModeEnabled()).thenReturn(ConstraintObject(false, aapsLogger))
         whenever(constraintsChecker.getMaxBasalAllowed(any())).thenReturn(ConstraintObject(3.0, aapsLogger))
+        whenever(constraintsChecker.getMaxBolusAllowed()).thenReturn(ConstraintObject(5.0, aapsLogger))
         whenever(constraintsChecker.isUAMEnabled()).thenReturn(ConstraintObject(true, aapsLogger))
         whenever(persistenceLayer.observeChanges(TE::class)).thenReturn(teEvents)
         whenever(persistenceLayer.observeChanges(CAL::class)).thenReturn(calEvents)
@@ -108,13 +110,33 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
         assertThat(sut.lastAPSResult?.reason).contains(localized.trim())
     }
 
-    @Test fun feedWarningUsesLocalizedNotificationAfterValidPublication() = runBlocking {
+    @Test fun feedWarningUsesLocalizedNotificationAfterValidPublication(): Unit = runBlocking {
         val text = "Boost: пульс не поступает 60 min"
         doReturn(text).whenever(rh).gs(app.aaps.plugins.aps.ApsStrings.boost_hr_feed_dark, 60L)
         hrDarkMinutes = 60L
         sut.invoke("feed warning", false)
         verify(notificationManager).post(app.aaps.core.interfaces.notifications.NotificationId.BOOST_HR_FEED_DARK,
             text, level = app.aaps.core.interfaces.notifications.NotificationLevel.LOW, validMinutes = 0)
+    }
+
+    @Test fun configurationNoticeUsesLocalizedResourceAndCapturesConstrainedBolusLimit(): Unit = runBlocking {
+        val text = "Настройки Boost: настроено 8, скорректировано 2; отложено 1"
+        configNotice = BoostAutoConfigNotice(8, 2, 1)
+        doReturn(text).whenever(rh).gs(app.aaps.plugins.aps.ApsStrings.boost_auto_config_notice, 8, 2, 1)
+        sut.invoke("configuration notice", false)
+        assertThat(requests.last().maxBolusAllowed).isEqualTo(5.0)
+        verify(notificationManager).post(app.aaps.core.interfaces.notifications.NotificationId.BOOST_AUTOCONFIG,
+            text, level = app.aaps.core.interfaces.notifications.NotificationLevel.INFO, validMinutes = 0)
+    }
+
+    @Test fun importDuringConfigurationDoesNotPublishStaleNotice(): Unit = runBlocking {
+        configNotice = BoostAutoConfigNotice(8, 0, 0)
+        duringCalculation = { sut.beforeImport() }
+        sut.invoke("stale configuration", false)
+        verify(notificationManager, never()).post(
+            id = eq(app.aaps.core.interfaces.notifications.NotificationId.BOOST_AUTOCONFIG),
+            text = any<String>(), level = any<app.aaps.core.interfaces.notifications.NotificationLevel>(),
+            validMinutes = any<Int>(), sound = anyOrNull(), actions = any(), validityCheck = anyOrNull())
     }
 
     @Test fun originalNightProfileTargetIsCapturedBeforeTemporaryTargetReplacement() = runBlocking {

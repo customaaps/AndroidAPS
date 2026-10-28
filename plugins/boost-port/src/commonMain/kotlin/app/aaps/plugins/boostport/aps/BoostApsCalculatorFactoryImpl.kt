@@ -37,7 +37,7 @@ class BoostApsCalculatorFactoryImpl(
     private val activitySource: BoostApsActivitySource? = null,
     private val texts: TextResolver? = null,
 ) : BoostApsCalculatorFactory {
-    override val ownedKeys = BoostApsSettingKeys.all
+    override val ownedKeys = BoostApsSettingKeys.all + BoostAutoConfigOwner.ownedKeys
     override fun create(): BoostApsCalculator = Calculator()
     override fun requestDataPermissions() { activitySource?.requestPermissions() }
 
@@ -50,6 +50,7 @@ class BoostApsCalculatorFactoryImpl(
         private val mealOwner = BoostMealPolicyOwner(storage)
         private val recoveryOwner = BoostRecoveryOwner(persistence)
         private val floorGate = BoostFloorHistoryGate(persistence)
+        private val autoConfig = BoostAutoConfigOwner(storage, persistence, tdd, dateUtil::toISOString)
         private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
         private val activityLease = activitySource?.open()
@@ -70,6 +71,9 @@ class BoostApsCalculatorFactoryImpl(
                     input.glucose.longAvgDelta, input.glucose.noise, input.autosens.ratio).all { it.isFinite() }) { "invalid Boost inputs" }
                 require(input.originalProfileCr > 0 && input.originalProfileIsf > 0 && input.profile.sens > 0 &&
                     input.profilePercent > 0 && input.autosens.ratio > 0) { "invalid Boost profile" }
+                input.maxBolusAllowed?.let {
+                    require(it.isFinite() && it >= 0.0 && input.profile.max_iob >= 0.0) { "invalid Boost auto-config limits" }
+                }
                 val nightSettings = settings.night()
                 if (nightSettings.enabled) {
                     val originalTarget = input.originalProfileTargetMgDl
@@ -171,13 +175,18 @@ class BoostApsCalculatorFactoryImpl(
                         val hrSource = BoostSleepTelemetry.write(result, sleepUpdate, input.atMs)
                         val dark = hrDark.onCycle(hrSource, input.atMs, clock.hourAt(input.atMs))
                         dark.wentDarkNote?.let { result.reason.append("$it; ") }
+                        // Source schedules configuration outside the dosing call. Serialize it here
+                        // after the persisted result: changed settings first affect the NEXT cycle.
+                        val configNotice = input.maxBolusAllowed?.let { autoConfig.evaluate(input.atMs, input.profile.max_iob, it) }
+                        storage.getString(BoostApsSettingKeys.ApsBoostV5RedriveSummary.key, "").takeIf { it.isNotEmpty() }
+                            ?.let { result.reason.append("autordv=$it; ") }
                         BoostApsCalculator.Result.Calculated(result, input.profile.copy(
                             min_bg = cycle.profile.min_bg, max_bg = cycle.profile.max_bg, target_bg = cycle.profile.target_bg,
                             temptargetSet = cycle.profile.temptargetSet,
                             current_basal = cycle.profile.current_basal, carb_ratio = result.carbRatio ?: input.originalProfileCr,
                             variable_sens = result.variable_sens ?: 0.0, TDD = cycle.profile.TDD,
                             insulinDivisor = cycle.profile.insulinDivisor), cycle.autosens.copy(), nightModeActive = nightActive,
-                            hrFeedDarkMinutes = dark.darkMinutes.takeIf { dark.raiseNotification })
+                            hrFeedDarkMinutes = dark.darkMinutes.takeIf { dark.raiseNotification }, autoConfigNotice = configNotice)
                     }
                 }
             } } catch (cancelled: CancellationException) {
