@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsCard
@@ -224,11 +228,11 @@ internal fun CompactOverviewStatus(
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CompactEquipment(items, Modifier.weight(0.54f).clickable(onClick = onExpand))
-                VerticalDivider(Modifier.height(64.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                Column(modifier = Modifier.weight(0.46f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    DynamicValuesBlock(sensitivity, Modifier.fillMaxWidth())
+                VerticalDivider(Modifier.height(42.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                Box(modifier = Modifier.weight(0.46f)) {
+                    DynamicValuesBlock(sensitivity, Modifier.fillMaxWidth().padding(end = if (canExpand) 24.dp else 0.dp))
                     if (canExpand) {
-                        androidx.compose.foundation.layout.Box(Modifier.align(Alignment.End)) { StatusExpandButton(onExpand) }
+                        Box(Modifier.align(Alignment.BottomEnd)) { StatusExpandButton(onExpand) }
                     }
                 }
             }
@@ -238,19 +242,33 @@ internal fun CompactOverviewStatus(
 
 @Composable
 private fun StatusExpandButton(onExpand: () -> Unit) {
-    IconButton(onClick = onExpand, modifier = Modifier.size(32.dp)) {
+    IconButton(onClick = onExpand, modifier = Modifier.size(24.dp)) {
         Icon(Icons.Filled.ExpandMore, contentDescription = stringResource(CoreUiStrings.expand))
     }
 }
 
 @Composable
 private fun CompactEquipment(items: List<StatusItem>, modifier: Modifier) {
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        items.forEach { CompactStatusItem(item = it, age = it.ageShort) }
+    // Pair an age-only item with a level-bearing item when possible. This keeps
+    // the reservoir and battery values from competing for one narrow row.
+    val first = items.firstOrNull()
+    val companion = first?.let { head ->
+        items.drop(1).firstOrNull { (it.compactLevel && it.level != null) != (head.compactLevel && head.level != null) }
+            ?: items.getOrNull(1)
+    }
+    val firstRow = listOfNotNull(first, companion)
+    val secondRow = items.filter { item -> firstRow.none { it === item } }
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        listOf(firstRow, secondRow).filter { it.isNotEmpty() }.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                row.forEach { item ->
+                    val length = (if (item.compactAge) item.ageShort.length else 0) +
+                        (if (item.compactLevel) item.level?.length ?: 0 else 0) + 4
+                    CompactStatusItem(item = item, age = item.ageShort,
+                        modifier = Modifier.weight(length.coerceAtLeast(4).toFloat()), fitToWidth = true)
+                }
+            }
+        }
     }
 }
 
@@ -304,7 +322,7 @@ private fun CompactStatusItems(items: List<StatusItem>, shortAge: Boolean) {
 }
 
 @Composable
-private fun CompactStatusItem(item: StatusItem, age: String) {
+private fun CompactStatusItem(item: StatusItem, age: String, modifier: Modifier = Modifier, fitToWidth: Boolean = false) {
     val showAge = item.compactAge
     val showLevel = item.compactLevel && item.level != null
     if (!showAge && !showLevel) return
@@ -332,34 +350,38 @@ private fun CompactStatusItem(item: StatusItem, age: String) {
         // Merged so the icon's name, the values and the severity are one item. The description adds
         // only the severity, because on a merging node it sits before the children rather than
         // replacing them: "Critical, Cannula, 3d 50%".
-        modifier = if (severity != null) {
+        modifier = modifier.then(if (severity != null) {
             Modifier.semantics(mergeDescendants = true) { contentDescription = severity }
         } else {
             Modifier.semantics(mergeDescendants = true) { }
-        }
+        })
     ) {
         Icon(
             imageVector = item.icon,
             contentDescription = item.label,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(if (fitToWidth) 18.dp else 20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(2.dp))
-        Text(
-            text = buildAnnotatedString {
-                if (showAge) {
-                    withStyle(SpanStyle(color = ageColor)) {
-                        append(age)
-                    }
+        val values = buildAnnotatedString {
+            if (showAge) {
+                withStyle(SpanStyle(color = ageColor)) {
+                    append(age)
                 }
-                if (showLevel) {
-                    withStyle(SpanStyle(color = levelColor)) {
-                        if (showAge) append(" ")
-                        append(item.level)
-                    }
+            }
+            if (showLevel) {
+                withStyle(SpanStyle(color = levelColor)) {
+                    if (showAge) append(" ")
+                    append(item.level)
                 }
-            },
-            style = MaterialTheme.typography.bodyMedium
-        )
+            }
+        }
+        if (fitToWidth) {
+            BasicText(text = values, modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                maxLines = 1, softWrap = false,
+                autoSize = TextAutoSize.StepBased(minFontSize = 10.sp,
+                    maxFontSize = MaterialTheme.typography.bodyMedium.fontSize, stepSize = 1.sp))
+        } else Text(text = values, style = MaterialTheme.typography.bodyMedium)
     }
 }

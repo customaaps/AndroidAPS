@@ -2,6 +2,10 @@ package app.aaps.ui.compose.overview
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.onNodeWithTag
+import com.google.common.truth.Truth.assertThat
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -91,6 +95,27 @@ class BgInfoSectionTest {
         compose.onNodeWithText("120").assertIsDisplayed()
         compose.onNodeWithText("+2").assertIsDisplayed()
         compose.onNodeWithText("2 min").assertIsDisplayed()
+    }
+
+    @Test
+    fun compactAgeStaysInsideCircleBelowValueAndRetainsFullSpokenAge() {
+        compose.setContent {
+            MaterialTheme {
+                BgInfoSection(
+                    bgInfo = bgInfo(), timeAgoText = "2 min ago", compactTimeAgoText = "2 m",
+                    modifier = Modifier.testTag("circle")
+                )
+            }
+        }
+
+        val circle = compose.onNodeWithTag("circle").fetchSemanticsNode().boundsInRoot
+        val value = compose.onNodeWithText("120", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val age = compose.onNodeWithText("2 m", useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertThat(age.top).isAtLeast(value.bottom)
+        assertThat(age.bottom).isLessThan(circle.bottom)
+        assertThat(age.left).isGreaterThan(circle.left)
+        assertThat(age.right).isLessThan(circle.right)
+        compose.onNodeWithContentDescription("Glucose: 120, Flat, delta +2, 2 min ago").assertExists()
     }
 
     @Test

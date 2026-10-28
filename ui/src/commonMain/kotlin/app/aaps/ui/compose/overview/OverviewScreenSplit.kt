@@ -57,6 +57,7 @@ fun OverviewScreenSplit(
     runningModeProgress: Float,
     runningModeSceneManaged: Boolean = false,
     tbrState: TbrState,
+    tbrText: String = "",
     smbEnabled: Boolean,
     isSimpleMode: Boolean,
     graphViewModel: GraphViewModel,
@@ -130,7 +131,8 @@ fun OverviewScreenSplit(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         BgInfoSection(
                             bgInfo = bgInfoState.bgInfo,
-                            timeAgoText = bgInfoState.timeAgoText
+                            timeAgoText = bgInfoState.timeAgoText,
+                            compactTimeAgoText = compactBgAgeText(bgInfoState.ageSeconds)
                         )
                     }
 
@@ -164,6 +166,7 @@ fun OverviewScreenSplit(
                             tempTargetReason = tempTargetReason,
                             tempTargetSceneManaged = tempTargetSceneManaged,
                             tbrState = tbrState,
+            tbrText = tbrText,
                             iobUiState = iobUiState,
                             cobUiState = cobUiState,
                             sensitivityUiState = sensitivityUiState,

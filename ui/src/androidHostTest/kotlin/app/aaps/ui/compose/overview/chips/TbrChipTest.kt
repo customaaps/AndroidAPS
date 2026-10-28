@@ -1,10 +1,13 @@
 package app.aaps.ui.compose.overview.chips
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import app.aaps.core.interfaces.overview.graph.TbrState
@@ -44,6 +47,20 @@ class TbrChipTest {
         }
 
         compose.onNodeWithTag("tbrChip").assertIsDisplayed()
+    }
+
+    @Test
+    fun numericZeroRemainsVisibleAndClickableInNarrowChip() {
+        var clicks = 0
+        compose.setContent {
+            MaterialTheme {
+                TbrChip(state = TbrState.LOW, valueText = "0%", onClick = { clicks++ },
+                    modifier = Modifier.width(64.dp).testTag("tbrChip"))
+            }
+        }
+        compose.onNodeWithText("0%", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("tbrChip").performClick()
+        assertThat(clicks).isEqualTo(1)
     }
 
     @Test

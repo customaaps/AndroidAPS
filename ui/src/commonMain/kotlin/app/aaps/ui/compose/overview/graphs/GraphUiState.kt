@@ -20,5 +20,6 @@ data class ChartConfig(
 @Immutable
 data class BgInfoUiState(
     val bgInfo: BgInfoData?,
-    val timeAgoText: String
+    val timeAgoText: String,
+    val ageSeconds: Long? = null
 )

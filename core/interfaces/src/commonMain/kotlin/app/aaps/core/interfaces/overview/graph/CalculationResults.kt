@@ -415,7 +415,11 @@ enum class TbrState {
 data class TbrDisplayData(
     val state: TbrState,
     val timestamp: Long,                 // When TBR started (0 if none)
-    val duration: Long                   // TBR duration in ms (0 if none)
+    val duration: Long,                  // TBR duration in ms (0 if none)
+    val isRunning: Boolean = state != TbrState.NONE,
+    /** Canonical IU/h from the existing basal calculation, never a pump command. */
+    val absoluteRate: Double? = null,
+    val profileRate: Double? = null
 )
 
 // ============================================================================

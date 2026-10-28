@@ -98,7 +98,7 @@ fun TempTargetChip(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = AapsSpacing.medium, vertical = AapsSpacing.small)
+                    .padding(horizontal = AapsSpacing.small, vertical = AapsSpacing.small)
             ) {
                 Icon(
                     // With no temp target the chip shows the profile target, which is not a manual
@@ -117,7 +117,7 @@ fun TempTargetChip(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .weight(1f, fill = false)
-                        .padding(start = AapsSpacing.medium)
+                        .padding(start = AapsSpacing.small)
                 )
                 if (sceneManaged) {
                     SceneBadge(modifier = Modifier.padding(start = AapsSpacing.small))

@@ -146,10 +146,11 @@ class GraphViewModel(
     val bgInfoState: StateFlow<BgInfoUiState> = combine(
         cache.bgInfoFlow,
         ticker30s
-    ) { bgInfo, _ ->
+    ) { bgInfo, now ->
         BgInfoUiState(
             bgInfo = bgInfo,
-            timeAgoText = dateUtil.minAgo(rh, bgInfo?.timestamp)
+            timeAgoText = dateUtil.minAgo(rh, bgInfo?.timestamp),
+            ageSeconds = bgInfo?.timestamp?.takeIf { it > 0L && it <= now }?.let { (now - it) / 1000L }
         )
     }.stateIn(
         scope = viewModelScope,

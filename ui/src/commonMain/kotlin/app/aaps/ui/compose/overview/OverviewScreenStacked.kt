@@ -52,6 +52,7 @@ fun OverviewScreenStacked(
     runningModeProgress: Float,
     runningModeSceneManaged: Boolean = false,
     tbrState: TbrState,
+    tbrText: String = "",
     smbEnabled: Boolean,
     isSimpleMode: Boolean,
     graphViewModel: GraphViewModel,
@@ -113,7 +114,8 @@ fun OverviewScreenStacked(
             ) {
                 BgInfoSection(
                     bgInfo = bgInfoState.bgInfo,
-                    timeAgoText = bgInfoState.timeAgoText
+                    timeAgoText = bgInfoState.timeAgoText,
+                    compactTimeAgoText = compactBgAgeText(bgInfoState.ageSeconds)
                 )
             }
 
@@ -134,6 +136,7 @@ fun OverviewScreenStacked(
                 tempTargetReason = tempTargetReason,
                 tempTargetSceneManaged = tempTargetSceneManaged,
                 tbrState = tbrState,
+            tbrText = tbrText,
                 iobUiState = iobUiState,
                 cobUiState = cobUiState,
                 sensitivityUiState = sensitivityUiState,

@@ -1,11 +1,14 @@
 package app.aaps.ui.compose.overview
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,9 +22,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.interfaces.overview.graph.BgInfoData
 import app.aaps.core.interfaces.overview.graph.BgRange
@@ -29,6 +36,8 @@ import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.AapsTheme
 import app.aaps.core.ui.compose.LocalAapsScale
 import app.aaps.ui.compose.components.bgSpokenDescription
+import app.aaps.ui.UiStrings
+import app.aaps.core.ui.compose.stringResource
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -57,7 +66,8 @@ fun BgInfoSection(
     timeAgoText: String,
     modifier: Modifier = Modifier,
     size: Dp = AapsSpacing.bgCircleSize * LocalAapsScale.current,
-    showTimeAgo: Boolean = true
+    showTimeAgo: Boolean = true,
+    compactTimeAgoText: String = timeAgoText
 ) {
     if (bgInfo == null) {
         // Show placeholder when no data
@@ -92,6 +102,7 @@ fun BgInfoSection(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .padding(AapsSpacing.small)
+            .size(size)
             // Merging, not a bare semantics block: a described node is reached by linear screen-reader
             // navigation only when it is a leaf or a merging parent. This one has the value, the delta
             // and the age as children, so unmerged the whole sentence was skipped and those three were
@@ -168,39 +179,51 @@ fun BgInfoSection(
             }
         }
 
-        // Center content: delta on top, BG value, time ago below
+        // All three lines are constrained to the circle's interior. The age has
+        // its own lower slot, with extra side insets to clear the curved ring.
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(bottom = AapsSpacing.small),
-            verticalArrangement = Arrangement.spacedBy((-2).dp, Alignment.CenterVertically)
+            modifier = Modifier.fillMaxSize().padding(
+                horizontal = size * 0.15f,
+                vertical = ringStrokeWidth + 8.dp * LocalAapsScale.current)
         ) {
-            // Delta on top
             bgInfo.deltaText?.let { delta ->
-                Text(
-                    text = delta,
-                    style = AapsTheme.typography.bgSecondary,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Box(Modifier.weight(0.2f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircleValueText(delta, AapsTheme.typography.bgSecondary,
+                        MaterialTheme.colorScheme.onSurfaceVariant, 10.sp * LocalAapsScale.current)
+                }
             }
-
-            // BG value - large bold text with strikethrough if outdated
-            Text(
-                text = bgInfo.bgText,
-                style = AapsTheme.typography.bgValue,
-                color = bgColor,
-                textDecoration = if (bgInfo.isOutdated) TextDecoration.LineThrough else TextDecoration.None
-            )
-
-            // Time ago below
+            Box(Modifier.weight(0.6f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CircleValueText(bgInfo.bgText, AapsTheme.typography.bgValue.copy(
+                    textDecoration = if (bgInfo.isOutdated) TextDecoration.LineThrough else TextDecoration.None),
+                    bgColor, 22.sp * LocalAapsScale.current)
+            }
             if (showTimeAgo) {
-                Text(
-                    text = timeAgoText,
-                    style = AapsTheme.typography.bgTimeAgo,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Box(Modifier.weight(0.2f).fillMaxWidth().padding(horizontal = size * 0.1f),
+                    contentAlignment = Alignment.Center) {
+                    CircleValueText(compactTimeAgoText,
+                        AapsTheme.typography.bgTimeAgo.copy(fontSize = 14.sp * LocalAapsScale.current),
+                        MaterialTheme.colorScheme.onSurfaceVariant, 10.sp * LocalAapsScale.current)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun CircleValueText(text: String, style: TextStyle, color: Color, minFontSize: TextUnit) {
+    BasicText(text = text, modifier = Modifier.fillMaxWidth(),
+        style = style.copy(color = color, textAlign = TextAlign.Center, lineHeight = TextUnit.Unspecified),
+        maxLines = 1, softWrap = false,
+        autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = style.fontSize, stepSize = 1.sp))
+}
+
+/** Full localized age is retained separately for spoken description. */
+@Composable
+internal fun compactBgAgeText(ageSeconds: Long?): String = when {
+    ageSeconds == null || ageSeconds < 0L -> "—"
+    ageSeconds < 60L -> stringResource(UiStrings.overview_bg_age_seconds_short, ageSeconds)
+    else -> stringResource(UiStrings.overview_bg_age_minutes_short, ageSeconds / 60L)
 }
 
 /**

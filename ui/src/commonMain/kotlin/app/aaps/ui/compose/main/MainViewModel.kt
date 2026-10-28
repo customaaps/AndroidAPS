@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.aaps.core.data.iob.InMemoryGlucoseValue
+import app.aaps.core.data.format.NumberFormat
 import app.aaps.core.data.model.ActiveSceneState
 import app.aaps.core.data.model.RM
 import app.aaps.core.data.model.SceneLifecycle
@@ -233,7 +234,8 @@ class MainViewModel(
         // main phone) so the carousel rebuilds. changes is a StateFlow (initial 0) → never blocks.
         // Also when app init completes: the QuickWizard items are built only after that, and must not
         // wait for the next tick to appear.
-        combine(progressTicker, quickWizard.changes, config.appInitializedFlow) { now, _, _ -> now }
+        combine(progressTicker, quickWizard.changes, config.appInitializedFlow,
+            preferences.observe(BooleanKey.OverviewTempBasalAsPercent)) { now, _, _, _ -> now }
     ) { ttData, profileData, rmData, tbrData, now ->
         buildChipState(ttData, profileData, rmData, tbrData, now)
     }
@@ -267,6 +269,7 @@ class MainViewModel(
             runningModeProgress = chip.runningModeProgress,
             runningModeRecordId = chip.runningModeRecordId,
             tbrState = chip.tbrState,
+            tbrText = chip.tbrText,
             smbEnabled = ev.smbEnabled,
             quickWizardItems = chip.quickWizardItems
         )
@@ -310,7 +313,7 @@ class MainViewModel(
         val rmExpired = rmIsFinite && now >= rmData.timestamp + rmData.duration
         if (rmExpired) overviewDataCache.refreshRunningMode()
 
-        val tbrExpired = tbrData != null && tbrData.state != TbrState.NONE && tbrData.duration > 0
+        val tbrExpired = tbrData != null && (tbrData.isRunning || tbrData.state != TbrState.NONE) && tbrData.duration > 0
             && now >= tbrData.timestamp + tbrData.duration
         if (tbrExpired) overviewDataCache.refreshTbr()
 
@@ -382,8 +385,15 @@ class MainViewModel(
             runningModeProgress = rmProgress,
             runningModeRecordId = if (rmExpired) 0 else rmData?.recordId ?: 0,
             tbrState = if (tbrExpired) TbrState.NONE else tbrData?.state ?: TbrState.NONE,
+            tbrText = if (tbrExpired) "—" else formatTbrValue(tbrData),
             quickWizardItems = computeQuickWizardItems(rmData?.mode)
         )
+    }
+
+    private fun formatTbrValue(data: TbrDisplayData?): String {
+        val value = data?.displayValue(preferences.get(BooleanKey.OverviewTempBasalAsPercent)) ?: return "—"
+        return if (value.isPercent) NumberFormat.UP_TO_1_DECIMAL.format(value.value) + "%"
+        else rh.gs(CoreUiStrings.pump_base_basal_rate_dynamic, NumberFormat.UP_TO_2_DECIMALS.format(value.value))
     }
 
     private suspend fun computeQuickWizardItems(runningMode: RM.Mode?): List<QuickWizardItem> {
@@ -1032,5 +1042,6 @@ private data class ChipState(
     val runningModeProgress: Float = 0f,
     val runningModeRecordId: Long = 0,
     val tbrState: TbrState = TbrState.NONE,
+    val tbrText: String = "",
     val quickWizardItems: List<QuickWizardItem> = emptyList()
 )

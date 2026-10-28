@@ -751,14 +751,17 @@ class OverviewDataCacheImpl(
             basalData.tempBasalAbsolute > basalData.basal             -> TbrState.HIGH
             else                                                      -> TbrState.LOW
         }
-        // Pull timing from the active TB row for expiry detection on ticks. Extended boluses
-        // converted to TBR (EB-as-TB) won't have a TB row; state is still correct but the
-        // ViewModel won't auto-refresh on expiry — the next TB/EB DB event catches it.
-        val activeTb = if (state != TbrState.NONE) persistenceLayer.getTemporaryBasalActiveAt(now) else null
+        // Pull timing for expiry on ticks, including an extended bolus converted
+        // to TBR. A confirmed 100% temp may use the NONE icon but is still running.
+        val activeTb = if (basalData.isTempBasalRunning) persistenceLayer.getTemporaryBasalActiveAt(now) else null
+        val effectiveTb = activeTb ?: if (basalData.isTempBasalRunning) processedTbrEbData.getTempBasalIncludingConvertedExtended(now) else null
         _tbrFlow.value = TbrDisplayData(
             state = state,
-            timestamp = activeTb?.timestamp ?: 0L,
-            duration = activeTb?.duration ?: 0L
+            timestamp = effectiveTb?.timestamp ?: 0L,
+            duration = effectiveTb?.duration ?: 0L,
+            isRunning = basalData.isTempBasalRunning,
+            absoluteRate = basalData.tempBasalAbsolute.takeIf { basalData.isTempBasalRunning && it.isFinite() && it >= 0.0 },
+            profileRate = basalData.basal.takeIf { it.isFinite() && it > 0.0 }
         )
     }
 

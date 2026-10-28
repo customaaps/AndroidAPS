@@ -114,6 +114,7 @@ class BuiltInSearchables(
             ),
 
             BooleanKey.OverviewShowNotesInDialogs,
+            BooleanKey.OverviewTempBasalAsPercent,
             StringKey.GeneralDarkMode
         ),
         icon = Icons.Outlined.Palette
