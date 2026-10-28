@@ -342,10 +342,12 @@ class OpenAPSBoostPlugin(
                             }
                             calculated.insulinNeedNotice?.let { notice ->
                                 val direction = rh.gs(if (notice.above) ApsStrings.boost_need_watch_above else ApsStrings.boost_need_watch_below)
-                                val detail = if (notice.recentBg != null && notice.baselineBg != null)
+                                val recentBg = notice.recentBg
+                                val baselineBg = notice.baselineBg
+                                val detail = if (recentBg != null && baselineBg != null)
                                     rh.gs(ApsStrings.boost_need_watch_glucose,
-                                        profileUtil.fromMgdlToStringInUnits(notice.recentBg),
-                                        profileUtil.fromMgdlToStringInUnits(notice.baselineBg)) else ""
+                                        profileUtil.fromMgdlToStringInUnits(recentBg),
+                                        profileUtil.fromMgdlToStringInUnits(baselineBg)) else ""
                                 notificationManager.post(NotificationId.BOOST_NEED_WATCH,
                                     rh.gs(ApsStrings.boost_need_watch_notice,
                                         app.aaps.core.data.format.NumberFormat.withDecimalsHalfUp(1).format(notice.recentU),
