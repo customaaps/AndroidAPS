@@ -3,9 +3,10 @@
 Working branch: `Vlad747kja/AndroidAPS:nigthscout-dev-boost-port-20261026`.
 
 The portable V1 → V5 → V6 calculation pipeline is connected to the standard
-AndroidAPS APSResult boundary. **The Boost APS plugin remains hidden and
-forcibly disabled.** Successful compilation and unit tests do not remove that
-gate. The earlier General inspection plugin also remains disabled.
+AndroidAPS APSResult boundary. **Boost V6 is selectable in Configuration → APS**
+in an APS build; selecting it uses the standard Loop and pump constraints.
+It is not forced on or made the default algorithm. The earlier General inspection
+plugin remains disabled.
 
 This is a partial semantic port, not a byte-for-byte replacement of Dmitry's
 algorithm. Dmitry's existing Autosens/ISF correction order is retained.
@@ -32,7 +33,13 @@ boundary. Activity-load and insulin-need diagnostics do not change a dosing
 candidate. Source arithmetic is isolated from Android readers, storage and
 presentation dependencies.
 
-## Verified checkpoint
+The activation/lifecycle block passed **1401 Boost JVM tests and 135 Android host
+tests and two application graph/catalog tests**, with zero failures, errors or
+skips across these suites, plus Boost KMP assembly and fullDebug APK compilation. See [activation scope and exact CI
+sources](APS_ACTIVATION_20261028.md). The earlier checkpoint below predates
+activation and records its own tested source revisions.
+
+## Earlier verified checkpoint
 
 The final implementation passed **1399 Boost JVM tests and 73 Android host tests**
 with zero failures, errors or skips, and fullDebug APK compilation.
@@ -66,11 +73,10 @@ read as proof that later changes passed.
 
 ## Remaining work
 
-1. Validate native-cadence operation on devices with real CGM/pump timing.
-2. Complete remaining Android lifecycle, import/export, notification and device
-   scenarios. Host/device/Apple tests are distinct from JVM tests and APK builds.
-3. Reconcile the final source-to-target inventory and complete validation before
-   considering any change to the activation gate.
+1. Verify selected Boost V6 calculations and standard Loop interaction on a device.
+2. Validate native-cadence operation with real CGM/pump timing. Host/device/Apple
+   tests remain distinct from JVM tests and APK builds.
+3. Finish source-to-target inventory and remaining device-level scenarios.
 
 The base archive remains the 114 original source blobs pinned in
 [SOURCE_MANIFEST.md](SOURCE_MANIFEST.md); it is not rewritten as later features

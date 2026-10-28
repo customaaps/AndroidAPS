@@ -63,7 +63,6 @@ import app.aaps.plugins.boostport.aps.BoostApsCalculator
 import app.aaps.plugins.boostport.aps.BoostApsCalculatorFactory
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
-import app.aaps.core.interfaces.plugin.EnforcedState
 import app.aaps.core.interfaces.db.observeChanges
 import app.aaps.core.data.model.TE
 import app.aaps.core.data.model.CAL
@@ -112,7 +111,6 @@ class OpenAPSBoostPlugin(
 ) : PluginBaseWithPreferences(
     PluginDescription()
         .mainType(PluginType.APS)
-        .enforce(EnforcedState.Disabled)
         .composeContent { plugin ->
             app.aaps.plugins.aps.compose.OpenAPSComposeContent(
                 apsPlugin = plugin as APS,
@@ -124,7 +122,7 @@ class OpenAPSBoostPlugin(
         .icon(IcPluginOpenAPS)
         .pluginName(ApsStrings.openapsboost)
         .preferencesVisibleInSimpleMode(false)
-        .showInList { false }   // Remains unavailable until source policy owners are connected.
+        .showInList { config.APS || config.AAPSCLIENT }
         .description(ApsStrings.description_boost),
     ownPreferences = BoostApsPreferenceKeys.owned(calculatorFactory.ownedKeys) + BoostApsPreferenceKeys.permissions,
     aapsLogger, rh, preferences, notificationManager
@@ -140,48 +138,77 @@ class OpenAPSBoostPlugin(
     @Volatile private var calibrationBlockedUntil: Long = 0
     private var observers: CoroutineScope? = null
     private var previousProfileSwitch: Long? = null
+    // Guarded by ownerLock. A fresh generation alone does not close the import window.
+    private var ownerRunning = false
+    private var importInProgress = false
 
     override fun usingDynamicIsf() = true
     override fun offersDynamicSensitivity() = true
     override fun getIsfMgdl(profile: Profile, caller: String): Double? = null
     override fun getAverageIsfMgdl(timestamp: Long, caller: String): Double? = null
 
-    private fun invalidateOwner() = ownerLock.withOwnerLock {
+    private fun invalidateOwner(running: Boolean? = null, importing: Boolean? = null): Unit = ownerLock.withOwnerLock {
+        running?.let { ownerRunning = it }
+        importing?.let { importInProgress = it }
         generation = Any()
-        calculator?.close()
+        val retired = calculator
+        // Detach before cleanup: even a platform release failure must not retain the old owner.
         calculator = null
         lastAPSResult = null
         lastAPSRun = 0
         previousProfileSwitch = null
+        try { retired?.close() }
+        catch (failure: Exception) { aapsLogger.error(LTag.APS, "Closing Boost calculation owner failed", failure) }
+        Unit
+    }
+
+    private fun stopObservers() {
+        val retired = ownerLock.withOwnerLock { observers.also { observers = null } }
+        retired?.cancel()
     }
 
     override suspend fun onStart() {
+        invalidateOwner(running = false)
+        stopObservers()
         super.onStart()
-        invalidateOwner()
-        observers?.cancel()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        observers = scope
-        persistenceLayer.observeChanges<TE>().collectResilient(scope, aapsLogger, LTag.APS, start = CoroutineStart.UNDISPATCHED) { entries ->
-            if (entries.any { it.type == TE.Type.FINGER_STICK_BG_VALUE }) calibrationBlockedUntil = dateUtil.now() + 15 * 60_000L
-        }
-        persistenceLayer.observeChanges<CAL>().collectResilient(scope, aapsLogger, LTag.APS, start = CoroutineStart.UNDISPATCHED) { entries ->
-            if (entries.isNotEmpty()) calibrationBlockedUntil = dateUtil.now() + 15 * 60_000L
+        ownerLock.withOwnerLock { observers = scope }
+        try {
+            persistenceLayer.observeChanges<TE>().collectResilient(scope, aapsLogger, LTag.APS, start = CoroutineStart.UNDISPATCHED) { entries ->
+                ownerLock.withOwnerLock {
+                    if (observers === scope && !importInProgress && entries.any { it.type == TE.Type.FINGER_STICK_BG_VALUE })
+                        calibrationBlockedUntil = dateUtil.now() + 15 * 60_000L
+                }
+            }
+            persistenceLayer.observeChanges<CAL>().collectResilient(scope, aapsLogger, LTag.APS, start = CoroutineStart.UNDISPATCHED) { entries ->
+                ownerLock.withOwnerLock {
+                    if (observers === scope && !importInProgress && entries.isNotEmpty())
+                        calibrationBlockedUntil = dateUtil.now() + 15 * 60_000L
+                }
+            }
+            ownerLock.withOwnerLock { if (observers === scope) ownerRunning = true }
+        } catch (failure: Throwable) {
+            scope.cancel()
+            ownerLock.withOwnerLock { if (observers === scope) observers = null }
+            invalidateOwner(running = false)
+            throw failure
         }
     }
 
     override suspend fun onStop() {
-        observers?.cancel()
-        observers = null
-        invalidateOwner()
+        stopObservers()
+        invalidateOwner(running = false)
         super.onStop()
     }
 
-    override fun beforeImport() = invalidateOwner()
-    override fun afterImport() = invalidateOwner()
+    override fun beforeImport() = invalidateOwner(importing = true)
+    override fun afterImport() = invalidateOwner(importing = false)
 
     override suspend fun invoke(initiator: String, tempBasalFallback: Boolean) = withContext(Dispatchers.Default) {
         invokeMutex.withLock {
-            val ownerGeneration = generation
+            val ownerGeneration = ownerLock.withOwnerLock {
+                generation.takeIf { ownerRunning && !importInProgress }
+            } ?: return@withLock
             aapsLogger.debug(LTag.APS, "invoke from $initiator tempBasalFallback: $tempBasalFallback")
             lastAPSResult = null
             val glucoseStatus = glucoseStatusProvider.glucoseStatusData
@@ -298,16 +325,20 @@ class OpenAPSBoostPlugin(
                 insulinDivisor = 0,
                 TDD = 0.0
             )
-            val allowed = !tempBasalFallback && constraintsChecker.isSMBModeEnabled(ConstraintObject(!tempBasalFallback, aapsLogger))
+            val allowed = smbEnabled && !tempBasalFallback && constraintsChecker.isSMBModeEnabled(ConstraintObject(!tempBasalFallback, aapsLogger))
                 .also { inputConstraints.copyReasons(it) }.value() && now >= calibrationBlockedUntil
             val runningMode = persistenceLayer.getRunningModeActiveAt(now).mode
             val profileSwitch = persistenceLayer.getProfileSwitchActiveAt(now)?.let { if (it.id != 0L) it.id else it.timestamp } ?: 0L
-            val switched = previousProfileSwitch?.let { it != profileSwitch } ?: false
-            previousProfileSwitch = profileSwitch
-            val owner = ownerLock.withOwnerLock {
-                if (generation !== ownerGeneration) null
-                else calculator ?: calculatorFactory.create().also { calculator = it }
+            val selected = ownerLock.withOwnerLock {
+                if (generation !== ownerGeneration || !ownerRunning || importInProgress) null
+                else {
+                    val owner = calculator ?: calculatorFactory.create().also { calculator = it }
+                    val switched = previousProfileSwitch?.let { it != profileSwitch } ?: false
+                    previousProfileSwitch = profileSwitch
+                    owner to switched
+                }
             } ?: return@withLock
+            val (owner, switched) = selected
             val request = BoostApsCalculator.Input(glucoseStatus, currentTemp, iobArray, mealData, oapsProfile,
                 originalCr, originalIsf, autosensResult, (profile as? ProfileSealed.EPS)?.value?.originalPercentage ?: 100,
                 profile.iCfg.peak, now, allowed, bgQualityCheck.state == BgQualityCheck.State.FLAT,
@@ -332,7 +363,7 @@ class OpenAPSBoostPlugin(
                     result.oapsProfile = calculated.profile
                     result.mealData = mealData
                     val published = ownerLock.withOwnerLock {
-                        if (generation !== ownerGeneration || calculator !== owner || !isEnabled()) false
+                        if (generation !== ownerGeneration || calculator !== owner || !ownerRunning || importInProgress || !isEnabled()) false
                         else {
                             lastAPSResult = result
                             lastAPSRun = now

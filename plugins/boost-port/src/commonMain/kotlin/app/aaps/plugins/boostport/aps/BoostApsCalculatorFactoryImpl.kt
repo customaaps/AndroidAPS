@@ -66,7 +66,11 @@ class BoostApsCalculatorFactoryImpl(
             override fun hourAt(timestampMs: Long): Int = (localMinute(timestampMs) / 60).toInt()
             override fun minuteAt(timestampMs: Long): Int = (localMinute(timestampMs) % 60).toInt()
         }
-        override fun close() { if (storage.close()) { historySync.close(); activityLease?.close() } }
+        override fun close() {
+            if (storage.close()) {
+                try { historySync.close() } finally { activityLease?.close() }
+            }
+        }
         override fun acknowledgeInsulinNeedNotice(notice: BoostInsulinNeedNotice) { needOwner.acknowledge(notice) }
         private fun localMinute(atMs: Long): Long =
             ((atMs / 60_000L + dateUtil.getTimeZoneOffsetMinutes(atMs)) % 1440 + 1440) % 1440

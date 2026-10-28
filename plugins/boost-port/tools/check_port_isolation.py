@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Fail CI if the staged Boost port starts looking like an active dosing plugin.
+"""Check pure-engine isolation and explicit selection of the live Boost APS adapter.
 
-This is a narrow static guard, not a replacement for runtime safety tests.
+The older inspection plugin remains hidden/disabled; Loop owns all pump commands.
+This narrow static guard complements runtime activation and constraint tests.
 """
 from pathlib import Path
 
@@ -26,8 +27,8 @@ def main():
     require(key, 'key = "boost_port_audit_requested"', KEY)
     require(key, "defaultValue = false", KEY)
 
-    # Keep the registered plugin hidden, GENERAL and disabled. No live APS adapter
-    # exists in this module; actual pump-side behaviour needs separate tests.
+    # The old inspection plugin stays hidden, GENERAL and disabled. The live APS
+    # adapter is registered separately in plugins:aps; the pure engine owns no pump APIs.
     for forbidden in ("PluginType.APS", "EnforcedState.Enabled"):
         if forbidden in plugin:
             raise AssertionError(f"{PLUGIN}: forbidden activation marker: {forbidden}")
@@ -85,14 +86,14 @@ def main():
             if forbidden in content:
                 raise AssertionError(f"{path}: JVM-only common API: {forbidden}")
 
-    # The new APS adapter is wired for integration tests, but its missing policy
-    # owners are a concrete reason to keep it unselectable until that work lands.
+    # The APS adapter is user-selectable. It may neither force itself on nor replace
+    # the user's default algorithm. Pump commands remain owned by the standard Loop.
     aps = ROOT / "plugins/aps/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/OpenAPSBoostPlugin.kt"
     if aps.exists():
         content = aps.read_text(encoding="utf-8")
-        for marker in (".mainType(PluginType.APS)", ".enforce(EnforcedState.Disabled)", ".showInList { false }"):
+        for marker in (".mainType(PluginType.APS)", ".showInList { config.APS || config.AAPSCLIENT }"):
             require(content, marker, aps)
-        for forbidden in ("import app.aaps.core.interfaces.queue.", "deliverTreatment(", "commandQueue."):
+        for forbidden in (".enforce(", ".setDefault(", "import app.aaps.core.interfaces.queue.", "deliverTreatment(", "commandQueue."):
             if forbidden in content:
                 raise AssertionError(f"{aps}: delivery must remain owned by Loop: {forbidden}")
 

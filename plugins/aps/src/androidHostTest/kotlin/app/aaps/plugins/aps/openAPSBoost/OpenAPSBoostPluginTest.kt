@@ -6,16 +6,20 @@ import app.aaps.core.interfaces.aps.*
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.db.PersistenceLayer
-import app.aaps.core.interfaces.plugin.EnforcedState
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.pump.PumpWithConcentration
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.plugins.boostport.aps.*
 import app.aaps.shared.tests.TestBaseWithProfile
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
@@ -28,7 +32,9 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
     private val teEvents = MutableSharedFlow<List<TE>>(extraBufferCapacity = 1)
     private val calEvents = MutableSharedFlow<List<CAL>>(extraBufferCapacity = 1)
     private var owners = 0
-    private var duringCalculation: (() -> Unit)? = null
+    private var duringCalculation: (suspend () -> Unit)? = null
+    private var closedOwners = 0
+    private var failClose = false
     private var reject = false
     private var nightModeActive = false
     private var hrDarkMinutes: Long? = null
@@ -38,6 +44,10 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
         override fun create(): BoostApsCalculator {
             owners++
             return object : BoostApsCalculator {
+                override fun close() {
+                    closedOwners++
+                    if (failClose) error("platform cleanup failed")
+                }
                 override suspend fun calculate(input: BoostApsCalculator.Input): BoostApsCalculator.Result {
                     requests.add(input)
                     duringCalculation?.invoke()
@@ -53,6 +63,14 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
     private lateinit var sut: OpenAPSBoostPlugin
 
     @BeforeEach fun prepare() {
+        whenever(config.APS).thenReturn(true)
+        whenever(config.AAPSCLIENT).thenReturn(false)
+        whenever(preferences.get(BooleanKey.ApsUseSmb)).thenReturn(true)
+        val ads = mock<AutosensDataStore>()
+        whenever(ads.detectedCadenceMinutes).thenReturn(5.0)
+        whenever(iobCobCalculator.ads).thenReturn(ads)
+        doReturn("Boost V6").whenever(rh).gs(app.aaps.plugins.aps.ApsStrings.openapsboost)
+        doReturn("APS disabled").whenever(rh).gs(app.aaps.plugins.aps.ApsStrings.openapsma_disabled)
         val pump: PumpWithConcentration = mock()
         whenever(pump.baseBasalRate).thenReturn(PumpRate(1.0))
         whenever(pump.pumpDescription).thenReturn(testPumpPlugin.pumpDescription)
@@ -83,12 +101,40 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
             glucoseProvider, preferences, factory, profileUtil, quality, glucoseStatusCalculatorSMB,
             { apsResultProvider() }, ch, fabricPrivacy, notificationManager))
         doReturn(true).whenever(sut).isEnabled()
+        runBlocking { sut.onStart() }
     }
 
-    @Test fun integrationPluginIsAnApsButRemainsDisabledUntilRemainingOwnersAreConnected() {
+    @AfterEach fun stopOwner() = runBlocking { sut.onStop() }
+
+    @Test fun boostIsSelectableWithoutForcingOrChangingTheDefaultAlgorithm() {
         assertThat(sut.getType()).isEqualTo(PluginType.APS)
-        assertThat(sut.enforcedState()).isEqualTo(EnforcedState.Disabled)
+        assertThat(sut.enforcedState()).isNull()
+        assertThat(sut.isDefault()).isFalse()
+        assertThat(sut.isEnabled(PluginType.APS)).isFalse()
+        assertThat(sut.pluginDescription.showInList()).isTrue()
+        whenever(config.APS).thenReturn(false)
+        whenever(config.AAPSCLIENT).thenReturn(true)
+        assertThat(sut.pluginDescription.showInList()).isTrue()
+        whenever(config.AAPSCLIENT).thenReturn(false)
         assertThat(sut.pluginDescription.showInList()).isFalse()
+    }
+
+    @Test fun explicitSelectionRunsTheApsPathAndDisablingStopsIt(): Unit = runBlocking {
+        doCallRealMethod().whenever(sut).isEnabled()
+        sut.invoke("not selected", false)
+        assertThat(requests).isEmpty()
+        sut.setPluginEnabledAwaiting(PluginType.APS, true)
+        assertThat(sut.isEnabled()).isTrue()
+        sut.invoke("selected", false)
+        assertThat(requests).hasSize(1)
+        assertThat(sut.lastAPSResult?.algorithm).isEqualTo(APSResult.Algorithm.BOOST)
+        assertThat(sut.lastAPSResult?.smb).isEqualTo(0.2)
+        assertThat(sut.lastAPSResult?.inputConstraints).isNotNull()
+        sut.setPluginEnabledAwaiting(PluginType.APS, false)
+        sut.invoke("disabled", false)
+        assertThat(requests).hasSize(1)
+        assertThat(sut.lastAPSResult).isNull()
+        assertThat(closedOwners).isEqualTo(1)
     }
 
     @Test fun calculationPublishesStandardApsResultAndPreservesInputConstraints() = runBlocking {
@@ -179,6 +225,10 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
         }
         assertThat(requests.last().microBolusAllowed).isFalse()
         sut.onStop()
+        val requestsBefore = requests.size
+        sut.invoke("stopped", false)
+        assertThat(requests).hasSize(requestsBefore)
+        sut.onStart()
         sut.invoke("fallback", true)
         assertThat(requests.last().microBolusAllowed).isFalse()
     }
@@ -192,5 +242,111 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
         assertThat(owners).isEqualTo(0)
         assertThat(requests).isEmpty()
         assertThat(sut.lastAPSResult).isNull()
+    }
+
+    @Test fun importWindowBlocksNewOwnersUntilPreferencesHaveBeenReplaced(): Unit = runBlocking {
+        sut.beforeImport()
+        sut.invoke("during import", false)
+        assertThat(owners).isEqualTo(0)
+        assertThat(requests).isEmpty()
+        sut.afterImport()
+        sut.invoke("after import", false)
+        assertThat(owners).isEqualTo(1)
+        assertThat(sut.lastAPSResult).isNotNull()
+    }
+
+    @Test fun stopBlocksQueuedInvocationsAndRestartCreatesExactlyOneFreshOwner(): Unit = runBlocking {
+        sut.invoke("before stop", false)
+        sut.onStop()
+        val previousRequests = requests.size
+        sut.invoke("stopped", false)
+        assertThat(requests).hasSize(previousRequests)
+        assertThat(sut.lastAPSResult).isNull()
+        assertThat(sut.lastAPSRun).isEqualTo(0L)
+        assertThat(closedOwners).isEqualTo(1)
+        sut.onStart()
+        sut.invoke("restarted", false)
+        sut.invoke("reuse", false)
+        assertThat(owners).isEqualTo(2)
+        assertThat(closedOwners).isEqualTo(1)
+    }
+
+    @Test fun restartDuringImportDoesNotReopenCalculationEarly(): Unit = runBlocking {
+        sut.beforeImport()
+        sut.onStop()
+        sut.onStart()
+        sut.invoke("restart inside import", false)
+        assertThat(owners).isEqualTo(0)
+        sut.afterImport()
+        sut.invoke("import complete", false)
+        assertThat(owners).isEqualTo(1)
+    }
+
+    @Test fun cleanupFailureStillDetachesTheOwnerAndAllowsImportToComplete(): Unit = runBlocking {
+        sut.invoke("before import", false)
+        failClose = true
+        sut.beforeImport()
+        assertThat(sut.lastAPSResult).isNull()
+        assertThat(sut.lastAPSRun).isEqualTo(0L)
+        sut.invoke("blocked", false)
+        assertThat(owners).isEqualTo(1)
+        sut.afterImport()
+        failClose = false
+        sut.invoke("new settings", false)
+        assertThat(owners).isEqualTo(2)
+        assertThat(closedOwners).isEqualTo(1)
+    }
+
+    @Test fun suspendedPreImportResultAndNoticesCannotCrossIntoTheNewOwner(): Unit = runBlocking {
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        configNotice = BoostAutoConfigNotice(2, 0, 0)
+        hrDarkMinutes = 60L
+        duringCalculation = { entered.complete(Unit); release.await() }
+        val oldCycle = launch(Dispatchers.Default) { sut.invoke("old cycle", false) }
+        entered.await()
+        sut.beforeImport()
+        release.complete(Unit)
+        oldCycle.join()
+        assertThat(sut.lastAPSResult).isNull()
+        verify(notificationManager, never()).post(id = eq(app.aaps.core.interfaces.notifications.NotificationId.BOOST_AUTOCONFIG),
+            text = any<String>(), level = any<app.aaps.core.interfaces.notifications.NotificationLevel>(),
+            validMinutes = any<Int>(), sound = anyOrNull(), actions = any(), validityCheck = anyOrNull())
+        duringCalculation = null
+        configNotice = null
+        hrDarkMinutes = null
+        sut.afterImport()
+        sut.invoke("new cycle", false)
+        assertThat(owners).isEqualTo(2)
+        assertThat(sut.lastAPSResult).isNotNull()
+    }
+
+    @Test fun stoppedPluginCannotPublishASuspendedResult(): Unit = runBlocking {
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        duringCalculation = { entered.complete(Unit); release.await() }
+        val oldCycle = launch(Dispatchers.Default) { sut.invoke("old cycle", false) }
+        entered.await()
+        sut.onStop()
+        release.complete(Unit)
+        oldCycle.join()
+        assertThat(sut.lastAPSResult).isNull()
+        assertThat(sut.lastAPSRun).isEqualTo(0L)
+        assertThat(closedOwners).isEqualTo(1)
+    }
+
+    @Test fun globalSmbDisableCannotBeUndoneByAnAllowingConstraint(): Unit = runBlocking {
+        whenever(preferences.get(BooleanKey.ApsUseSmb)).thenReturn(false)
+        sut.invoke("SMB disabled", false)
+        assertThat(requests.single().microBolusAllowed).isFalse()
+        assertThat(sut.lastAPSResult?.smb).isEqualTo(0.0)
+    }
+
+    @Test fun smbConstraintDenialIsCarriedIntoTheV6Calculator(): Unit = runBlocking {
+        val denied = ConstraintObject(false, aapsLogger)
+        whenever(constraintsChecker.isSMBModeEnabled(any())).thenReturn(denied)
+        sut.invoke("SMB denied", false)
+        assertThat(requests.single().microBolusAllowed).isFalse()
+        assertThat(sut.lastAPSResult?.smb).isEqualTo(0.0)
     }
 }

@@ -14,7 +14,11 @@ internal class BoostHistorySyncOwner(
     private val iso: (Long) -> String
 ) {
     private var requestedClient: NsClient? = null
-    fun close() { requestedClient?.cancelHistoryBackfill(); requestedClient = null }
+    fun close() {
+        val retired = requestedClient
+        requestedClient = null
+        retired?.cancelHistoryBackfill()
+    }
 
     companion object {
         val attempts = BoostApsSettingKeys.IntValue("boost_history_sync_attempts", 0)

@@ -55,7 +55,8 @@ class BoostApsBoundaryTest {
             }
         } as KeyValueStore
     }
-    private fun calculator(disk: Disk, cancel: Boolean = false, zone: java.time.ZoneId? = null, activity: BoostApsActivitySource? = null): BoostApsCalculator {
+    private fun calculator(disk: Disk, cancel: Boolean = false, zone: java.time.ZoneId? = null, activity: BoostApsActivitySource? = null,
+        syncClient: app.aaps.core.interfaces.sync.NsClient? = null): BoostApsCalculator {
         val db = proxy<PersistenceLayer> { name, _ ->
             if (cancel) throw CancellationException("query cancelled")
             when (name) {
@@ -87,7 +88,11 @@ class BoostApsBoundaryTest {
             else -> error("Unexpected presentation call $name")
         } }
         val assets = BoostApsModelSource { name -> javaClass.classLoader.getResourceAsStream(name)?.bufferedReader()?.use { it.readText() } }
-        return BoostApsCalculatorFactoryImpl(db, tdd, DynamicCarbRatioPolicy.Disabled, disk.store, prefs, date, util, assets, activity).create()
+        val syncs = syncClient?.let { ns -> proxy<app.aaps.core.interfaces.plugin.ActivePlugin> { name, _ ->
+            check(name == "getActiveSyncs"); arrayListOf(ns)
+        } }
+        return BoostApsCalculatorFactoryImpl(db, tdd, DynamicCarbRatioPolicy.Disabled, disk.store, prefs, date, util,
+            assets, activity, activePlugin = syncs).create()
     }
     private fun <T> immediate(block: suspend () -> T): T {
         var value: Result<T>? = null
@@ -326,5 +331,49 @@ class BoostApsBoundaryTest {
         assertFailsWith<IllegalArgumentException> { BoostApsResultMapper.toRt(valid.copy(rate = 1.0), input()) }
         assertFailsWith<IllegalArgumentException> { BoostApsResultMapper.toRt(valid.copy(variable_sens = Double.NaN), input()) }
         assertFailsWith<IllegalArgumentException> { BoostApsResultMapper.toRt(valid.copy(timestamp = 1), input()) }
+    }
+
+    @Test fun failingHistoryCancellationStillReleasesActivityAndCannotTouchImportedState() {
+        var requested = 0; var cancelled = 0; var released = 0
+        val ns = proxy<app.aaps.core.interfaces.sync.NsClient> { name, _ -> when (name) {
+            "getAddress" -> "https://example.invalid"
+            "requestHistoryBackfill" -> { requested++; true }
+            "cancelHistoryBackfill" -> { cancelled++; error("queue cleanup failed") }
+            else -> error(name)
+        } }
+        val activity = object : BoostApsActivitySource {
+            override fun open() = object : BoostApsActivitySource.Lease {
+                override fun snapshot(nowMs: Long, offsetMinutes: Int) = BoostApsActivitySource.Snapshot()
+                override fun healthConnect(enabled: Boolean, nowMs: Long, pollMinutes: Int) {}
+                override fun close() { released++ }
+            }
+        }
+        val disk = Disk()
+        val owner = calculator(disk, activity = activity, syncClient = ns)
+        assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(input().copy(maxBolusAllowed = 5.0)) })
+        assertEquals(1, requested)
+        assertFailsWith<IllegalStateException> { owner.close() }
+        assertEquals(1, cancelled); assertEquals(1, released)
+        owner.close()
+        disk.values[BoostApsSettingKeys.Session.key] = "imported replacement"
+        val imported = disk.values.toMap()
+        assertIs<BoostApsCalculator.Result.Rejected>(immediate { owner.calculate(input()) })
+        assertEquals(imported, disk.values)
+        assertEquals(1, released)
+    }
+
+    @Test fun historyOwnerDetachesClientEvenIfCancellationThrows() {
+        var cancelled = 0
+        val ns = proxy<app.aaps.core.interfaces.sync.NsClient> { name, _ -> when (name) {
+            "getAddress" -> "https://example.invalid"
+            "requestHistoryBackfill" -> true
+            "cancelHistoryBackfill" -> { cancelled++; error("queue cleanup failed") }
+            else -> error(name)
+        } }
+        val owner = BoostHistorySyncOwner(Disk().store, { ns }) { "iso" }
+        immediate { owner.evaluate(fixture.time, app.aaps.plugins.aps.openAPSBoostV5.BoostHistorySync.History(0, 0, 0)) }
+        assertFailsWith<IllegalStateException> { owner.close() }
+        owner.close()
+        assertEquals(1, cancelled)
     }
 }

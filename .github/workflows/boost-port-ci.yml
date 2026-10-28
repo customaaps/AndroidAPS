@@ -46,9 +46,9 @@ jobs:
           test -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           java -version
           ./gradlew --version --no-daemon
-      - name: Validate passive Boost ML assets
+      - name: Validate Boost ML assets
         run: python3 plugins/boost-port/tools/validate_ml_assets.py
-      - name: Verify Boost port stays disabled and hidden
+      - name: Verify Boost isolation and explicit APS selection
         run: python3 plugins/boost-port/tools/check_port_isolation.py
       - name: Audit archived V5-to-V1 integration contract
         run: python3 plugins/boost-port/tools/check_v1_v5_source_contract.py
@@ -59,11 +59,17 @@ jobs:
       - name: Compile isolated Boost Android KMP target
         run: |
           ./gradlew :plugins:boost-port:assemble --no-daemon --stacktrace
+      - name: Test Boost APS activation and lifecycle
+        run: |
+          ./gradlew :plugins:aps:testAndroidHostTest --tests 'app.aaps.plugins.aps.openAPSBoost.OpenAPSBoostPluginTest' --tests 'app.aaps.plugins.aps.openAPSBoost.BoostPreferenceKeysTest' --tests 'app.aaps.plugins.aps.loop.LoopPluginTest' --no-daemon --stacktrace
       - name: Test native CGM cadence and global Loop integration
         run: |
           ./gradlew :plugins:main:testAndroidHostTest --tests 'app.aaps.plugins.main.iob.AutosensDataStoreTest' --no-daemon --stacktrace
           ./gradlew :workflow:testAndroidHostTest --tests 'app.aaps.workflow.PostCalculationRunnerTest' --tests 'app.aaps.workflow.LoopCadenceTest' --no-daemon --stacktrace
           ./gradlew :implementation:testAndroidHostTest --tests 'app.aaps.implementation.iob.GlucoseStatusTestSMB' --no-daemon --stacktrace
+      - name: Test Boost registration in the application graph
+        run: |
+          ./gradlew :app:testFullDebugUnitTest --tests 'app.aaps.di.metro.BoostPluginRegistrationTest' --tests 'app.aaps.di.metro.ContributedPluginsTest.every contributed plugin*' --no-daemon --stacktrace
       - name: Compile complete Android fullDebug APK
         run: |
           ./gradlew :app:assembleFullDebug --no-daemon --stacktrace
@@ -93,4 +99,6 @@ jobs:
             plugins/main/build/test-results/
             workflow/build/test-results/
             implementation/build/test-results/
+            plugins/aps/build/test-results/
+            app/build/test-results/
           if-no-files-found: ignore
