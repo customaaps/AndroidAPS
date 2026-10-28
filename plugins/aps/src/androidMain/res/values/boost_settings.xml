@@ -74,7 +74,6 @@
     <string name="boost_settings_v5">V5/V6 meal policy</string>
     <string name="boost_settings_common">Shared APS safety settings</string>
     <string name="boost_hr_feed_dark">Boost: no heart-rate data for %1$d min. Check the watch/Garmin connection.</string>
-    <string name="boost_data_permissions">Step and heart-rate permissions</string>
     <string name="boost_floor_safety" formatted="false">Insulin-adding floors require at least 1000 readings in 14 days, with below-63 mg/dL under 2% and below-70 mg/dL under 3.5%. They remain blocked after a low, during sleep and by the normal SMB gates.</string>
     <string name="boost_auto_config_notice">Boost settings: initialized %1$d, adjusted %2$d; suggestions held due to low-glucose exposure: %3$d.</string>
     <string name="boost_need_watch_notice">Insulin averaged %1$s U/day over the last 3 complete days, compared with %2$s U/day over the previous %3$d days. %4$s%5$s No setting has been changed.</string>

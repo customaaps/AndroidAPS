@@ -125,12 +125,6 @@ internal object BoostApsPreferenceKeys {
         S(BoostApsSettingKeys.ApsBoostNightModeEnd, ApsStrings.boost_pref_night_mode_end),
     )
     fun owned(raw: List<NonPreferenceKey>): List<NonPreferenceKey> = raw.map { key -> editable.firstOrNull { it.key == key.key } ?: key }
-    val permissions = object : IntentPreferenceKey {
-        override val key = "boost_data_permissions"
-        override val title = ApsStrings.boost_data_permissions
-        override val preferenceType = PreferenceType.CLICK
-        override val platforms = setOf(AppPlatform.Android)
-    }
     fun sections(): List<PreferenceSubScreenDef> {
         val map = editable.associateBy { it.key }
         return listOf(

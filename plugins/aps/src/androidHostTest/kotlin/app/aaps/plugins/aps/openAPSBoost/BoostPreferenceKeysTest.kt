@@ -57,6 +57,5 @@ class BoostPreferenceKeysTest {
         assertFalse(BoostApsSettingKeys.ApsBoostV5PrimerTbrFallback.key in names)
         assertFalse(BoostApsSettingKeys.ApsBoostStartTime.key in names)
         assertFalse(BoostApsSettingKeys.ApsBoostEndTime.key in names)
-        assertFalse(BoostApsPreferenceKeys.permissions.exportable)
     }
 }

@@ -42,7 +42,6 @@ import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.keys.interfaces.withClick
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.convertedToAbsolute
 import app.aaps.core.objects.extensions.plannedRemainingMinutes
@@ -124,7 +123,7 @@ class OpenAPSBoostPlugin(
         .preferencesVisibleInSimpleMode(false)
         .showInList { config.APS || config.AAPSCLIENT }
         .description(ApsStrings.description_boost),
-    ownPreferences = BoostApsPreferenceKeys.owned(calculatorFactory.ownedKeys) + BoostApsPreferenceKeys.permissions,
+    ownPreferences = BoostApsPreferenceKeys.owned(calculatorFactory.ownedKeys),
     aapsLogger, rh, preferences, notificationManager
 ), APS, PluginConstraints {
 
@@ -416,8 +415,7 @@ class OpenAPSBoostPlugin(
                     BooleanKey.ApsUseSmbAlways, BooleanKey.ApsUseSmbWithCob, BooleanKey.ApsUseSmbWithLowTt,
                     BooleanKey.ApsUseSmbWithHighTt, BooleanKey.ApsUseSmbAfterCarbs, BooleanKey.ApsUseUam,
                     IntKey.ApsMaxSmbFrequency, IntKey.ApsMaxMinutesOfBasalToLimitSmb,
-                    IntKey.ApsUamMaxMinutesOfBasalToLimitSmb, IntKey.ApsCarbsRequestThreshold,
-                    BoostApsPreferenceKeys.permissions.withClick(calculatorFactory::requestDataPermissions)))
+                    IntKey.ApsUamMaxMinutesOfBasalToLimitSmb, IntKey.ApsCarbsRequestThreshold))
         ),
         icon = pluginDescription.icon
     )

@@ -74,7 +74,6 @@
     <string name="boost_settings_v5">Правила приёма пищи V5/V6</string>
     <string name="boost_settings_common">Общие ограничения APS</string>
     <string name="boost_hr_feed_dark">Boost: данные пульса не поступают %1$d min. Проверьте связь с часами/Garmin.</string>
-    <string name="boost_data_permissions">Разрешения для шагов и пульса</string>
     <string name="boost_floor_safety" formatted="false">Для дополнительных нижних границ дозы требуется не менее 1000 показаний за 14 дней: доля BG ниже 63 mg/dL менее 2%, ниже 70 mg/dL менее 3,5%. После гипогликемии, во сне и при запрете SMB они остаются отключёнными.</string>
     <string name="boost_auto_config_notice">Настройки Boost: настроено %1$d, скорректировано %2$d; отложено предложений из-за низкой глюкозы: %3$d.</string>
     <string name="boost_need_watch_notice">За последние 3 полных дня средняя доза инсулина — %1$s ЕД/сутки, за предыдущие %3$d дней — %2$s ЕД/сутки. %4$s%5$s Настройки не изменены.</string>
