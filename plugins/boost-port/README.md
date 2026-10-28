@@ -33,15 +33,15 @@ boundary. Activity-load and insulin-need diagnostics do not change a dosing
 candidate. Source arithmetic is isolated from Android readers, storage and
 presentation dependencies.
 
-The activation/lifecycle block passed **1401 Boost JVM tests and 135 Android host
-tests and two application graph/catalog tests**, with zero failures, errors or
-skips across these suites, plus Boost KMP assembly and fullDebug APK compilation. See [activation scope and exact CI
-sources](APS_ACTIVATION_20261028.md). The earlier checkpoint below predates
-activation and records its own tested source revisions.
+The latest [6.2 sleep/wake transfer](APS_SLEEP_FRESHNESS_62_20261028.md) passed
+**1414 Boost JVM tests and 137 Android host/application tests**, with zero
+failures, errors or skips, plus Boost KMP assembly and fullDebug APK compilation.
+Sleep is evaluated before this cycle's policy and V5 inputs; phone/watch cumulative
+wake evidence stays independent. The report records exact CI revisions, artifacts
+and the separate fixed-window eligibility policy still to be reconciled.
 
-The current [6.2 sleep/wake transfer](APS_SLEEP_FRESHNESS_62_20261028.md) adds
-same-cycle sleep evaluation and independent phone/watch wake evidence. Its CI
-verification is pending; the activation totals above describe the previous block.
+The previous [activation checkpoint](APS_ACTIVATION_20261028.md) records 1401 JVM,
+135 Android host and two application graph/catalog tests at its own source revisions.
 
 ## Earlier verified checkpoint
 
@@ -80,7 +80,8 @@ read as proof that later changes passed.
 1. Verify selected Boost V6 calculations and standard Loop interaction on a device.
 2. Validate native-cadence operation with real CGM/pump timing. Host/device/Apple
    tests remain distinct from JVM tests and APK builds.
-3. Finish source-to-target inventory and remaining device-level scenarios.
+3. Reconcile remaining 6.2 eligibility differences, including upstream retirement
+   of the Boost start/end window, and finish the source inventory/device scenarios.
 
 The base archive remains the 114 original source blobs pinned in
 [SOURCE_MANIFEST.md](SOURCE_MANIFEST.md); it is not rewritten as later features

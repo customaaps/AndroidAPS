@@ -409,4 +409,3 @@ internal fun boostExerciseStepsMet(
 
 internal fun boostNightGateOpen(inNightWindow: Boolean, detectorAsleep: Boolean): Boolean =
             !inNightWindow && !detectorAsleep
-

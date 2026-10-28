@@ -255,7 +255,13 @@ class BoostApsBoundaryTest {
         assertFalse(result.nightModeActive)
         // The existing boundary-exit hold remains active even though the detector has woken.
         assertFalse(result.result.boostActive ?: true)
-        val afterHold = at + 11 * 60_000L
+        // Default hold is the ten-minute sleep hysteresis plus five minutes.
+        val duringHold = at + 11 * 60_000L
+        val held = assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(request.copy(
+            atMs = duringHold, glucose = object : GlucoseStatus by initial.glucose { override val date = duringHold })) })
+        assertFalse(held.nightModeActive)
+        assertFalse(held.result.boostActive ?: true)
+        val afterHold = at + 16 * 60_000L
         val next = assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(request.copy(
             atMs = afterHold, glucose = object : GlucoseStatus by initial.glucose { override val date = afterHold })) })
         assertFalse(next.nightModeActive)
