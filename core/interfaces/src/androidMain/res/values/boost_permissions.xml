@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="boost_permission_granted">Allowed</string>
+    <string name="boost_permission_not_granted">Not allowed</string>
+    <string name="boost_permission_phone_status">Phone activity: %1$s</string>
+    <string name="boost_permission_allow_phone">Allow phone activity</string>
+    <string name="boost_permission_app_settings">App permissions</string>
+    <string name="boost_permission_checking">Checking Health Connect permissions…</string>
+    <string name="boost_permission_allow_health">Allow reading steps and heart rate</string>
+    <string name="boost_permission_health_settings">Health Connect settings</string>
+    <string name="boost_permission_health_status">Health Connect steps: %1$s\nHeart rate: %2$s</string>
+    <string name="boost_permission_check_failed">Could not read permissions. Open Health Connect settings to check access.</string>
+    <string name="boost_permission_health_install_needed">Install or update Health Connect to read steps and heart rate from it. Phone activity permissions are managed separately above.</string>
+    <string name="boost_permission_install_health">Install or update Health Connect</string>
+    <string name="boost_permission_health_unavailable">Health Connect is unavailable on this device. Phone activity permissions are managed separately above.</string>
+    <string name="boost_permission_open_failed">Could not open this screen. Check permissions in Android settings.</string>
+    <string name="boost_permission_done">Done</string>
+</resources>

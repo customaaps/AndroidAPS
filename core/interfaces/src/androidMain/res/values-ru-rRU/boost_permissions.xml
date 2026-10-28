@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="boost_permission_granted">Разрешено</string>
+    <string name="boost_permission_not_granted">Не разрешено</string>
+    <string name="boost_permission_phone_status">Физическая активность телефона: %1$s</string>
+    <string name="boost_permission_allow_phone">Разрешить физическую активность</string>
+    <string name="boost_permission_app_settings">Разрешения приложения</string>
+    <string name="boost_permission_checking">Проверка разрешений Health Connect…</string>
+    <string name="boost_permission_allow_health">Разрешить чтение шагов и пульса</string>
+    <string name="boost_permission_health_settings">Настройки Health Connect</string>
+    <string name="boost_permission_health_status">Шаги из Health Connect: %1$s\nПульс: %2$s</string>
+    <string name="boost_permission_check_failed">Не удалось прочитать разрешения. Проверьте доступ в настройках Health Connect.</string>
+    <string name="boost_permission_health_install_needed">Установите или обновите Health Connect для чтения шагов и пульса. Разрешения физической активности телефона доступны отдельно выше.</string>
+    <string name="boost_permission_install_health">Установить или обновить Health Connect</string>
+    <string name="boost_permission_health_unavailable">Health Connect недоступен на этом устройстве. Разрешения физической активности телефона доступны отдельно выше.</string>
+    <string name="boost_permission_open_failed">Не удалось открыть экран. Проверьте разрешения в настройках Android.</string>
+    <string name="boost_permission_done">Готово</string>
+</resources>
