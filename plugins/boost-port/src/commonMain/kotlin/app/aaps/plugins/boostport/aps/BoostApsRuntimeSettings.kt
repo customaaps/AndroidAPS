@@ -57,6 +57,19 @@ internal class BoostApsRuntimeSettings(private val store: KeyValueStore) {
         )
     }
 
+    fun recovery(): BoostRecoveryOwner.Settings {
+        val enabled = b(ApsBoostPostExerciseRecoveryEnabled)
+        if (!enabled) return BoostRecoveryOwner.Settings(false, 2.0, 144.0, 0.5, 10)
+        return BoostRecoveryOwner.Settings(true, d(BoostApsSettingKeys.ApsBoostPostExerciseRecoveryHours),
+            d(BoostApsSettingKeys.ApsBoostPostExerciseRecoveryTarget), d(BoostApsSettingKeys.ApsBoostPostExerciseRecoveryScale),
+            i(BoostApsSettingKeys.ApsBoostPostExerciseMinDuration))
+    }
+
+    fun meal() = BoostMealPolicyOwner.Settings(b(ApsBoostV6PreMealTarget),
+        d(BoostApsSettingKeys.ApsBoostV6PreMealTargetMgdl), d(BoostApsSettingKeys.ApsBoostV6PreMealLeadMin).toInt(),
+        (clock(s(ApsBoostNightModeStart), "22:00") / 60_000L).toInt(),
+        (clock(s(ApsBoostNightModeEnd), "07:00") / 60_000L).toInt())
+
     fun sleep(): BoostSleepCycleOwner.Settings = BoostSleepCycleOwner.Settings(
         (clock(s(ApsBoostNightModeStart), "22:00") / 60_000L).toInt(),
         (clock(s(ApsBoostNightModeEnd), "07:00") / 60_000L).toInt(),
@@ -74,13 +87,6 @@ internal class BoostApsRuntimeSettings(private val store: KeyValueStore) {
         b(ApsBoostHrStressDetection), i(ApsBoostSleepHysteresisMin),
         clock(s(ApsBoostNightModeStart), "22:00"), clock(s(ApsBoostNightModeEnd), "07:00"),
     )
-
-    /** These owners are deliberately not approximated while the APS adapter is under integration. */
-    fun unsupportedEnabledFeatures(): List<String> = listOf(
-        ApsBoostPostExerciseRecoveryEnabled, ApsBoostV6PreMealTarget, ApsBoostPostRescueTightRampTrial,
-        ApsBoostV5ComposedFloorActive, ApsBoostV5VelocityBudgetActive,
-        ApsBoostHealthConnectHrEnabled,
-    ).filter(::b).map { it.key }
 
     companion object {
         /** Source H:mm clock semantics, including SMART's 24:00 -> midnight. */

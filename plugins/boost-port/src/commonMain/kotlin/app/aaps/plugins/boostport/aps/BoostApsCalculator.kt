@@ -35,6 +35,7 @@ interface BoostApsCalculator {
             val autosens: AutosensResult,
             /** Presentation translates this policy explanation without changing source engine traces. */
             val nightModeActive: Boolean = false,
+            val hrFeedDarkMinutes: Long? = null,
         ) : Result
         data class Rejected(val reason: String) : Result
     }
@@ -48,6 +49,7 @@ interface BoostApsCalculatorFactory {
     val ownedKeys: List<NonPreferenceKey>
     /** A fresh owner is required after stop/import; persisted meal history is restored, not cleared. */
     fun create(): BoostApsCalculator
+    fun requestDataPermissions() {}
 }
 
 fun interface BoostApsModelSource {

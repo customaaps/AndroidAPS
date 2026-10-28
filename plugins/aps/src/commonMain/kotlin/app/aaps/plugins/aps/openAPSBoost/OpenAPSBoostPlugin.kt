@@ -24,6 +24,8 @@ import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.NotificationId
+import app.aaps.core.interfaces.notifications.NotificationLevel
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginBaseWithPreferences
@@ -40,6 +42,7 @@ import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.keys.interfaces.withClick
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.convertedToAbsolute
 import app.aaps.core.objects.extensions.plannedRemainingMinutes
@@ -123,7 +126,7 @@ class OpenAPSBoostPlugin(
         .preferencesVisibleInSimpleMode(false)
         .showInList { false }   // Remains unavailable until source policy owners are connected.
         .description(ApsStrings.description_boost),
-    ownPreferences = calculatorFactory.ownedKeys,
+    ownPreferences = BoostApsPreferenceKeys.owned(calculatorFactory.ownedKeys) + BoostApsPreferenceKeys.permissions,
     aapsLogger, rh, preferences, notificationManager
 ), APS, PluginConstraints {
 
@@ -331,6 +334,11 @@ class OpenAPSBoostPlugin(
                         else {
                             lastAPSResult = result
                             lastAPSRun = now
+                            calculated.hrFeedDarkMinutes?.let { minutes ->
+                                notificationManager.post(NotificationId.BOOST_HR_FEED_DARK,
+                                    rh.gs(ApsStrings.boost_hr_feed_dark, minutes),
+                                    level = NotificationLevel.LOW, validMinutes = 0)
+                            }
                             true
                         }
                     }
@@ -341,6 +349,21 @@ class OpenAPSBoostPlugin(
             rxBus.send(EventOpenAPSUpdateGui())
         }
     }
+
+    override fun getPreferenceScreenContent() = PreferenceSubScreenDef(
+        key = "openapsboost_settings",
+        title = ApsStrings.openapsboost,
+        items = BoostApsPreferenceKeys.sections() + listOf(
+            PreferenceSubScreenDef("boost_settings_common", ApsStrings.boost_settings_common,
+                listOf(DoubleKey.ApsMaxBasal, DoubleKey.ApsSmbMaxIob, BooleanKey.ApsUseSmb,
+                    BooleanKey.ApsUseSmbAlways, BooleanKey.ApsUseSmbWithCob, BooleanKey.ApsUseSmbWithLowTt,
+                    BooleanKey.ApsUseSmbWithHighTt, BooleanKey.ApsUseSmbAfterCarbs, BooleanKey.ApsUseUam,
+                    IntKey.ApsMaxSmbFrequency, IntKey.ApsMaxMinutesOfBasalToLimitSmb,
+                    IntKey.ApsUamMaxMinutesOfBasalToLimitSmb, IntKey.ApsCarbsRequestThreshold,
+                    BoostApsPreferenceKeys.permissions.withClick(calculatorFactory::requestDataPermissions)))
+        ),
+        icon = pluginDescription.icon
+    )
 
     override fun getGlucoseStatusData(allowOldData: Boolean): GlucoseStatus? = glucoseStatusCalculatorSMB.getGlucoseStatusData(allowOldData)
 

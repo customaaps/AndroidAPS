@@ -1,9 +1,9 @@
 package app.aaps.plugins.boostport.telemetry
 
 /**
- * Offline, immutable KMP adaptation of StepService's 5-minute step buckets.
+ * Pure, immutable KMP adaptation of StepService's 5-minute step buckets.
  *
- * Caller supplies TYPE_STEP_COUNTER observations, which are cumulative since
+ * Diagnostics and the APS-owned phone adapter supply TYPE_STEP_COUNTER observations, which are cumulative since
  * reboot. The first reading is a baseline. Negative deltas (reboot) and
  * increments >1500 (sensor glitch) are NOT credited to a bucket.
  *

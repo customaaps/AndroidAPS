@@ -1,0 +1,489 @@
+{
+  "source": "bc02e4c49f2b9bb5d50a5938b9a09884c76140cd",
+  "settings": [
+    {
+      "name": "ApsBoostEnablePercentScale",
+      "type": "BooleanKey",
+      "title": "boost_enable_percent_scale_title",
+      "summary": "boost_enable_percent_scale_summary"
+    },
+    {
+      "name": "ApsBoostEnableCircadianIsf",
+      "type": "BooleanKey",
+      "title": "boost_enable_circadian_isf_title",
+      "summary": "boost_enable_circadian_isf_summary"
+    },
+    {
+      "name": "ApsBoostAllowWithHighTt",
+      "type": "BooleanKey",
+      "title": "boost_allow_high_tt_title",
+      "summary": "boost_allow_high_tt_summary"
+    },
+    {
+      "name": "ApsBoostUseTdd",
+      "type": "BooleanKey",
+      "title": "boost_use_tdd_title",
+      "summary": "boost_use_tdd_summary"
+    },
+    {
+      "name": "ApsBoostAdjustSensitivity",
+      "type": "BooleanKey",
+      "title": "boost_adjust_sensitivity_title",
+      "summary": "boost_adjust_sensitivity_summary"
+    },
+    {
+      "name": "ApsBoostNightModeEnabled",
+      "type": "BooleanKey",
+      "title": "boost_night_mode_enabled_title",
+      "summary": "boost_night_mode_enabled_summary"
+    },
+    {
+      "name": "ApsBoostNightModeDisableWithCob",
+      "type": "BooleanKey",
+      "title": "boost_night_mode_disable_with_cob_title",
+      "summary": "boost_night_mode_disable_with_cob_summary"
+    },
+    {
+      "name": "ApsBoostNightModeDisableWithLowTt",
+      "type": "BooleanKey",
+      "title": "boost_night_mode_disable_with_low_tt_title",
+      "summary": "boost_night_mode_disable_with_low_tt_summary"
+    },
+    {
+      "name": "ApsBoostPostExerciseRecoveryEnabled",
+      "type": "BooleanKey",
+      "title": "boost_post_exercise_recovery_enabled_title",
+      "summary": "boost_post_exercise_recovery_enabled_summary"
+    },
+    {
+      "name": "ApsBoostHrIntegrationEnabled",
+      "type": "BooleanKey",
+      "title": "boost_hr_integration_enabled_title",
+      "summary": "boost_hr_integration_enabled_summary"
+    },
+    {
+      "name": "ApsBoostHrStressDetection",
+      "type": "BooleanKey",
+      "title": "boost_hr_stress_detection_title",
+      "summary": "boost_hr_stress_detection_summary"
+    },
+    {
+      "name": "ApsBoostNightModeAutoBySleep",
+      "type": "BooleanKey",
+      "title": "boost_night_mode_auto_by_sleep_title",
+      "summary": "boost_night_mode_auto_by_sleep_summary"
+    },
+    {
+      "name": "ApsBoostHealthConnectHrEnabled",
+      "type": "BooleanKey",
+      "title": "boost_hc_hr_title",
+      "summary": "boost_hc_hr_summary"
+    },
+    {
+      "name": "ApsBoostV6PreMealTarget",
+      "type": "BooleanKey",
+      "title": "boost_v6_pre_meal_target_title",
+      "summary": "boost_v6_pre_meal_target_summary"
+    },
+    {
+      "name": "ApsBoostV5FastCarbConfirm",
+      "type": "BooleanKey",
+      "title": "boost_v5_fast_carb_confirm_title",
+      "summary": "boost_v5_fast_carb_confirm_summary"
+    },
+    {
+      "name": "ApsBoostV5ConfirmTranche",
+      "type": "BooleanKey",
+      "title": "boost_v5_confirm_tranche_title",
+      "summary": "boost_v5_confirm_tranche_summary"
+    },
+    {
+      "name": "ApsBoostV5AggressiveEarlyConfirm",
+      "type": "BooleanKey",
+      "title": "boost_v5_aggressive_early_confirm_title",
+      "summary": "boost_v5_aggressive_early_confirm_summary"
+    },
+    {
+      "name": "ApsBoostV5ComposedFloorActive",
+      "type": "BooleanKey",
+      "title": "boost_v5_composed_floor_title",
+      "summary": "boost_v5_composed_floor_summary"
+    },
+    {
+      "name": "ApsBoostV5VelocityBudgetActive",
+      "type": "BooleanKey",
+      "title": "boost_v5_velocity_budget_title",
+      "summary": "boost_v5_velocity_budget_summary"
+    },
+    {
+      "name": "ApsBoostV5PrimerBolusMode",
+      "type": "BooleanKey",
+      "title": "boost_v5_primer_bolus_mode_title",
+      "summary": "boost_v5_primer_bolus_mode_summary"
+    },
+    {
+      "name": "ApsBoostPostRescueTightRampTrial",
+      "type": "BooleanKey",
+      "title": "boost_postrescue_tight_ramp_trial",
+      "summary": "boost_postrescue_tight_ramp_trial_summary"
+    },
+    {
+      "name": "ApsBoostAutosensWhenNoTdd",
+      "type": "BooleanKey",
+      "title": "boost_autosens_when_no_tdd_title",
+      "summary": "boost_autosens_when_no_tdd_summary"
+    },
+    {
+      "name": "ApsBoostInactivitySteps",
+      "type": "IntKey",
+      "title": "boost_inactivity_steps_title",
+      "summary": "boost_inactivity_steps_summary",
+      "min": "0",
+      "max": "1000"
+    },
+    {
+      "name": "ApsBoostSleepInSteps",
+      "type": "IntKey",
+      "title": "boost_sleep_in_steps_title",
+      "summary": "boost_sleep_in_steps_summary",
+      "min": "0",
+      "max": "1000"
+    },
+    {
+      "name": "ApsBoostActivitySteps5",
+      "type": "IntKey",
+      "title": "boost_activity_steps_5_title",
+      "summary": "boost_activity_steps_5_summary",
+      "min": "0",
+      "max": "5000"
+    },
+    {
+      "name": "ApsBoostActivitySteps15",
+      "type": "IntKey",
+      "title": "boost_activity_steps_15_title",
+      "summary": "boost_activity_steps_15_summary",
+      "min": "0",
+      "max": "10000"
+    },
+    {
+      "name": "ApsBoostActivitySteps30",
+      "type": "IntKey",
+      "title": "boost_activity_steps_30_title",
+      "summary": "boost_activity_steps_30_summary",
+      "min": "0",
+      "max": "10000"
+    },
+    {
+      "name": "ApsBoostActivitySteps60",
+      "type": "IntKey",
+      "title": "boost_activity_steps_60_title",
+      "summary": "boost_activity_steps_60_summary",
+      "min": "0",
+      "max": "10000"
+    },
+    {
+      "name": "ApsBoostDynIsfAdjustmentFactor",
+      "type": "IntKey",
+      "title": "boost_dynisf_adjust_factor_title",
+      "summary": "boost_dynisf_adjust_factor_summary",
+      "min": "1",
+      "max": "300"
+    },
+    {
+      "name": "ApsBoostHrMaxBpm",
+      "type": "IntKey",
+      "title": "boost_hr_max_bpm_title",
+      "summary": "boost_hr_max_bpm_summary",
+      "min": "150",
+      "max": "220"
+    },
+    {
+      "name": "ApsBoostHrRestingBpm",
+      "type": "IntKey",
+      "title": "boost_hr_resting_bpm_title",
+      "summary": "boost_hr_resting_bpm_summary",
+      "min": "30",
+      "max": "100"
+    },
+    {
+      "name": "ApsBoostHrWindowMinutes",
+      "type": "IntKey",
+      "title": "boost_hr_window_minutes_title",
+      "summary": "boost_hr_window_minutes_summary",
+      "min": "5",
+      "max": "60"
+    },
+    {
+      "name": "ApsBoostPostExerciseMinDuration",
+      "type": "IntKey",
+      "title": "boost_post_exercise_min_duration_title",
+      "summary": "boost_post_exercise_min_duration_summary",
+      "min": "1",
+      "max": "120"
+    },
+    {
+      "name": "ApsBoostPreSleepLeadMin",
+      "type": "IntKey",
+      "title": "boost_pre_sleep_lead_min_title",
+      "summary": "boost_pre_sleep_lead_min_summary",
+      "min": "0",
+      "max": "180"
+    },
+    {
+      "name": "ApsBoostSleepHysteresisMin",
+      "type": "IntKey",
+      "title": "boost_sleep_hysteresis_min_title",
+      "summary": "boost_sleep_hysteresis_min_summary",
+      "min": "5",
+      "max": "30"
+    },
+    {
+      "name": "ApsBoostWakeHrHysteresisMin",
+      "type": "IntKey",
+      "title": "boost_wake_hr_hysteresis_min_title",
+      "summary": "boost_wake_hr_hysteresis_min_summary",
+      "min": "2",
+      "max": "15"
+    },
+    {
+      "name": "ApsBoostHealthConnectPollMin",
+      "type": "IntKey",
+      "title": "boost_hc_poll_title",
+      "summary": "boost_hc_poll_summary",
+      "min": "1",
+      "max": "30"
+    },
+    {
+      "name": "ApsBoostBolus",
+      "type": "DoubleKey",
+      "title": "boost_bolus_title",
+      "summary": "boost_bolus_summary",
+      "min": "0.1",
+      "max": "10.0"
+    },
+    {
+      "name": "ApsBoostMaxIob",
+      "type": "DoubleKey",
+      "title": "boost_max_iob_title",
+      "summary": "boost_max_iob_summary",
+      "min": "0.1",
+      "max": "12.0"
+    },
+    {
+      "name": "ApsBoostInsulinReqPct",
+      "type": "DoubleKey",
+      "title": "boost_insulin_req_title",
+      "summary": "boost_insulin_req_summary",
+      "min": "30.0",
+      "max": "100.0"
+    },
+    {
+      "name": "ApsBoostScale",
+      "type": "DoubleKey",
+      "title": "boost_scale_title",
+      "summary": "boost_scale_summary",
+      "min": "0.1",
+      "max": "3.0"
+    },
+    {
+      "name": "ApsBoostPercentScale",
+      "type": "DoubleKey",
+      "title": "boost_percent_scale_title",
+      "summary": "boost_percent_scale_summary",
+      "min": "50.0",
+      "max": "500.0"
+    },
+    {
+      "name": "ApsBoostDynIsfVelocity",
+      "type": "DoubleKey",
+      "title": "boost_dynisf_velocity_title",
+      "summary": "boost_dynisf_velocity_summary",
+      "min": "0.0",
+      "max": "100.0"
+    },
+    {
+      "name": "ApsBoostSleepInHours",
+      "type": "DoubleKey",
+      "title": "boost_sleep_in_hrs_title",
+      "summary": "boost_sleep_in_hrs_summary",
+      "min": "0.0",
+      "max": "18.0"
+    },
+    {
+      "name": "ApsBoostInactivityPct",
+      "type": "DoubleKey",
+      "title": "boost_inactivity_pct_title",
+      "summary": "boost_inactivity_pct_summary",
+      "min": "100.0",
+      "max": "200.0"
+    },
+    {
+      "name": "ApsBoostActivityPct",
+      "type": "DoubleKey",
+      "title": "boost_activity_pct_title",
+      "summary": "boost_activity_pct_summary",
+      "min": "30.0",
+      "max": "150.0"
+    },
+    {
+      "name": "ApsBoostPostExerciseRecoveryHours",
+      "type": "DoubleKey",
+      "title": "boost_post_exercise_recovery_hours_title",
+      "summary": "boost_post_exercise_recovery_hours_summary",
+      "min": "0.5",
+      "max": "8.0"
+    },
+    {
+      "name": "ApsBoostPostExerciseRecoveryScale",
+      "type": "DoubleKey",
+      "title": "boost_post_exercise_recovery_scale_title",
+      "summary": "boost_post_exercise_recovery_scale_summary",
+      "min": "0.0",
+      "max": "1.0"
+    },
+    {
+      "name": "ApsBoostV5Aggression",
+      "type": "DoubleKey",
+      "title": "boost_v5_aggression_title",
+      "summary": "boost_v5_aggression_summary",
+      "min": "0.7",
+      "max": "1.6"
+    },
+    {
+      "name": "ApsBoostV5HypoCaution",
+      "type": "DoubleKey",
+      "title": "boost_v5_hypo_caution_title",
+      "summary": "boost_v5_hypo_caution_summary",
+      "min": "1.0",
+      "max": "2.0"
+    },
+    {
+      "name": "ApsBoostV5Sensitivity",
+      "type": "DoubleKey",
+      "title": "boost_v5_sensitivity_title",
+      "summary": "boost_v5_sensitivity_summary",
+      "min": "0.8",
+      "max": "1.2"
+    },
+    {
+      "name": "ApsBoostCumulativeSmbCap60Min",
+      "type": "DoubleKey",
+      "title": "boost_cumulative_smb_cap_title",
+      "summary": "boost_cumulative_smb_cap_summary",
+      "min": "0.0",
+      "max": "10.0"
+    },
+    {
+      "name": "ApsBoostV5ConfirmedCapU",
+      "type": "DoubleKey",
+      "title": "boost_v5_confirmed_cap_title",
+      "summary": "boost_v5_confirmed_cap_summary",
+      "min": "0.0",
+      "max": "7.5"
+    },
+    {
+      "name": "ApsBoostV5CommittedCapU",
+      "type": "DoubleKey",
+      "title": "boost_v5_committed_cap_title",
+      "summary": "boost_v5_committed_cap_summary",
+      "min": "0.0",
+      "max": "2.5"
+    },
+    {
+      "name": "ApsBoostV5TrancheFraction",
+      "type": "DoubleKey",
+      "title": "boost_v5_tranche_fraction_title",
+      "summary": "boost_v5_tranche_fraction_summary",
+      "min": "0.3",
+      "max": "1.0"
+    },
+    {
+      "name": "ApsBoostV5TrancheThreshold",
+      "type": "DoubleKey",
+      "title": "boost_v5_tranche_threshold_title",
+      "summary": "boost_v5_tranche_threshold_summary",
+      "min": "0.20",
+      "max": "0.80"
+    },
+    {
+      "name": "ApsBoostV5PrimerCapU",
+      "type": "DoubleKey",
+      "title": "boost_v5_primer_cap_title",
+      "summary": "boost_v5_primer_cap_summary",
+      "min": "0.0",
+      "max": "2.5"
+    },
+    {
+      "name": "ApsBoostV6PreMealTargetMgdl",
+      "type": "DoubleKey",
+      "title": "boost_v6_pre_meal_target_mgdl_title",
+      "summary": "boost_v6_pre_meal_target_mgdl_summary",
+      "min": "65.0",
+      "max": "90.0"
+    },
+    {
+      "name": "ApsBoostV6PreMealLeadMin",
+      "type": "DoubleKey",
+      "title": "boost_v6_pre_meal_lead_min_title",
+      "summary": "boost_v6_pre_meal_lead_min_summary",
+      "min": "30.0",
+      "max": "90.0"
+    },
+    {
+      "name": "ApsBoostDynIsfBgCap",
+      "type": "UnitDoubleKey",
+      "title": "boost_dynisf_bg_cap_title",
+      "summary": "boost_dynisf_bg_cap_summary",
+      "min": "100",
+      "max": "300"
+    },
+    {
+      "name": "ApsBoostDynIsfNormalTarget",
+      "type": "UnitDoubleKey",
+      "title": "boost_dynisf_normal_target_title",
+      "summary": "boost_dynisf_normal_target_summary",
+      "min": "70",
+      "max": "120"
+    },
+    {
+      "name": "ApsBoostNightModeBgOffset",
+      "type": "UnitDoubleKey",
+      "title": "boost_night_mode_bg_offset_title",
+      "summary": "boost_night_mode_bg_offset_summary",
+      "min": "0",
+      "max": "90"
+    },
+    {
+      "name": "ApsBoostPostExerciseRecoveryTarget",
+      "type": "UnitDoubleKey",
+      "title": "boost_post_exercise_recovery_target_title",
+      "summary": "boost_post_exercise_recovery_target_summary",
+      "min": "90",
+      "max": "200"
+    },
+    {
+      "name": "ApsBoostStartTime",
+      "type": "StringKey",
+      "title": "boost_start_title",
+      "summary": "boost_start_summary"
+    },
+    {
+      "name": "ApsBoostEndTime",
+      "type": "StringKey",
+      "title": "boost_end_title",
+      "summary": "boost_end_summary"
+    },
+    {
+      "name": "ApsBoostNightModeStart",
+      "type": "StringKey",
+      "title": "boost_night_mode_start_title",
+      "summary": "boost_night_mode_start_summary"
+    },
+    {
+      "name": "ApsBoostNightModeEnd",
+      "type": "StringKey",
+      "title": "boost_night_mode_end_title",
+      "summary": "boost_night_mode_end_summary"
+    }
+  ]
+}

@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <queries><package android:name="com.google.android.apps.healthdata" /></queries>
     <!-- Read-only Health Connect capability for an explicitly invoked, disabled-by-default
          diagnostic adapter. No WRITE_ permissions or background health access. -->
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <!-- Internal diagnostics page: never exported, no background execution. -->
     <application>
+        <activity android:name="app.aaps.plugins.boostport.aps.BoostDataPermissionsActivity"
+            android:exported="false" android:label="@string/boost_permissions_title" />
+        <activity android:name="app.aaps.plugins.boostport.aps.BoostHealthRationaleActivity"
+            android:exported="true" android:label="@string/boost_permissions_title">
+            <intent-filter><action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" /></intent-filter>
+        </activity>
+        <activity-alias android:name="app.aaps.plugins.boostport.aps.BoostHealthPermissionUsage"
+            android:targetActivity="app.aaps.plugins.boostport.aps.BoostHealthRationaleActivity"
+            android:exported="true" android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
         <activity
             android:name="app.aaps.plugins.boostport.telemetry.BoostOfflineDiagnosticsActivity"
             android:exported="false"
-            android:label="Boost offline diagnostics" />
+            android:label="@string/boost_offline_diagnostics_title" />
     </application>
 </manifest>

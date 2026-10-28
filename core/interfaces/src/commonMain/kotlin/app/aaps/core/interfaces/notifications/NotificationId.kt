@@ -250,7 +250,10 @@ enum class NotificationId(
     // The Combo gave the bolus, but its history also had boluses that AAPS did not know about. Its own id,
     // so that it does not replace the low reservoir warning of the same bolus on COMBO_PUMP_ALARM (#5379).
     // Appended at the END for the same reason as above.
-    COMBO_UNKNOWN_BOLUS(URGENT, PUMP);
+    COMBO_UNKNOWN_BOLUS(URGENT, PUMP),
+
+    // Append: persisted notification ordinals must stay stable.
+    BOOST_HR_FEED_DARK(LOW, SYSTEM);
 
     companion object {
 

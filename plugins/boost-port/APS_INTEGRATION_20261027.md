@@ -33,11 +33,15 @@ sleep/history updates are now connected through the sequential
 [night-mode SMB policy](APS_NIGHT_POLICY_20261028.md) is also connected.
 [Sleep/HR telemetry and BOOST persistence](APS_SLEEP_TELEMETRY_20261028.md)
 now cross the APS/storage/Nightscout boundaries.
-Phone/Health Connect ingestion,
-post-exercise recovery and premeal/meal-policy owners still need integration,
-along with settings UI and full lifecycle scenarios. Automatic sensor-cadence
-wiring and HR dark-feed notification orchestration are still open. Several unsupported opt-in policies explicitly reject a direct
-factory call. Full source-policy coverage is required before removing the gate.
+The [policy/data/settings checkpoint](APS_POLICIES_AND_DATA_20261028.md) connects
+post-exercise recovery, premeal learning/targets, tight-ramp trials, the V5 floor
+history gate, phone steps, Health Connect heart rate, HR dark-feed notifications
+and 67 source settings with Russian labels. These opt-in policies no longer
+reject a direct factory call solely because the owner is missing.
+Automatic sensor-cadence wiring, Health Connect step-history/baseline owners,
+V5 automatic configuration and remaining activity/V5/V6 telemetry/lifecycle
+scenarios are still open. Full integration coverage is required before removing
+the gate.
 The earlier GENERAL inspection plugin also remains hidden and disabled.
 
 ## CI investigation
@@ -52,7 +56,7 @@ characters. A fresh remote run is needed to assess the shutdown mitigation.
 
 ## Validation
 
-Latest sleep/HR checkpoint (2026-10-28): 1185 Boost JVM tests, 8 APS converter
+Previous sleep/HR checkpoint (2026-10-28): 1185 Boost JVM tests, 8 APS converter
 tests, 3 SQLite tests, 10 result-wrapper host tests, 7 Boost APS host tests and
 2 Nightscout transport host tests passed with no failures/errors/skips (1215 total). The Boost
 module assembled, including common/native metadata and iOS test compilation.

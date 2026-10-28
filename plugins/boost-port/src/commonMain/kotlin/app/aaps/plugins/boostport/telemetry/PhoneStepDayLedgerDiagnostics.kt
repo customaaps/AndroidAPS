@@ -1,12 +1,12 @@
 package app.aaps.plugins.boostport.telemetry
 
 /**
- * Inert, pure KMP replay of the cumulative steps-since-local-midnight ledger
+ * Pure KMP replay and live-adapter arithmetic of the cumulative steps-since-local-midnight ledger
  * in Boost V1 StepService (2026-06-19/24), distinct from its 5-minute buckets.
  *
  * Every event is supplied by an offline caller, including the local day index.
  * This class NEVER reads an Android sensor, Health Connect, Preferences, or
- * AAPS data and cannot affect ISF, target BG, SMB or a pump.
+ * AAPS data. Consumers own any use of the returned counts; this object performs no I/O.
  *
  * Counter resets (device reboot) contribute the new counter since reboot;
  * HC today totals only ever raise the known maximum (HOLD HIGHER).

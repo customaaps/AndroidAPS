@@ -12,4 +12,8 @@
     <string name="boost_offline_diagnostics_review">При автономном воспроизведении выявлено условие защиты по глюкозе, требующее проверки.</string>
     <string name="boost_offline_diagnostics_available">Диагностика автономного воспроизведения доступна; терапия не включена.</string>
     <string name="boost_offline_diagnostics_no_acquisition">Этот экран не получает данные сенсора, питания или введения инсулина.</string>
+    <string name="boost_recovery_tt_note">Восстановление после нагрузки Boost</string>
+    <string name="boost_recovery_tt_rebound">Цель восстановления Boost отменена: рост после низкого BG %1$d mg/dL</string>
+    <string name="boost_permissions_title">Доступ к данным для Boost</string>
+    <string name="boost_permissions_rationale">Boost читает пульс из Health Connect и шаги с телефона для оценки активности и сна.</string>
 </resources>

@@ -19,6 +19,7 @@ internal data class BoostProfileContext(
     val boostDebug: String = "", val dynamicCarbRatio: Double = 0.0,
     val dynamicCarbRatioReason: String = "",
     val carbRatioTargetBg: Double = isfTargetBg,
+    val temporaryTargetOverride: Boolean? = null,
 )
 
 /**
@@ -96,7 +97,7 @@ internal object BoostTargetProfileAdapter {
             bolus_increment = base.bolus_increment,
             carbsReqThreshold = base.carbsReqThreshold,
             current_basal = if (context.profilePercent != 100) base.current_basal * scale else base.current_basal,
-            temptargetSet = base.temptargetSet,
+            temptargetSet = context.temporaryTargetOverride ?: base.temptargetSet,
             autosens_max = base.autosens_max,
             out_units = base.out_units,
             lgsThreshold = base.lgsThreshold,

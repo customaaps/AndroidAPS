@@ -3,7 +3,7 @@ package app.aaps.plugins.boostport.telemetry
 /**
  * Passive KMP validation boundary for prospective Health Connect reads.
  *
- * The Android Health Connect SDK is not wired to this module yet. Callers must
+ * Shared by the explicit Android SDK reader and diagnostic callers. Callers must
  * check each record type's actual read permission before asking for data. This
  * class does not read Health Connect, write AAPS storage, or influence dosing.
  */

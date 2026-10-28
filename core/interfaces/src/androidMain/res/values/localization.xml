@@ -12,4 +12,8 @@
     <string name="boost_offline_diagnostics_review">Offline replay flagged a glucose protection condition for review.</string>
     <string name="boost_offline_diagnostics_available">Offline replay diagnostics are available; no therapy is enabled.</string>
     <string name="boost_offline_diagnostics_no_acquisition">No sensor, meal or insulin data is acquired by this screen.</string>
+    <string name="boost_recovery_tt_note">Boost post-exercise recovery</string>
+    <string name="boost_recovery_tt_rebound">Boost recovery target cancelled: rebound after low BG %1$d mg/dL</string>
+    <string name="boost_permissions_title">Boost data permissions</string>
+    <string name="boost_permissions_rationale">Boost reads heart rate from Health Connect and phone steps to assess activity and sleep.</string>
 </resources>

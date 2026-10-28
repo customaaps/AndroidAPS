@@ -53,7 +53,7 @@ class BoostApsBoundaryTest {
             }
         } as KeyValueStore
     }
-    private fun calculator(disk: Disk, cancel: Boolean = false, zone: java.time.ZoneId? = null): BoostApsCalculator {
+    private fun calculator(disk: Disk, cancel: Boolean = false, zone: java.time.ZoneId? = null, activity: BoostApsActivitySource? = null): BoostApsCalculator {
         val db = proxy<PersistenceLayer> { name, _ ->
             if (cancel) throw CancellationException("query cancelled")
             when (name) {
@@ -84,7 +84,7 @@ class BoostApsBoundaryTest {
             else -> error("Unexpected presentation call $name")
         } }
         val assets = BoostApsModelSource { name -> javaClass.classLoader.getResourceAsStream(name)?.bufferedReader()?.use { it.readText() } }
-        return BoostApsCalculatorFactoryImpl(db, tdd, DynamicCarbRatioPolicy.Disabled, disk.store, prefs, date, util, assets).create()
+        return BoostApsCalculatorFactoryImpl(db, tdd, DynamicCarbRatioPolicy.Disabled, disk.store, prefs, date, util, assets, activity).create()
     }
     private fun <T> immediate(block: suspend () -> T): T {
         var value: Result<T>? = null
@@ -112,6 +112,50 @@ class BoostApsBoundaryTest {
         assertEquals("none", result.result.hrSource_states)
         val restored = RT.deserialize(result.result.serialize())
         assertEquals(result.result, restored.copy(reason = result.result.reason))
+    }
+
+    @Test fun platformPhoneSnapshotDrivesRealActivityAndIsReleasedExactlyOnce() {
+        var opened = 0; var closed = 0; var reads = 0; var hc = false
+        val source = object : BoostApsActivitySource {
+            override fun open(): BoostApsActivitySource.Lease {
+                opened++
+                return object : BoostApsActivitySource.Lease {
+                    override fun snapshot(nowMs: Long, offsetMinutes: Int): BoostApsActivitySource.Snapshot {
+                        reads++
+                        return BoostApsActivitySource.Snapshot(600, 1000, 1400, 2000, 3000, true)
+                    }
+                    override fun healthConnect(enabled: Boolean, nowMs: Long, pollMinutes: Int) { hc = enabled }
+                    override fun close() { closed++ }
+                }
+            }
+        }
+        val request = nightRequest().let {
+            val at = it.atMs - 10 * 3_600_000L
+            it.copy(atMs = at, glucose = object : GlucoseStatus by it.glucose { override val date = at })
+        }
+        val baseline = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(Disk()).calculate(request) })
+        val disk = Disk().apply { values[BoostApsSettingKeys.ApsBoostHealthConnectHrEnabled.key] = true }
+        val owner = calculator(disk, activity = source)
+        val active = assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(request) })
+        assertEquals(baseline.profile.current_basal * 0.8, active.profile.current_basal)
+        assertTrue(hc)
+        owner.close(); owner.close()
+        assertEquals(1, opened); assertEquals(1, closed)
+        val previousReads = reads
+        assertIs<BoostApsCalculator.Result.Rejected>(immediate { owner.calculate(request) })
+        assertEquals(previousReads, reads)
+    }
+
+    @Test fun hrDarkWarningIsRaisedOncePerOwnedDaytimeEpisode() {
+        val disk = Disk(); val owner = calculator(disk)
+        val base = input()
+        val midday = base.atMs / 86_400_000L * 86_400_000L + 12 * 3_600_000L
+        val warnings = (0..14).map { n ->
+            val at = midday + n * 5 * 60_000L
+            val request = base.copy(atMs = at, glucose = object : GlucoseStatus by base.glucose { override val date = at })
+            assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(request) }).hrFeedDarkMinutes
+        }.filterNotNull()
+        assertEquals(listOf(60L), warnings)
     }
 
     @Test fun importedCorruptSourceStateDoesNotStartAnUnlockedSession() {
@@ -148,12 +192,8 @@ class BoostApsBoundaryTest {
     @Test fun failedStateWriteAndPendingContextAreExplicitRejections() {
         val failedDisk = Disk().apply { failWrites = true }
         assertIs<BoostApsCalculator.Result.Rejected>(immediate { calculator(failedDisk).calculate(input()) })
-        for (key in listOf(BoostApsSettingKeys.ApsBoostPostExerciseRecoveryEnabled,
-            BoostApsSettingKeys.ApsBoostHealthConnectHrEnabled)) {
-            val pending = Disk().apply { values[key.key] = true }
-            assertIs<BoostApsCalculator.Result.Rejected>(immediate { calculator(pending).calculate(input()) })
-            assertFalse(pending.values.containsKey(BoostApsSettingKeys.Session.key))
-        }
+        val hcUnavailable = Disk().apply { values[BoostApsSettingKeys.ApsBoostHealthConnectHrEnabled.key] = true }
+        assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(hcUnavailable).calculate(input()) })
     }
 
     private fun nightRequest(allowed: Boolean = true): BoostApsCalculator.Input {

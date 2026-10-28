@@ -7,7 +7,7 @@ import app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector
 
 /** Source end-of-cycle upload snapshot; no new DB query or effect on the dosing candidate. */
 internal object BoostSleepTelemetry {
-    fun write(result: RT, update: BoostSleepCycleOwner.Update, nowMs: Long) {
+    fun write(result: RT, update: BoostSleepCycleOwner.Update, nowMs: Long): HrSourceResolver.Resolution {
         val state = update.evaluation.newState
         val learned = update.learned // source aggregates BEFORE recording this cycle's transition
         val rows = update.heartRates
@@ -32,6 +32,7 @@ internal object BoostSleepTelemetry {
             .map { HrSourceResolver.Reading(it.device, it.timestamp) }, nowMs)
         result.hrSource_resolved = source.active
         result.hrSource_states = source.note
+        return source
     }
 
     private fun rounded(value: Double): Double {

@@ -33,6 +33,7 @@ internal class BoostTargetCycleAssembler(
         val flatBg: Boolean,
         val cumulativeSmbCap: Double,
         val postRescueTightRampCap: Double? = null,
+        val capturedHistory: BoostTargetHistory? = null,
     )
 
     /** Resolve activity first, then let the owner apply recovery/meal policy before ISF preparation. */
@@ -55,7 +56,7 @@ internal class BoostTargetCycleAssembler(
 
     suspend fun assemble(input: Inputs): V1ReplayCycle {
         val atMs = input.context.atMs
-        val history = BoostTargetHistoryReader.read(persistence, atMs)
+        val history = input.capturedHistory ?: BoostTargetHistoryReader.read(persistence, atMs)
         val parts = BoostTargetTddReader.read(tdd, atMs)
         val prepared = BoostTargetProfileAdapter.prepareWithSharedCr(
             input.constrainedProfile, input.autosens, input.isfSettings, parts,

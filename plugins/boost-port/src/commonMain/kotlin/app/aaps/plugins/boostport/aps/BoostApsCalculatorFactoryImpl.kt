@@ -1,6 +1,8 @@
 package app.aaps.plugins.boostport.aps
 
 import app.aaps.core.data.model.BS
+import app.aaps.core.interfaces.InterfacesStrings
+import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.aps.DynamicCarbRatioPolicy
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.profile.ProfileUtil
@@ -32,9 +34,12 @@ class BoostApsCalculatorFactoryImpl(
     private val dateUtil: DateUtil,
     private val profileUtil: ProfileUtil,
     private val modelSource: BoostApsModelSource? = null,
+    private val activitySource: BoostApsActivitySource? = null,
+    private val texts: TextResolver? = null,
 ) : BoostApsCalculatorFactory {
     override val ownedKeys = BoostApsSettingKeys.all
     override fun create(): BoostApsCalculator = Calculator()
+    override fun requestDataPermissions() { activitySource?.requestPermissions() }
 
     /** One sequential owner, recreated by the APS plugin after stop/import. */
     private inner class Calculator : BoostApsCalculator {
@@ -42,17 +47,22 @@ class BoostApsCalculatorFactoryImpl(
         private val storage = BoostOwnerStorage(this@BoostApsCalculatorFactoryImpl.storage)
         private val settings = BoostApsRuntimeSettings(storage)
         private val sleepOwner = BoostSleepCycleOwner(persistence, storage)
+        private val mealOwner = BoostMealPolicyOwner(storage)
+        private val recoveryOwner = BoostRecoveryOwner(persistence)
+        private val floorGate = BoostFloorHistoryGate(persistence)
+        private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
+        private val activityLease = activitySource?.open()
         private val clock = object : V1ReplayClock {
             override fun hourAt(timestampMs: Long): Int = (localMinute(timestampMs) / 60).toInt()
             override fun minuteAt(timestampMs: Long): Int = (localMinute(timestampMs) % 60).toInt()
         }
-        override fun close() = storage.close()
+        override fun close() { if (storage.close()) activityLease?.close() }
         private fun localMinute(atMs: Long): Long =
             ((atMs / 60_000L + dateUtil.getTimeZoneOffsetMinutes(atMs)) % 1440 + 1440) % 1440
 
         override suspend fun calculate(input: BoostApsCalculator.Input): BoostApsCalculator.Result = mutex.withLock {
-            try {
+            try { storage.cycle {
                 require(input.atMs > 0 && input.iob.isNotEmpty()) { "missing Boost time/IOB" }
                 require(listOf(input.originalProfileCr, input.originalProfileIsf, input.profile.sens,
                     input.profile.current_basal, input.profile.max_basal, input.profile.max_iob,
@@ -60,9 +70,6 @@ class BoostApsCalculatorFactoryImpl(
                     input.glucose.longAvgDelta, input.glucose.noise, input.autosens.ratio).all { it.isFinite() }) { "invalid Boost inputs" }
                 require(input.originalProfileCr > 0 && input.originalProfileIsf > 0 && input.profile.sens > 0 &&
                     input.profilePercent > 0 && input.autosens.ratio > 0) { "invalid Boost profile" }
-                val unsupported = settings.unsupportedEnabledFeatures()
-                if (unsupported.isNotEmpty()) return@withLock BoostApsCalculator.Result.Rejected(
-                    "Boost context integration pending: ${unsupported.joinToString()}")
                 val nightSettings = settings.night()
                 if (nightSettings.enabled) {
                     val originalTarget = input.originalProfileTargetMgDl
@@ -73,6 +80,11 @@ class BoostApsCalculatorFactoryImpl(
                             (input.profile.target_bg.isFinite() && input.profile.target_bg > 0.0))) { "invalid Boost night context" }
                 }
                 reconcileSettings()
+                activityLease?.healthConnect(settings.b(BoostApsSettingKeys.ApsBoostHealthConnectHrEnabled),
+                    input.atMs, settings.i(BoostApsSettingKeys.ApsBoostHealthConnectPollMin))
+                val phone = activityLease?.snapshot(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs))
+                    ?: BoostApsActivitySource.Snapshot()
+                require(listOf(phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.stepsToday).all { it >= 0 })
                 val previousSleep = sleepOwner.snapshot()
                 val sleep = previousSleep.state
                 // Source MidnightUtils uses a 24-hour wall-clock day even on
@@ -87,7 +99,7 @@ class BoostApsCalculatorFactoryImpl(
                 val activitySettings = settings.activity()
                 val snapshot = BoostActivitySnapshot(sourceDayStartMs,
                     "${clock.hourAt(input.atMs)}:${clock.minuteAt(input.atMs).toString().padStart(2, '0')}",
-                    0, 0, 0, 0, false, sleep, previousSleep.lastBoundaryExitMs, previousSleep.learnedDaytimeHrBpm)
+                    phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.phoneFeedLive, sleep, previousSleep.lastBoundaryExitMs, previousSleep.learnedDaytimeHrBpm)
                 val context = BoostProfileContext(input.atMs, input.glucose.glucose, input.profilePercent,
                     input.profile.target_bg, input.profile.min_bg, input.profile.max_bg, input.profile.target_bg,
                     input.insulinPeak, false, settings.d(BoostApsSettingKeys.ApsBoostBolus),
@@ -101,18 +113,34 @@ class BoostApsCalculatorFactoryImpl(
                     input.profile.high_temptarget_raises_sensitivity, input.profile.low_temptarget_lowers_sensitivity,
                     input.profile.half_basal_exercise_target, settings.b(BoostApsSettingKeys.ApsBoostAdjustSensitivity),
                     settings.i(BoostApsSettingKeys.ApsBoostDynIsfAdjustmentFactor), settings.b(BoostApsSettingKeys.ApsBoostAutosensWhenNoTdd))
+                val history = BoostTargetHistoryReader.read(persistence, input.atMs)
+                val rampCap = BoostTightRampPolicy.cap(storage,
+                    settings.b(BoostApsSettingKeys.ApsBoostPostRescueTightRampTrial),
+                    DailyStepHistoryTracker.dayIndex(input.atMs, offsetMs))
+                var mealDecision: BoostMealPolicyOwner.Decision? = null
                 val cycle = BoostTargetCycleAssembler(persistence, tdd, dynamicCr).assembleWithActivity(
                     BoostTargetCycleAssembler.Inputs(input.glucose, input.currentTemp, input.iob, input.meal,
                         input.profile, input.originalProfileCr, input.autosens, isfSettings, context,
-                        effectiveInput.microBolusAllowed, input.flatBg, settings.d(BoostApsSettingKeys.ApsBoostCumulativeSmbCap60Min)),
+                        effectiveInput.microBolusAllowed, input.flatBg, settings.d(BoostApsSettingKeys.ApsBoostCumulativeSmbCap60Min), rampCap, history),
                     activitySettings, snapshot, { value -> value?.let { activityFormat("%.1f", it) } ?: "null" },
-                    resolveRecoveryAndMealContext = { c, _ -> c })
+                    resolveRecoveryAndMealContext = { c, _ ->
+                        val recovery = recoveryOwner.prepare(settings.recovery(), c, history.recentLowBg60,
+                            texts?.gs(InterfacesStrings.boost_recovery_tt_note),
+                            texts?.gs(InterfacesStrings.boost_recovery_tt_rebound, history.recentLowBg60.toInt()))
+                        mealOwner.prepare(settings.meal(), recovery.context, offsetMs, sleep.state,
+                            recovery.context.temporaryTargetOverride ?: input.profile.temptargetSet,
+                            history.recentLowBg45).also { mealDecision = it }.context
+                    })
                 val manualBolus = persistence.getBolusesFromTimeToTime(input.atMs - MEAL_ANNOUNCED_BOLUS_WINDOW_MS, input.atMs, true)
                     .any { it.type == BS.Type.NORMAL && it.isValid && it.amount > 0.0 }
                 val v5 = V5ReplayContext(input.profile.bolus_increment, activeMode = true,
                     asleep = sleep.state == SleepStateDetector.SleepState.SLEEPING,
                     profileSwitched = input.profileSwitched, pumpDisconnected = input.pumpDisconnected,
                     loopSuspended = input.loopSuspended, manualBolusInAnnouncementWindow = manualBolus,
+                    composedFloorRequested = settings.b(BoostApsSettingKeys.ApsBoostV5ComposedFloorActive),
+                    velocityBudgetRequested = settings.b(BoostApsSettingKeys.ApsBoostV5VelocityBudgetActive),
+                    insulinAddingFloorsAllowed = if (settings.b(BoostApsSettingKeys.ApsBoostV5ComposedFloorActive) ||
+                        settings.b(BoostApsSettingKeys.ApsBoostV5VelocityBudgetActive)) floorGate.allowed(input.atMs) else false,
                     fastCarbConfirmEnabled = settings.b(BoostApsSettingKeys.ApsBoostV5FastCarbConfirm),
                     aggressiveEarlyConfirmEnabled = settings.b(BoostApsSettingKeys.ApsBoostV5AggressiveEarlyConfirm),
                     aggression = settings.d(BoostApsSettingKeys.ApsBoostV5Aggression),
@@ -129,22 +157,30 @@ class BoostApsCalculatorFactoryImpl(
                 when (val calculated = runner.run(cycle, v5, v6)) {
                     is BoostReplaySession.Result.Rejected -> BoostApsCalculator.Result.Rejected(calculated.reason)
                     is BoostReplaySession.Result.Calculated -> {
-                        if (!calculated.persistence.persisted) return@withLock BoostApsCalculator.Result.Rejected(
+                        if (!calculated.persistence.persisted) return@cycle BoostApsCalculator.Result.Rejected(
                             calculated.persistence.problem ?: "Boost state was not saved")
                         val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, effectiveInput)
+                        mealDecision?.reason?.let { result.reason.append(it) }
+                        mealOwner.completeCycle(input.atMs, calculated.frame.v5?.mealSessionStarted == true,
+                            checkNotNull(mealDecision).inNightWindow, sleep.state)
                         // Source evaluates sleep after V1/V5/V6: this result's meal
                         // model feeds the next cycle, never the current activity/V5.
                         val sleepUpdate = sleepOwner.completeCycle(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs),
                             settings.sleep(), cycle.profile.recentSteps15Minutes,
-                            calculated.frame.v1.mlMealLikely, input.cycleSpacingMinutes)
-                        BoostSleepTelemetry.write(result, sleepUpdate, input.atMs)
+                            calculated.frame.v1.mlMealLikely, input.cycleSpacingMinutes, phone.stepsToday)
+                        val hrSource = BoostSleepTelemetry.write(result, sleepUpdate, input.atMs)
+                        val dark = hrDark.onCycle(hrSource, input.atMs, clock.hourAt(input.atMs))
+                        dark.wentDarkNote?.let { result.reason.append("$it; ") }
                         BoostApsCalculator.Result.Calculated(result, input.profile.copy(
+                            min_bg = cycle.profile.min_bg, max_bg = cycle.profile.max_bg, target_bg = cycle.profile.target_bg,
+                            temptargetSet = cycle.profile.temptargetSet,
                             current_basal = cycle.profile.current_basal, carb_ratio = result.carbRatio ?: input.originalProfileCr,
                             variable_sens = result.variable_sens ?: 0.0, TDD = cycle.profile.TDD,
-                            insulinDivisor = cycle.profile.insulinDivisor), cycle.autosens.copy(), nightModeActive = nightActive)
+                            insulinDivisor = cycle.profile.insulinDivisor), cycle.autosens.copy(), nightModeActive = nightActive,
+                            hrFeedDarkMinutes = dark.darkMinutes.takeIf { dark.raiseNotification })
                     }
                 }
-            } catch (cancelled: CancellationException) {
+            } } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 BoostApsCalculator.Result.Rejected("Boost calculation rejected: ${error.message ?: error::class.simpleName}")

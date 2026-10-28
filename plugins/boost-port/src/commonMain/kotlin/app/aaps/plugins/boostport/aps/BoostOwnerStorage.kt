@@ -3,12 +3,25 @@ package app.aaps.plugins.boostport.aps
 import app.aaps.core.interfaces.concurrent.AapsLock
 import app.aaps.core.interfaces.concurrent.withLock
 import app.aaps.core.interfaces.sharedPreferences.KeyValueStore
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.job
 
 /** Closing is serialized with each store operation, so an old cycle cannot overwrite an import. */
 internal class BoostOwnerStorage(private val delegate: KeyValueStore) : KeyValueStore {
     private val lock = AapsLock()
     private var closed = false
-    fun close() = lock.withLock { closed = true }
+    private var activeJob: Job? = null
+    fun close(): Boolean = lock.withLock {
+        if (closed) false else { closed = true; activeJob?.cancel(); true }
+    }
+    /** The caller serializes cycles. Close/import cancels pending suspend DB effects too. */
+    suspend fun <T> cycle(block: suspend () -> T): T = coroutineScope {
+        val job = currentCoroutineContext().job
+        lock.withLock { check(!closed) { "Boost calculation owner closed" }; activeJob = job }
+        try { block() } finally { lock.withLock { if (activeJob === job) activeJob = null } }
+    }
     private fun <T> access(block: () -> T): T = lock.withLock {
         check(!closed) { "Boost calculation owner closed" }
         block()

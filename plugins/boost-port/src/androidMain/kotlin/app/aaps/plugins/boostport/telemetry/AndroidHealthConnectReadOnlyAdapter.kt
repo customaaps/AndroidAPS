@@ -13,10 +13,10 @@ import kotlin.coroutines.cancellation.CancellationException
 /**
  * Explicit-call-only Android boundary for Boost's *passive* Health Connect port.
  *
- * This class is not injected, scheduled, registered with an APS engine, or used by
- * any pump code. It never requests permissions, persists records, or controls insulin.
- * The consuming offline diagnostic must first obtain user-granted Health Connect
- * read permissions and call the methods explicitly.
+ * The SDK reader itself never requests permissions, persists records or controls
+ * insulin. It is shared by explicit diagnostics and the APS-owned backfill worker;
+ * callers must already have user-granted read permission. Lifecycle and persistence
+ * belong to the caller, not this adapter.
  *
  * SDK, read permission, and errors are distinguished from genuinely empty records.
  * To avoid silently treating incomplete history as a valid zero, pagination failure
@@ -55,6 +55,7 @@ internal class AndroidHealthConnectReadOnlyAdapter(private val context: Context)
         nowMs: Long,
         lookbackMs: Long = HR_WINDOW_MS,
         liveHrMinutes: Set<Long> = emptySet(),
+        preserveSourceSampleCadence: Boolean = false,
     ): ReadOutcome<HealthConnectReadPolicy.HeartRateSample> {
         if (!validWindow(nowMs, lookbackMs, HR_WINDOW_MS))
             return ReadOutcome.Failed("invalid-hr-window")
@@ -97,9 +98,11 @@ internal class AndroidHealthConnectReadOnlyAdapter(private val context: Context)
                 when (pageGuard.accept(token)) {
                     HealthConnectPageGuard.Next.COMPLETE ->
                         return ReadOutcome.Data(
-                            HealthConnectReadPolicy.heartRateBackfillCandidates(
-                                result, liveHrMinutes, nowMs, lookbackMs
-                            )
+                            if (preserveSourceSampleCadence) result.asSequence()
+                                .filter { it.timestampMs in fromMs..nowMs && it.beatsPerMinute.isFinite() &&
+                                    it.beatsPerMinute > 0.0 && it.device.isNotBlank() && it.timestampMs / 60_000L !in liveHrMinutes }
+                                .distinctBy { it.timestampMs }.toList()
+                            else HealthConnectReadPolicy.heartRateBackfillCandidates(result, liveHrMinutes, nowMs, lookbackMs)
                         )
                     HealthConnectPageGuard.Next.REPEATED_TOKEN ->
                         return ReadOutcome.Failed("hr-pagination-repeat")

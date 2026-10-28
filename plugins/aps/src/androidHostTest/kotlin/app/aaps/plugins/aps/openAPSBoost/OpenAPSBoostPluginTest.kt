@@ -31,6 +31,7 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
     private var duringCalculation: (() -> Unit)? = null
     private var reject = false
     private var nightModeActive = false
+    private var hrDarkMinutes: Long? = null
     private val factory = object : BoostApsCalculatorFactory {
         override val ownedKeys = emptyList<app.aaps.core.keys.interfaces.NonPreferenceKey>()
         override fun create(): BoostApsCalculator {
@@ -43,7 +44,7 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
                     return BoostApsCalculator.Result.Calculated(RT(algorithm = APSResult.Algorithm.BOOST,
                         runningDynamicIsf = true, timestamp = input.atMs, units = if (input.microBolusAllowed) 0.2 else 0.0,
                         rate = 1.0, duration = 30, profileCarbRatio = input.originalProfileCr,
-                        profileIsfMgdl = input.originalProfileIsf, effectiveIsf = 40.0), input.profile, input.autosens, nightModeActive = nightModeActive)
+                        profileIsfMgdl = input.originalProfileIsf, effectiveIsf = 40.0), input.profile, input.autosens, nightModeActive = nightModeActive, hrFeedDarkMinutes = hrDarkMinutes)
                 }
             }
         }
@@ -105,6 +106,15 @@ class OpenAPSBoostPluginTest : TestBaseWithProfile() {
         nightModeActive = true
         sut.invoke("night presentation", false)
         assertThat(sut.lastAPSResult?.reason).contains(localized.trim())
+    }
+
+    @Test fun feedWarningUsesLocalizedNotificationAfterValidPublication() = runBlocking {
+        val text = "Boost: пульс не поступает 60 min"
+        doReturn(text).whenever(rh).gs(app.aaps.plugins.aps.ApsStrings.boost_hr_feed_dark, 60L)
+        hrDarkMinutes = 60L
+        sut.invoke("feed warning", false)
+        verify(notificationManager).post(app.aaps.core.interfaces.notifications.NotificationId.BOOST_HR_FEED_DARK,
+            text, level = app.aaps.core.interfaces.notifications.NotificationLevel.LOW, validMinutes = 0)
     }
 
     @Test fun originalNightProfileTargetIsCapturedBeforeTemporaryTargetReplacement() = runBlocking {
