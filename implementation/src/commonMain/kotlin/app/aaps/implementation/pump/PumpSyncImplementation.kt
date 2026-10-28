@@ -262,7 +262,7 @@ class PumpSyncImplementation(
         return result.updated.isNotEmpty()
     }
 
-    override suspend fun syncBolusWithPumpId(timestamp: Long, amount: PumpInsulin, type: BS.Type?, pumpId: Long, pumpType: PumpType, pumpSerial: String): Boolean {
+    override suspend fun syncBolusWithPumpId(timestamp: Long, amount: PumpInsulin, type: BS.Type?, pumpId: Long, pumpType: PumpType, pumpSerial: String, updateExistingTimestamp: Boolean): Boolean {
         if (!confirmActivePump(timestamp, pumpType, pumpSerial)) return false
         val bolus = profileFunction.getProfile(timestamp)?.let { profile ->
             BS(
@@ -280,7 +280,7 @@ class PumpSyncImplementation(
             aapsLogger.debug(LTag.DATABASE, "Storing of bolus $amount ${dateUtil.dateAndTimeAndSecondsString(timestamp)} ignored. No profile running.")
             return false
         }
-        val result = persistenceLayer.syncPumpBolus(bolus, type)
+        val result = persistenceLayer.syncPumpBolus(bolus, type, updateExistingTimestamp)
         return result.inserted.isNotEmpty()
     }
 

@@ -217,7 +217,8 @@ interface PumpSync {
      * @param pumpSerial    pump serial number
      * @return true if new record is created
      **/
-    suspend fun syncBolusWithPumpId(timestamp: Long, amount: PumpInsulin, type: BS.Type?, pumpId: Long, pumpType: PumpType, pumpSerial: String): Boolean
+    /** When false, keep an existing row's timestamp while still correcting amount/type. */
+    suspend fun syncBolusWithPumpId(timestamp: Long, amount: PumpInsulin, type: BS.Type?, pumpId: Long, pumpType: PumpType, pumpSerial: String, updateExistingTimestamp: Boolean = true): Boolean
 
     /**
      * Synchronization of carbs

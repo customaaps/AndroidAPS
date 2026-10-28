@@ -7,7 +7,8 @@ import app.aaps.database.entities.Bolus
  */
 class SyncPumpBolusTransaction(
     private val bolus: Bolus,
-    private val bolusType: Bolus.Type? // extra parameter because field is not nullable in Bolus.class
+    private val bolusType: Bolus.Type?, // extra parameter because field is not nullable in Bolus.class
+    private val updateExistingTimestamp: Boolean = true
 ) : Transaction<SyncPumpBolusTransaction.TransactionResult>() {
 
     override suspend fun run(): TransactionResult {
@@ -19,11 +20,11 @@ class SyncPumpBolusTransaction(
             result.inserted.add(bolus)
         } else {
             if (
-                current.timestamp != bolus.timestamp ||
+                (updateExistingTimestamp && current.timestamp != bolus.timestamp) ||
                 current.amount != bolus.amount ||
                 current.type != bolusType ?: current.type
             ) {
-                current.timestamp = bolus.timestamp
+                if (updateExistingTimestamp) current.timestamp = bolus.timestamp
                 current.amount = bolus.amount
                 current.type = bolusType ?: current.type
                 database.bolusDao.updateExistingEntry(current)

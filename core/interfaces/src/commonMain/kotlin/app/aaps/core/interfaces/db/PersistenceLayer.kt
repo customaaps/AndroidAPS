@@ -241,7 +241,7 @@ interface PersistenceLayer {
      * @param type record type because filed is not nullable in class
      * @return List of inserted/updated records
      */
-    suspend fun syncPumpBolus(bolus: BS, type: BS.Type?): TransactionResult<BS>
+    suspend fun syncPumpBolus(bolus: BS, type: BS.Type?, updateExistingTimestamp: Boolean = true): TransactionResult<BS>
 
     /**
      * Sync record coming from pump to database based on pump temporary id

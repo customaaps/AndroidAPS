@@ -5,6 +5,7 @@ import app.aaps.database.entities.embedments.InterfaceIDs
 
 fun InterfaceIDs.PumpType.fromDb(): PumpType =
     when (this) {
+        InterfaceIDs.PumpType.APEX_TRUCARE_III -> PumpType.APEX_TRUCARE_III
         InterfaceIDs.PumpType.GENERIC_AAPS                -> PumpType.GENERIC_AAPS
         InterfaceIDs.PumpType.CELLNOVO                    -> PumpType.CELLNOVO
         InterfaceIDs.PumpType.ACCU_CHEK_COMBO             -> PumpType.ACCU_CHEK_COMBO
@@ -48,6 +49,7 @@ fun InterfaceIDs.PumpType.fromDb(): PumpType =
 
 fun PumpType.toDb(): InterfaceIDs.PumpType =
     when (this) {
+        PumpType.APEX_TRUCARE_III -> InterfaceIDs.PumpType.APEX_TRUCARE_III
         PumpType.GENERIC_AAPS              -> InterfaceIDs.PumpType.GENERIC_AAPS
         PumpType.CELLNOVO                  -> InterfaceIDs.PumpType.CELLNOVO
         PumpType.ACCU_CHEK_COMBO           -> InterfaceIDs.PumpType.ACCU_CHEK_COMBO

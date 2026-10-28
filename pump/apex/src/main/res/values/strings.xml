@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+    <string name="apex_plugin_name">APEX TruCare III</string>
+    <string name="apex_plugin_shortname">APEX</string>
+    <string name="apex_plugin_description">Pump integration for APEX TruCare III insulin pump</string>
+    <string name="apex_settings">APEX Pump Settings</string>
+
+    <string name="setting_alarm_length">Alarm length</string>
+    <string name="setting_alarm_length_short">Short</string>
+    <string name="setting_alarm_length_medium">Medium</string>
+    <string name="setting_alarm_length_long">Long</string>
+
+    <string name="setting_bolus_speed">Bolus speed</string>
+    <string name="setting_bolus_speed_standard">Standard</string>
+    <string name="setting_bolus_speed_low">Low</string>
+
+    <string name="setting_max_bolus">Maximum bolus [U]</string>
+    <string name="setting_max_basal">Maximum basal rate [U/h]</string>
+
+    <string name="setting_serial_number">Pump serial number</string>
+
+    <string name="setting_log_insulin_change">Log insulin change</string>
+    <string name="setting_log_battery_change">Log battery change</string>
+    <string name="setting_hide_serial">Hide serial number from pump screen</string>
+    <string name="setting_read_fill_history">Read the pump fill history (log only)</string>
+    <string name="setting_read_fill_history_summary">Ask the pump for its cannula and tubing fill records and write them to the log. Read once after this switch is turned on, on the next connection. Nothing is changed on the pump and nothing is added to your treatments. For diagnostics only.</string>
+    <string name="setting_pump_has_password">A connection password is set on the pump</string>
+    <string name="setting_pump_has_password_summary">Turn this on only if a password was set on the pump with the manufacturer’s app. AAPS will then send it when it connects. Leave it off if you never set one.</string>
+    <string name="setting_pump_password">Connection password</string>
+    <string name="setting_pump_password_summary">The value AAPS sends to unlock the pump on the next connection. Editing it here does not change the password stored on the pump.</string>
+    <string name="notification_pump_password_rejected">The pump is connected, but it did not accept this connection password. Check it in the Apex settings.</string>
+    <string name="notification_pump_password_blocked">The pump refused the data channel. Check the connection password in the Apex settings. AAPS cannot talk to the pump until this is fixed.</string>
+
+    <string name="setting_calc_battery_title">Calculate battery percentage</string>
+    <string name="setting_calc_battery_summary">Calculate percentage from the battery voltage</string>
+    <string name="setting_calc_battery_type_title">Battery type</string>
+    <string name="setting_calc_battery_type_alkaline">Alkaline</string>
+    <string name="setting_calc_battery_type_lithium">Lithium</string>
+    <string name="setting_calc_battery_type_ni_mh">NiMh</string>
+    <string name="setting_calc_battery_type_ni_zn">NiZn</string>
+    <string name="setting_calc_battery_type_custom">Custom</string>
+    <string name="setting_calc_battery_low_vtg">Battery low voltage [V]</string>
+    <string name="setting_calc_battery_high_vtg">Battery high voltage [V]</string>
+
+    <string name="overview_connection_status_disconnected">Disconnected</string>
+    <string name="overview_connection_status_connecting">Connecting</string>
+    <string name="overview_connection_status_connected">Connected</string>
+
+    <string name="overview_pump_status_normal">Normal</string>
+    <string name="overview_pump_status_suspended">Suspended</string>
+    <string name="overview_pump_status_alarm">Alarm</string>
+
+    <string name="overview_pump_battery_approximate">%1$d%%</string>
+    <string name="overview_pump_battery_exact">%1$d%% (%2$d mV)</string>
+    <string name="overview_pump_reservoir">%1$.3fU</string>
+    <string name="overview_pump_today_delivered">%1$.3fU</string>
+    <string name="overview_pump_basal">%1$.3fU/h</string>
+    <string name="overview_pump_tempbasal">%1$.3fU/h (%2$d min left)</string>
+    <string name="overview_pump_tempbasal_percentage">%1$d%% (%2$d min left)</string>
+    <string name="overview_pump_tempbasal_h">%1$.3fU/h (%2$d h %3$d min left)</string>
+    <string name="overview_pump_tempbasal_percentage_h">%1$d%% (%2$d h %3$d min left)</string>
+    <string name="overview_pump_last_bolus_min">%1$.3fU (%2$d min ago)</string>
+    <string name="overview_pump_last_bolus_h">%1$.3fU (%2$d h ago)</string>
+    <string name="overview_pump_fw">v%1$d.%2$d (v%3$d.%4$d)</string>
+    <string name="overview_pump_fw_patch">v%1$d.%2$d.%3$d (v%4$d.%5$d)</string>
+
+    <string name="status_pump_status">Pump status</string>
+    <string name="status_conn_status">BT status</string>
+    <string name="status_last_bolus">Last bolus</string>
+    <string name="status_reservoir">Insulin</string>
+    <string name="status_today_delivered">Today</string>
+    <string name="status_battery">Battery</string>
+    <string name="status_tbr">TBR</string>
+    <string name="status_basal">Base basal</string>
+    <string name="cancel_bolus">Cancel bolus</string>
+
+    <string name="notification_pump_is_suspended">Pump is suspended</string>
+    <string name="notification_pump_unsupported">Pump has unsupported firmware</string>
+    <string name="notification_unknown_firmware_setting">The saved firmware version setting is not known to this app version. Automatic detection is used instead. Open the Apex settings and pick the firmware version again.</string>
+
+    <string name="alarm_label" comment="%1$s = alarm text, %2$s = raw pump code. Example: Pump alarm: Line is blocked (0x108)">Pump alarm: %1$s (%2$s)</string>
+    <string name="alarm_label_with_screen_code" comment="%1$s = alarm text, %2$s = raw pump code, %3$s = the code shown on the pump screen. Example: Pump alarm: Pressure is not normal (0x20B, E23)">Pump alarm: %1$s (%2$s, %3$s)</string>
+    <string name="apex_alarm_occlusion">Line is blocked</string>
+    <string name="apex_alarm_reservoir_empty">Cartridge is empty - change the cartridge</string>
+    <string name="apex_alarm_no_reservoir">No cartridge in the pump</string>
+    <string name="alarm_w_reservoir_low">Low reservoir level</string>
+    <string name="alarm_u_reservoir_critical">Reservoir is critically low - change the cartridge</string>
+    <string name="alarm_w_battery_low">Low battery</string>
+    <string name="alarm_battery_dead">Battery is dead</string>
+    <string name="alarm_battery_error">Battery error</string>
+    <string name="alarm_check_bg">Check blood glucose</string>
+    <string name="alarm_button_error">Button error - check what the pump screen shows</string>
+    <string name="alarm_tdd_limit">Daily insulin limit reached on the pump</string>
+    <string name="alarm_motor_error">Motor failure</string>
+    <string name="alarm_motor_abnormal">Motor is not working normally</string>
+    <string name="alarm_motor_power_abnormal">Motor power is not normal</string>
+    <string name="alarm_encoder_error">Encoder error</string>
+    <string name="alarm_dose_abnormal">Bolus or basal dose is not normal</string>
+    <string name="alarm_pressure_abnormal">Pressure is not normal</string>
+    <string name="alarm_fram_error">Memory error</string>
+    <string name="alarm_screen_error">Screen error</string>
+    <string name="alarm_time_error">Time error</string>
+    <string name="alarm_time_anomaly">Time is not correct</string>
+    <string name="alarm_clock_error">Clock error</string>
+    <string name="alarm_reset_error">Restart error</string>
+    <string name="alarm_communication_error">Communication error</string>
+    <string name="alarm_connection_anomaly">Connection problem</string>
+    <string name="alarm_reserved_code">Code reserved by the pump maker</string>
+    <string name="alarm_no_error">No error</string>
+    <string name="alarm_unknown_error_name">Unknown error, report to developers</string>
+
+    <string name="status_delivering">Delivering %1$.3fU</string>
+    <string name="status_delivered">Delivered %1$.3fU successfully</string>
+    <string name="status_bolus_cancelled">Bolus was cancelled</string>
+    <string name="bolus_unconfirmed" comment="Shown when the pump never confirmed the whole bolus. %1$s=insulin asked for, %2$s=insulin the pump confirmed, both already carrying their unit. Example: Asked for 2.00 U, confirmed 0.75 U">Bolus may be incomplete. Asked for %1$s, confirmed %2$s. Check the pump history before giving more insulin.</string>
+
+    <string name="error_not_ready">Pump is not ready</string>
+    <string name="error_failed_to_switch_basal_profile_index">Failed to switch basal profile index</string>
+    <string name="error_failed_to_update_basal_profile">Failed to update basal profile</string>
+    <string name="error_basal_profile_above_pump_max" comment="%1$.3f = highest rate in the profile, %2$.3f = the maximum the pump itself allows, both in U/h">Basal profile not written: its highest rate %1$.3fU/h is above the maximum basal rate set on the pump, %2$.3fU/h. Raise the limit on the pump or lower the profile.</string>
+    <string name="error_pump_unreachable">Pump unreachable</string>
+    <string name="error_pump_suspended">Pump is suspended</string>
+    <string name="error_bolus_start_failed">Failed to start bolus</string>
+    <string name="error_tbr_cancel_failed">Failed to cancel TBR</string>
+    <string name="error_tbr_set_failed">Failed to set TBR</string>
+    <string name="error_tbr_duration_too_short">The pump only accepts a temp basal of 15 minutes or more</string>
+    <string name="error_only_absolute_supported">Only absolute TBRs are supported</string>
+    <string name="firmware_version">Firmware version</string>
+    <string name="connection_status">Connection status</string>
+    <string name="status_label">Pump status</string>
+    <string name="updated_at">Last update</string>
+    <string name="suspend">Suspend</string>
+    <string name="auto">Auto</string>
+    <string name="pump_is_locked">Pump is locked! Cannot issue boluses.</string>
+
+    <string name="pump_special_mode">Special mode</string>
+    <string name="bolus_error_pump_special_mode">Pump is in special mode (either suspended or in refill mode). Please disconnect the pump in AAPS BEFORE entering such modes. Bolus cannot be issued.</string>
+
+    <string name="action_label">Current action</string>
+    <string name="action_driver_error">Driver error: %1$s</string>
+    <string name="action_canceling_bolus">Canceling bolus</string>
+    <string name="action_canceling_tbr">Canceling TBR</string>
+    <string name="action_setting_bolus">Setting bolus %1$.3fU</string>
+    <string name="action_setting_smb">Setting SMB %1$.3fU</string>
+    <string name="action_setting_tbr">Setting TBR %1$.3fU/h for %2$d min</string>
+    <string name="action_bolusing">Bolusing %1$.3fU / %2$.3fU</string>
+    <string name="action_bolusing_smb">SMB %1$.3fU / %2$.3fU</string>
+    <string name="action_requesting_heartbeat">Requesting heartbeat</string>
+    <string name="action_updating_dt">Updating date and time</string>
+    <string name="action_setting_basal_profile">Setting basal</string>
+    <string name="action_setting_basal_no">Setting № of basal</string>
+    <string name="action_updating_settings">Updating settings</string>
+    <string name="action_updating_settings_v">Updating settings v%1$d</string>
+    <string name="action_updating_sys_state">Updating system state</string>
+    <string name="action_getting_version">Getting version</string>
+    <string name="action_getting_tdds">Getting TDDs</string>
+    <string name="action_getting_boluses">Getting boluses</string>
+    <string name="action_getting_alarms">Reading pump alarm history</string>
+    <string name="action_getting_refills">Getting refills</string>
+    <string name="action_getting_status">Getting status</string>
+    <string name="action_getting_status_v">Getting status v%1$d</string>
+    <string name="action_getting_basal">Getting basal</string>
+    <string name="action_fallback_getting_obj">Getting %1$s</string>
+    <string name="action_fallback_executing_obj">Executing %1$s</string>
+    <string name="action_initializing">Initializing</string>
+    <string name="action_reconnecting">Reconnecting</string>
+    <string name="action_checking_pump">Checking pump</string>
+    <string name="action_heartbeat">Processing heartbeat</string>
+    <string name="apex_refresh">Refresh</string>
+    <string name="apex_last_contact">Last contact</string>
+    <string name="apex_remaining_minutes">%1$d min remaining</string>
+</resources>

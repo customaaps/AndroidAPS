@@ -393,9 +393,9 @@ class PersistenceLayerImpl(
         }
     }
 
-    override suspend fun syncPumpBolus(bolus: BS, type: BS.Type?): PersistenceLayer.TransactionResult<BS> = withContext(aapsIoDispatcher) {
+    override suspend fun syncPumpBolus(bolus: BS, type: BS.Type?, updateExistingTimestamp: Boolean): PersistenceLayer.TransactionResult<BS> = withContext(aapsIoDispatcher) {
         try {
-            val result = repository.runTransactionForResultSuspend(SyncPumpBolusTransaction(bolus.toDb(), type?.toDb()))
+            val result = repository.runTransactionForResultSuspend(SyncPumpBolusTransaction(bolus.toDb(), type?.toDb(), updateExistingTimestamp))
             val transactionResult = PersistenceLayer.TransactionResult<BS>()
             result.inserted.forEach {
                 aapsLogger.debug(LTag.DATABASE, "Inserted Bolus $it")
