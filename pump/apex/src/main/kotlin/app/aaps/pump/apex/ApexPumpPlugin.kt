@@ -827,7 +827,7 @@ class ApexPumpPlugin(
         items = listOf(
             ApexStringKey.SerialNumber,
             ApexStringKey.FirmwareVer.withEntriesProvider(provider = {
-                linkedMapOf(FirmwareVersion.AUTO.name to TextRef.AndroidRes(R.string.auto)).apply {
+                linkedMapOf<String, TextRef>(FirmwareVersion.AUTO.name to TextRef.AndroidRes(R.string.auto)).apply {
                     FirmwareVersion.realValues.filter { !it.engineeringModeOnly || config.isEngineeringMode() }
                         .forEach { put(it.name, TextRef.Literal(it.displayName)) }
                 }
