@@ -31,10 +31,12 @@ injection do not make it a selectable dosing algorithm. Source end-of-cycle
 sleep/history updates are now connected through the sequential
 [sleep owner](APS_SLEEP_LIFECYCLE_20261028.md). The source
 [night-mode SMB policy](APS_NIGHT_POLICY_20261028.md) is also connected.
+[Sleep/HR telemetry and BOOST persistence](APS_SLEEP_TELEMETRY_20261028.md)
+now cross the APS/storage/Nightscout boundaries.
 Phone/Health Connect ingestion,
 post-exercise recovery and premeal/meal-policy owners still need integration,
 along with settings UI and full lifecycle scenarios. Automatic sensor-cadence
-wiring and RT sleep telemetry are still open. Several unsupported opt-in policies explicitly reject a direct
+wiring and HR dark-feed notification orchestration are still open. Several unsupported opt-in policies explicitly reject a direct
 factory call. Full source-policy coverage is required before removing the gate.
 The earlier GENERAL inspection plugin also remains hidden and disabled.
 
@@ -50,21 +52,23 @@ characters. A fresh remote run is needed to assess the shutdown mitigation.
 
 ## Validation
 
-Latest local checkpoint (2026-10-28): 1177 Boost JVM tests and 7 selected
-OpenAPSBoostPlugin host tests passed with no failures/errors/skips. The Boost
+Latest sleep/HR checkpoint (2026-10-28): 1185 Boost JVM tests, 8 APS converter
+tests, 3 SQLite tests, 10 result-wrapper host tests, 7 Boost APS host tests and
+2 Nightscout transport host tests passed with no failures/errors/skips (1215 total). The Boost
 module assembled, including common/native metadata and iOS test compilation.
 The original 114 source blobs, ML assets, 90 stored key defaults, source contract
 and static isolation checks pass. Night policy parity includes a 27,648-context
-comparison against the extracted original method. For the concurrent Russian
-localization work, 175 selected pump regression tests also passed.
+comparison against the extracted original method. The earlier Russian
+localization checkpoint also passed 175 selected pump regression tests; they
+were not rerun for this result/persistence increment.
 
 The earlier checkpoint covered 345 APS host tests and 23 SafetyPlugin tests;
 those broad suites were not rerun for this increment. See the night/sleep
 reports and [Russian translation report](../../RUSSIAN_TRANSLATION_20261028.md)
 for the current scope. Full-debug phone and Wear APKs also assembled; their v2 signatures verify.
 The phone APK includes the night/sleep owners and original model assets, with
-no JVM oracle classes. New Russian resource values were checked in the APKs
-and the embedded CWF watchface. Apple/device tests are not executed here.
+no JVM oracle classes. The earlier translation checkpoint checked Russian resource values in the
+APKs and embedded CWF; the resource audit still passes for this increment. Apple/device tests are not executed here.
 
 Local debug assembly cannot establish success of a signed remote release build.
 No patient/device validation or Apple test execution is claimed.

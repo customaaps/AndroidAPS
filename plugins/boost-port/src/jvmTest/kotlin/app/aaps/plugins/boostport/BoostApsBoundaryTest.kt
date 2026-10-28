@@ -107,6 +107,9 @@ class BoostApsBoundaryTest {
         assertNotNull(result.result.predBGs)
         assertNotNull(BoostReplayStateCodec.decode(disk.values.getValue(BoostApsSettingKeys.Session.key) as String))
         assertFalse(disk.values.containsKey("boost_port_replay_session_v1"))
+        assertNotNull(result.result.sleepState)
+        assertEquals(0, result.result.hrReadingsCount15m)
+        assertEquals("none", result.result.hrSource_states)
         val restored = RT.deserialize(result.result.serialize())
         assertEquals(result.result, restored.copy(reason = result.result.reason))
     }
@@ -124,7 +127,10 @@ class BoostApsBoundaryTest {
         val nightLead = initial.atMs / 86_400_000L * 86_400_000L + 21 * 3_600_000L
         val glucose = object : GlucoseStatus by initial.glucose { override val date = nightLead }
         val request = initial.copy(atMs = nightLead, glucose = glucose)
-        assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk).calculate(request) })
+        val calculated = assertIs<BoostApsCalculator.Result.Calculated>(immediate { calculator(disk).calculate(request) })
+        assertEquals("PRE_SLEEP", calculated.result.sleepState)
+        assertEquals(nightLead, calculated.result.sleepStateEnteredAtMs)
+        assertEquals(0, calculated.result.sleepLearnedSessionCount)
         val raw = disk.values[BoostApsSettingKeys.ApsBoostSleepState.key] as String
         assertEquals(app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector.SleepState.PRE_SLEEP,
             app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector.State.deserialize(raw).state)

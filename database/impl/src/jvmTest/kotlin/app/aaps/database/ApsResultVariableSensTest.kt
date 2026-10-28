@@ -63,6 +63,18 @@ class ApsResultVariableSensTest {
         ).inOrder()
     }
 
+    @Test
+    fun `Boost identifier and optional sleep telemetry round trip through real SQLite`() = runTest {
+        val json = """{"algorithm":"BOOST","runningDynamicIsf":true,"variable_sens":48.0,"sleepState":"SLEEPING","hrBpmAvg5m":61.2}"""
+        val row = apsResult(NOW, json).copy(algorithm = APSResult.Algorithm.BOOST)
+        database.apsResultDao.insert(row)
+        val read = database.apsResultDao.getApsResults(NOW, NOW).single()
+        assertThat(read.algorithm).isEqualTo(APSResult.Algorithm.BOOST)
+        assertThat(read.resultJson).isEqualTo(json)
+        assertThat(Converters().fromAlgorithm(read.algorithm)).isEqualTo("BOOST")
+        assertThat(database.apsResultDao.getVariableSens(NOW, NOW)).containsExactly(ApsResultVariableSens(NOW, 48.0))
+    }
+
     private fun apsResult(timestamp: Long, resultJson: String) = APSResult(
         timestamp = timestamp,
         algorithm = APSResult.Algorithm.SMB,

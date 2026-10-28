@@ -189,6 +189,9 @@ class DetermineBasalResult(
             check("IOB", result.IOB)
             check("variable_sens", result.variable_sens)
             check("isfMgdlForCarbs", result.isfMgdlForCarbs)
+            check("hrBpmLatest", result.hrBpmLatest)
+            check("hrBpmAvg5m", result.hrBpmAvg5m)
+            check("hrBpmAvg15m", result.hrBpmAvg15m)
         }
         if (offenders.isEmpty()) return
 

@@ -2,6 +2,9 @@ package app.aaps.plugins.sync.nsclientV3.extensions
 
 import app.aaps.core.data.model.DS
 import app.aaps.core.interfaces.aps.APSResult
+import app.aaps.core.interfaces.aps.RT
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
@@ -48,6 +51,27 @@ internal class DeviceStatusExtensionKtTest : TestBase() {
             { nsClientV3Plugin }
         )
         whenever(config.AAPSCLIENT).thenReturn(true)
+    }
+
+    @Test
+    fun boostSleepTelemetrySurvivesSuggestedEnactedAndRemoteNightscoutMapping() {
+        val rt = RT(algorithm = APSResult.Algorithm.BOOST, runningDynamicIsf = true,
+            timestamp = 1_700_000_000_000L, sleepState = "SLEEPING", sleepStateEnteredAtMs = 1_699_999_000_000L,
+            sleepEntryReason = "hr", sleepLearnedSessionCount = 8, hrBpmLatest = 61.2,
+            hrBpmAvg5m = 62.3, hrBpmAvg15m = 63.4, hrReadingsCount15m = 15,
+            hrSource_resolved = "garmin", hrSource_states = "garmin(f,15,1m)")
+        val encoded = rt.serialize()
+        val expected = Json.parseToJsonElement(encoded).jsonObject
+        val status = DS(timestamp = 1_700_000_000_000L, suggested = encoded, enacted = encoded,
+            uploaderBattery = 80, isCharging = false)
+        val remoteAndBack = status.toNSDeviceStatus().convertToRemoteAndBack()
+        assertThat(remoteAndBack.openaps?.suggested).isEqualTo(expected)
+        assertThat(remoteAndBack.openaps?.enacted).isEqualTo(expected)
+        val restored = RT.deserialize(remoteAndBack.openaps!!.suggested!!.toString())
+        assertThat(restored.algorithm).isEqualTo(APSResult.Algorithm.BOOST)
+        assertThat(restored.sleepState).isEqualTo("SLEEPING")
+        assertThat(restored.hrBpmAvg15m).isEqualTo(63.4)
+        assertThat(restored.hrSource_states).isEqualTo("garmin(f,15,1m)")
     }
 
     @Test

@@ -67,7 +67,26 @@ data class RT(
     var minGuardBG: Double? = null,
 
     var consoleLog: MutableList<String>? = null,
-    var consoleError: MutableList<String>? = null
+    var consoleError: MutableList<String>? = null,
+
+    // HR telemetry
+    var hrBpmLatest: Double? = null,                 // most recent HR reading at cycle time
+    var hrBpmAvg5m: Double? = null,                  // duration-weighted average over last 5 min
+    var hrBpmAvg15m: Double? = null,                 // duration-weighted average over last 15 min
+    var hrReadingsCount15m: Int? = null,             // number of HR records seen in 15-min window
+    var hrSource_resolved: String? = null,           // live HR source: garmin | worn:<model> | hc | null if feed died
+    var hrSource_states: String? = null,             // per-source "src(fresh,count,ageMin)", best-trust first
+
+    // Sleep state + learning
+    var sleepState: String? = null,                  // AWAKE | PRE_SLEEP | SLEEPING
+    var sleepStateEnteredAtMs: Long? = null,         // when current sleep state was entered (UTC ms)
+    var sleepEntryReason: String? = null,            // "hr" | "drought" while SLEEPING; null otherwise
+    var sleepLearnedStartMin: Int? = null,           // circular-mean sleep-onset clock-min (0..1439)
+    var sleepLearnedWakeMin: Int? = null,            // circular-mean wake clock-min (0..1439)
+    var sleepLearnedDurationMin: Int? = null,        // mean sleep duration (min)
+    var sleepLearnedSessionCount: Int? = null,       // sessions in 28-day window
+    var hrLearnedRestingBpm: Int? = null,            // true resting (deep-sleep floor)
+    var hrLearnedDaytimeBpm: Int? = null,            // active-baseline (used by exercise calcs)
 ) {
 
     fun serialize() = Json.encodeToString(serializer(), this)

@@ -134,9 +134,10 @@ class BoostApsCalculatorFactoryImpl(
                         val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, effectiveInput)
                         // Source evaluates sleep after V1/V5/V6: this result's meal
                         // model feeds the next cycle, never the current activity/V5.
-                        sleepOwner.completeCycle(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs),
+                        val sleepUpdate = sleepOwner.completeCycle(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs),
                             settings.sleep(), cycle.profile.recentSteps15Minutes,
                             calculated.frame.v1.mlMealLikely, input.cycleSpacingMinutes)
+                        BoostSleepTelemetry.write(result, sleepUpdate, input.atMs)
                         BoostApsCalculator.Result.Calculated(result, input.profile.copy(
                             current_basal = cycle.profile.current_basal, carb_ratio = result.carbRatio ?: input.originalProfileCr,
                             variable_sens = result.variable_sens ?: 0.0, TDD = cycle.profile.TDD,

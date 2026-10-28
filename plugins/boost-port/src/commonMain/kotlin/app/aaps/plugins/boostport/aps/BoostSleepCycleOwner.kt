@@ -1,5 +1,6 @@
 package app.aaps.plugins.boostport.aps
 
+import app.aaps.core.data.model.HR
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.sharedPreferences.KeyValueStore
 import app.aaps.plugins.aps.openAPSBoost.activity.DailyStepHistoryTracker
@@ -43,6 +44,8 @@ internal class BoostSleepCycleOwner(
         val effectiveNightStartMin: Int,
         val effectiveNightEndMin: Int,
         val stepsToday: Int,
+        /** Same captured query used by the detector; never reread for telemetry. */
+        val heartRates: List<HR>,
     )
 
     private var state: SleepStateDetector.State? = null
@@ -87,7 +90,7 @@ internal class BoostSleepCycleOwner(
         val learned = SleepHistoryTracker.aggregate(past, offsetMs)
         val start = clampToConfiguredBand(learned.sleepStartMinAvg, settings.nightStartMin)
         val end = clampToConfiguredBand(learned.wakeMinAvg, settings.nightEndMin, allowEarlier = false)
-        val recentHr = persistence.getHeartRatesFromTimeToTime(nowMs - 30 * 60_000L, nowMs)
+        val recentHr = persistence.getHeartRatesFromTimeToTime(nowMs - 30 * 60_000L, nowMs).map { it.copy() }
         val dayStart = DailyStepHistoryTracker.dayIndex(nowMs, offsetMs) * 86_400_000L - offsetMs
         // A failed read is not an empty day. Exceptions/cancellation reach the APS boundary.
         val rows = persistence.getStepsCountFromTimeToTime(dayStart, nowMs)
@@ -132,7 +135,7 @@ internal class BoostSleepCycleOwner(
         history = nextHistory
         if (evaluated.wakeReason == "boundary") lastBoundaryExitMs = nowMs
         learnedDaytimeHrBpm = learned.daytimeHrBpm
-        return Update(evaluated, learned, start, end, stepsToday)
+        return Update(evaluated, learned, start, end, stepsToday, recentHr.toList())
     }
 
     private suspend fun heartRates(startMs: Long, endMs: Long) =

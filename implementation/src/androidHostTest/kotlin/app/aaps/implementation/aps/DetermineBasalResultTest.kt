@@ -8,6 +8,8 @@ import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.shared.tests.TestBaseWithProfile
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
@@ -81,6 +83,39 @@ class DetermineBasalResultTest : TestBaseWithProfile() {
         assertThat(json.getValue("insulinReq").jsonPrimitive.double).isEqualTo(0.5)
         assertThat(json.getValue("rate").jsonPrimitive.double).isEqualTo(1.5)
         assertThat(json.getValue("duration").jsonPrimitive.int).isEqualTo(30)
+    }
+
+    @Test
+    fun `Boost sleep and HR snapshot survives device status publication cloning and storage`() {
+        val rt = RT(runningDynamicIsf = true, algorithm = APSResult.Algorithm.BOOST,
+            sleepState = "SLEEPING", sleepStateEnteredAtMs = 1_700_000_000_000L, sleepEntryReason = "hr",
+            sleepLearnedStartMin = 1350, sleepLearnedWakeMin = 450, sleepLearnedDurationMin = 540,
+            sleepLearnedSessionCount = 8, hrLearnedRestingBpm = 52, hrLearnedDaytimeBpm = 66,
+            hrBpmLatest = 61.2, hrBpmAvg5m = 62.3, hrBpmAvg15m = 63.4, hrReadingsCount15m = 15,
+            hrSource_resolved = "garmin", hrSource_states = "garmin(f,15,1m)")
+        val result = apsResultProvider().with(rt)
+        val expected = Json.parseToJsonElement("""{
+            "sleepState":"SLEEPING","sleepStateEnteredAtMs":1700000000000,"sleepEntryReason":"hr",
+            "sleepLearnedStartMin":1350,"sleepLearnedWakeMin":450,"sleepLearnedDurationMin":540,
+            "sleepLearnedSessionCount":8,"hrLearnedRestingBpm":52,"hrLearnedDaytimeBpm":66,
+            "hrBpmLatest":61.2,"hrBpmAvg5m":62.3,"hrBpmAvg15m":63.4,"hrReadingsCount15m":15,
+            "hrSource_resolved":"garmin","hrSource_states":"garmin(f,15,1m)"
+        }""").jsonObject
+        assertThat(result.json()!!.filterKeys { it in expected }).isEqualTo(expected.toMap())
+        assertThat(result.newAndClone().json()).isEqualTo(result.json())
+        val restored = RT.deserialize(result.json()!!.toString())
+        assertThat(restored.sleepStateEnteredAtMs).isEqualTo(1_700_000_000_000L)
+        assertThat(restored.hrBpmAvg5m).isEqualTo(62.3)
+        assertThat(restored.hrSource_states).isEqualTo("garmin(f,15,1m)")
+    }
+
+    @Test
+    fun `nonfinite HR telemetry is identified before device status serialization rejects it`() {
+        val result = apsResultProvider().with(RT(runningDynamicIsf = true, hrBpmAvg5m = Double.NaN))
+        assertThrows<Exception> { result.json() }
+        val captor = argumentCaptor<Throwable>()
+        verify(fabricPrivacy).logException(captor.capture())
+        assertThat(captor.firstValue.message).contains("hrBpmAvg5m=NaN")
     }
 
     /** A field the result did not set stays out of the document rather than going out as null. */

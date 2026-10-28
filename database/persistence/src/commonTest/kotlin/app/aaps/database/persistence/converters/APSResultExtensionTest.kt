@@ -24,7 +24,7 @@ import app.aaps.database.entities.APSResult as DbAPSResult
 /**
  * Tests for `APSResultExtension.kt`.
  *
- * The supported algorithms are AMA, SMB and AUTO_ISF. Both enum mappers deliberately `error()` on
+ * The supported algorithms are AMA, SMB, AUTO_ISF and BOOST. Both enum mappers deliberately `error()` on
  * UNKNOWN (the enum `else` branch), so UNKNOWN is excluded from the round-trip iteration and
  * asserted separately as a thrown exception.
  *
@@ -71,7 +71,7 @@ internal class APSResultExtensionTest {
     // be decoded as the interface, which always failed, so it was always null after a restart (#4589).
     @Test
     fun glucoseStatusIsReadBackForAmaAndSmb() {
-        listOf(APSResult.Algorithm.AMA, APSResult.Algorithm.SMB).forEach { algorithm ->
+        listOf(APSResult.Algorithm.AMA, APSResult.Algorithm.SMB, APSResult.Algorithm.BOOST).forEach { algorithm ->
             val glucoseStatus = GlucoseStatusSMB(glucose = 146.0, noise = 1.0, delta = -2.0, shortAvgDelta = -1.5, longAvgDelta = -1.0, date = 1_000L)
 
             val read = FakeApsResult(algorithm, glucoseStatus).toDb().fromDb { FakeApsResult() }
@@ -98,6 +98,44 @@ internal class APSResultExtensionTest {
 
         assertNull(read.glucoseStatus)
         assertEquals(19.7, (read.rawData() as RT).variable_sens)
+    }
+
+    @Test
+    fun boostResultRetainsItsAlgorithmProfileAndSleepTelemetryAfterPersistence() {
+        val glucose = GlucoseStatusSMB(glucose = 146.0, delta = 1.0, date = 1_000L)
+        val rt = RT(algorithm = APSResult.Algorithm.BOOST, runningDynamicIsf = true,
+            timestamp = 1_000L, units = 0.2, rate = 1.1, duration = 30, sleepState = "SLEEPING",
+            sleepStateEnteredAtMs = 900L, sleepEntryReason = "hr", sleepLearnedSessionCount = 8,
+            hrBpmAvg5m = 61.2, hrSource_resolved = "garmin", hrSource_states = "garmin(f,5,1m)")
+        val original = FakeApsResult(APSResult.Algorithm.BOOST, glucose).apply {
+            with(rt)
+            oapsProfile = OapsProfile(dia = 5.0, min_5m_carbimpact = 8.0, max_iob = 5.0,
+                max_daily_basal = 1.0, max_basal = 3.0, min_bg = 90.0, max_bg = 110.0, target_bg = 100.0,
+                carb_ratio = 10.0, sens = 50.0, autosens_adjust_targets = false,
+                max_daily_safety_multiplier = 3.0, current_basal_safety_multiplier = 4.0,
+                high_temptarget_raises_sensitivity = true, low_temptarget_lowers_sensitivity = false,
+                sensitivity_raises_target = false, resistance_lowers_target = false,
+                adv_target_adjustments = false, exercise_mode = false, half_basal_exercise_target = 160,
+                maxCOB = 120, skip_neutral_temps = true, remainingCarbsCap = 90, enableUAM = true,
+                A52_risk_enable = false, SMBInterval = 3, enableSMB_with_COB = true,
+                enableSMB_with_temptarget = true, allowSMB_with_high_temptarget = false,
+                enableSMB_always = false, enableSMB_after_carbs = true, maxSMBBasalMinutes = 30,
+                maxUAMSMBBasalMinutes = 30, bolus_increment = 0.05, carbsReqThreshold = 1,
+                current_basal = 1.0, temptargetSet = false, autosens_max = 1.2, out_units = "mg/dl",
+                lgsThreshold = null, variable_sens = 50.0, insulinDivisor = 55, TDD = 40.0)
+            mealData = MealData(carbs = 20.0)
+            autosensResult = AutosensResult(ratio = 0.9)
+        }
+        val stored = original.toDb()
+        assertEquals(DbAPSResult.Algorithm.BOOST, stored.algorithm)
+        val restored = stored.fromDb { FakeApsResult() }
+        assertEquals(APSResult.Algorithm.BOOST, restored.algorithm)
+        assertEquals(glucose, restored.glucoseStatus)
+        assertEquals(original.oapsProfile, restored.oapsProfile)
+        assertEquals(original.mealData, restored.mealData)
+        assertEquals(original.autosensResult, restored.autosensResult)
+        val restoredRt = restored.rawData() as RT
+        assertEquals(rt, restoredRt.copy(reason = rt.reason))
     }
 
     /** Only the members `fromDb` and `toDb` use do something. The rest is never called by them. */

@@ -9,6 +9,8 @@ import app.aaps.plugins.aps.openAPSBoost.activity.SleepStateDetector
 import app.aaps.plugins.boostport.aps.BoostApsSettingKeys
 import app.aaps.plugins.boostport.aps.BoostOwnerStorage
 import app.aaps.plugins.boostport.aps.BoostSleepCycleOwner
+import app.aaps.plugins.boostport.aps.BoostSleepTelemetry
+import app.aaps.core.interfaces.aps.RT
 import app.aaps.plugins.boostport.reference.activity.SleepStateDetector as Source
 import app.aaps.plugins.boostport.reference.activity.SleepHistoryTracker as SourceHistory
 import java.lang.reflect.Proxy
@@ -111,8 +113,31 @@ class BoostSleepCycleOwnerTest {
         val closed = SleepHistoryTracker.History.deserialize(f.stored.getValue(historyKey))
         assertNull(closed.openSleepStartMs)
         assertEquals(1, closed.sessions.size)
+        val result = RT(runningDynamicIsf = true)
+        BoostSleepTelemetry.write(result, wake, wakeAt)
+        assertEquals("AWAKE", result.sleepState)
+        assertEquals(0, result.sleepLearnedSessionCount, "source uploads the aggregate from before this wake")
+        val next = immediate { owner.completeCycle(wakeAt + 5 * 60_000L, 0, settings, 0, null) }
+        assertEquals(1, next.learned.sessionCount)
         assertEquals("boundary", closed.sessions.single().wakeReason)
         assertNull(SleepHistoryTracker.aggregate(closed, 0L).wakeMinAvg)
+    }
+
+    @Test fun telemetryUsesCapturedHeartRateRowsWithoutAnotherQueryOrMutableDbAliases() {
+        val f = Fixture()
+        val at = day + 12 * 3_600_000L
+        val row = HR(duration = 60_000L, timestamp = at - 60_000L, beatsPerMinute = 65.0, device = "Garmin")
+        f.hrs = listOf(row)
+        val update = immediate { f.owner().completeCycle(at, 0, settings, 0, null) }
+        val queries = f.queries.toList()
+        row.beatsPerMinute = 99.0
+        row.isValid = false
+        val result = RT(runningDynamicIsf = true)
+        BoostSleepTelemetry.write(result, update, at)
+        assertEquals(65.0, result.hrBpmLatest)
+        assertEquals(65.0, result.hrBpmAvg5m)
+        assertEquals("garmin", result.hrSource_resolved)
+        assertEquals(queries, f.queries)
     }
 
     @Test fun uninterruptedTwoDayOwnerMatchesOriginalDetectorAndHistory() {
