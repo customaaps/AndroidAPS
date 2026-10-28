@@ -15,6 +15,12 @@ interface AutosensDataStore {
     var bgReadings: List<GV>
     var autosensDataTable: LongSparseArray<AutosensData>
     var bucketedData: MutableList<InMemoryGlucoseValue>?
+    /** Separate sensor-cadence series; five-minute IOB/COB and autosens buckets are retained. */
+    var bucketedDataNative: MutableList<InMemoryGlucoseValue>?
+    /** Median raw reading spacing in minutes, null until enough evidence exists. */
+    var detectedCadenceMinutes: Double?
+    fun getBucketedDataNativeTableCopy(): MutableList<InMemoryGlucoseValue>?
+    fun actualBgNative(): InMemoryGlucoseValue?
     var lastUsed5minCalculation: Boolean?
 
     /**

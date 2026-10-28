@@ -50,6 +50,11 @@ enum class BooleanKey(
         summary = KeysStrings.disable_updates_checker_summary,
         platforms = AppPlatform.ANDROID_ONLY
     ),
+    ApsLoopAtNativeCadence(
+        key = "loop_at_native_cadence", defaultValue = false,
+        title = KeysStrings.loop_native_cadence_title, summary = KeysStrings.loop_native_cadence_summary,
+        showInNsClientMode = false, showInPumpControlMode = false
+    ),
     ApsUseDynamicCarbRatio(
         key = "use_dynamic_carb_ratio", defaultValue = false,
         title = KeysStrings.dynamic_cr_enabled, summary = KeysStrings.dynamic_cr_enabled_summary,

@@ -19,11 +19,13 @@ Boost V2 and V7 remain excluded.
 - Night/sleep/recovery/premeal policies, source settings and English/Russian UI.
 - APS-owned phone steps, Health Connect HR and step history, persisted daily
   step maxima and diagnostic activity baseline.
-- V5 automatic configuration, weekly re-derivation and bounded initial history
-  repair through Nightscout.
+- Boost 6.2 automatic configuration, value ownership, weekly switch/primer-route
+  resolution and personalized tranche history; bounded initial repair through Nightscout.
 - Boost 6.2 device-age telemetry and daily insulin-need diagnostics.
 - The source live 14-day TBR gate for aggressive early confirmation, shared
   with the composed and velocity-budget floors.
+- Native CGM history/deltas, sensor-cadence sleep telemetry and an opt-in global
+  Loop cadence setting; five-minute IOB/COB and autosens buckets are retained.
 
 The APS adapter issues no pump-delivery commands; the existing Loop owns that
 boundary. Activity-load and insulin-need diagnostics do not change a dosing
@@ -32,12 +34,26 @@ presentation dependencies.
 
 ## Verified checkpoint
 
-CI [40671066881](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40671066881)
-completed successfully at code commit `da27329a6ac9b1c541391ee0164f7528d842e61a`:
-1256 JVM tests, zero failures/errors/skips; Boost module assembly and fullDebug
-APK compilation passed. XML reports confirm all six source gate cases and all
-ten live-owner cases, including cancellation. The documentation-only commit
-recording this result changes no production or test source.
+The final implementation passed **1399 Boost JVM tests and 73 Android host tests**
+with zero failures, errors or skips, and fullDebug APK compilation.
+
+- [CI 40675993285](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40675993285) at
+  `285e9547844f04ae3a460db9562a3e944658a8ff`: 1399 JVM tests, 46 autosens
+  host tests and Boost KMP module assembly passed.
+- [CI 40679752693](https://github.com/Vlad747kja/AndroidAPS/actions/runs/40679752693) at
+  `6f6a6dc265c6eeeaae6bf7c318eea73e13c05a28`: 13 post-calculation tests,
+  five Loop cadence tests, nine SMB glucose-status tests and fullDebug APK passed.
+  Its exact-baseline diff guard verified that production sources were unchanged
+  from the first checkpoint; only two host-test files and the validation workflow
+  differed. XML reports confirm native/default selection, cancellation recovery,
+  minute-feed delta units and all four elapsed-time V5 score-streak scenarios.
+
+The working-branch transfer preserves these tested production and test sources,
+records the results here, and restores the complete CI workflow for future changes.
+The temporary coverage-reuse workflow is confined to validation history.
+
+See [auto-config scope](APS_AUTOCONFIG_62_20261028.md) and
+[native cadence scope](APS_NATIVE_CADENCE_20261028.md) for the two bulk transfers.
 
 See [APS integration](APS_INTEGRATION_20261027.md), the
 [live early-confirm gate](APS_EARLY_CONFIRM_TBR_20261028.md),
@@ -50,18 +66,15 @@ read as proof that later changes passed.
 
 ## Remaining work
 
-1. Port and compare the remaining Boost 6.2 auto-config ownership, loosening
-   guards, weekly switch/primer-route resolution and personalized tranche
-   threshold/evidence pipeline.
-2. Integrate native CGM cadence and the associated global Loop scheduling.
-3. Complete the remaining Android lifecycle, import/export, notification and
-   device-level scenarios. Host/device/Apple tests are distinct from JVM tests
-   and APK compilation.
-4. Reconcile the final source-to-target inventory and complete validation
-   before considering any change to the activation gate.
+1. Validate native-cadence operation on devices with real CGM/pump timing.
+2. Complete remaining Android lifecycle, import/export, notification and device
+   scenarios. Host/device/Apple tests are distinct from JVM tests and APK builds.
+3. Reconcile the final source-to-target inventory and complete validation before
+   considering any change to the activation gate.
 
 The base archive remains the 114 original source blobs pinned in
 [SOURCE_MANIFEST.md](SOURCE_MANIFEST.md); it is not rewritten as later features
 are adapted. Source Kotlin files there retain their `.source` suffix and are
 not production source sets. Later 6.2 transfers name their source commits in
 their own reports. Reference/oracle classes belong only to test source sets.
+

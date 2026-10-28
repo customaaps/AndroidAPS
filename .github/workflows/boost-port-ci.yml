@@ -59,6 +59,11 @@ jobs:
       - name: Compile isolated Boost Android KMP target
         run: |
           ./gradlew :plugins:boost-port:assemble --no-daemon --stacktrace
+      - name: Test native CGM cadence and global Loop integration
+        run: |
+          ./gradlew :plugins:main:testAndroidHostTest --tests 'app.aaps.plugins.main.iob.AutosensDataStoreTest' --no-daemon --stacktrace
+          ./gradlew :workflow:testAndroidHostTest --tests 'app.aaps.workflow.PostCalculationRunnerTest' --tests 'app.aaps.workflow.LoopCadenceTest' --no-daemon --stacktrace
+          ./gradlew :implementation:testAndroidHostTest --tests 'app.aaps.implementation.iob.GlucoseStatusTestSMB' --no-daemon --stacktrace
       - name: Compile complete Android fullDebug APK
         run: |
           ./gradlew :app:assembleFullDebug --no-daemon --stacktrace
@@ -85,4 +90,7 @@ jobs:
           path: |
             plugins/boost-port/build/reports/tests/
             plugins/boost-port/build/test-results/
+            plugins/main/build/test-results/
+            workflow/build/test-results/
+            implementation/build/test-results/
           if-no-files-found: ignore

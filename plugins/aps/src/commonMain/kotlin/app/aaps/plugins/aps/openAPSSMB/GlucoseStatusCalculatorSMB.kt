@@ -30,7 +30,10 @@ class GlucoseStatusCalculatorSMB(
         get() = getGlucoseStatusData(false)
 
     override fun getGlucoseStatusData(allowOldData: Boolean): GlucoseStatusSMB? {
-        val data = iobCobCalculator.ads.getBucketedDataTableCopy() ?: return null
+        // Source windows use elapsed minutes and normalize changes to five minutes.
+        // Keep the native series for one-minute feeds; other feeds share the standard buckets.
+        val data = iobCobCalculator.ads.getBucketedDataNativeTableCopy()
+            ?: iobCobCalculator.ads.getBucketedDataTableCopy() ?: return null
 
         val sizeRecords = data.size
         if (sizeRecords == 0) {

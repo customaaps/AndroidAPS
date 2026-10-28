@@ -16,6 +16,7 @@ import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.scenes.SceneExpiryCheck
 import app.aaps.core.interfaces.widget.WidgetUpdater
 import app.aaps.core.interfaces.workflow.CalculationWorkflow
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.workflow.WorkOutcome
@@ -107,8 +108,10 @@ class PostCalculationRunner(
      * for the same BG must not follow.
      */
     private suspend fun invokeLoop() {
-        val glucoseValue = iobCobCalculator.ads.actualBg() ?: return
-        if (glucoseValue.timestamp <= loop.lastBgTriggeredRun) return
+        val nativeCadence = preferences.get(BooleanKey.ApsLoopAtNativeCadence)
+        val glucoseValue = (if (nativeCadence) iobCobCalculator.ads.actualBgNative()
+            else iobCobCalculator.ads.actualBg()) ?: return
+        if (!LoopCadence.shouldTrigger(glucoseValue.timestamp, loop.lastBgTriggeredRun, nativeCadence)) return
         val previousTrigger = loop.lastBgTriggeredRun
         val decisionBefore = loop.lastRun?.lastAPSRun
         loop.lastBgTriggeredRun = glucoseValue.timestamp

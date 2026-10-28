@@ -10,5 +10,7 @@ internal enum class BoostV5OfflineDoubleKey(val key: String, val defaultValue: D
     ApsBoostCumulativeSmbCap60Min("boost_cumulative_smb_cap_60min", 10.0, 0.0, 10.0),
     ApsBoostV5ConfirmedCapU("boost_v5_confirmed_cap_u", 2.5, 0.0, 7.5),
     ApsBoostV5CommittedCapU("boost_v5_committed_cap_u", 0.5, 0.0, 2.5),
+    ApsBoostV5TrancheThreshold("boost_v5_tranche_threshold", 0.48, 0.20, 0.80),
     ApsBoostV5PrimerCapU("boost_v5_primer_cap_u", 0.0, 0.0, 2.5),
 }
+

@@ -20,9 +20,10 @@ class V5OfflinePortRegressionTest {
             Triple(BoostV5OfflineDoubleKey.ApsBoostCumulativeSmbCap60Min, 0.0, 10.0),
             Triple(BoostV5OfflineDoubleKey.ApsBoostV5ConfirmedCapU, 0.0, 7.5),
             Triple(BoostV5OfflineDoubleKey.ApsBoostV5CommittedCapU, 0.0, 2.5),
+            Triple(BoostV5OfflineDoubleKey.ApsBoostV5TrancheThreshold, 0.20, 0.80),
             Triple(BoostV5OfflineDoubleKey.ApsBoostV5PrimerCapU, 0.0, 2.5)
         )
-        assertEquals(8, BoostV5OfflineDoubleKey.entries.size)
+        assertEquals(9, BoostV5OfflineDoubleKey.entries.size)
         for ((key, min, max) in limits) {
             assertEquals(min, key.min, key.name)
             assertEquals(max, key.max, key.name)
@@ -58,3 +59,4 @@ class V5OfflinePortRegressionTest {
         }
     }
 }
+

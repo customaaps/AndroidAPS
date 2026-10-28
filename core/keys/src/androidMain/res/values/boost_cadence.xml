@@ -1,0 +1,4 @@
+<resources>
+    <string name="loop_native_cadence_title">Run Loop at sensor cadence</string>
+    <string name="loop_native_cadence_summary">Global Loop setting. When enabled, run once per new sensor reading. When disabled, keep a five-minute interval. Five-minute sensors are unchanged.</string>
+</resources>

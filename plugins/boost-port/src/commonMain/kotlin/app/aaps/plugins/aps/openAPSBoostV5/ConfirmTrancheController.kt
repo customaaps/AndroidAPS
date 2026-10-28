@@ -46,7 +46,7 @@ class ConfirmTrancheController(
 ) {
 
     // Fitted 2026-08-27, eleven participants, held out by participant. See the class KDoc.
-    private companion object {
+    internal companion object {
         const val B0 = 2.48631
         const val BG_CONFIRM = -0.014480
         const val RISE_SINCE = -0.003822
@@ -55,6 +55,10 @@ class ConfirmTrancheController(
         const val BG_NOW = -0.018302
         const val HOLD_SLACK_MIN = 2.5
         fun sigmoid(z: Double) = 1.0 / (1.0 + exp(-z))
+        fun releaseProbability(bgConfirm: Double, riseSince: Double, maxRiseSince: Double, slopeNow: Double, bgNow: Double): Double =
+            sigmoid(B0 + BG_CONFIRM * bgConfirm + RISE_SINCE * riseSince +
+                MAX_RISE_SINCE * maxRiseSince + SLOPE_NOW * slopeNow + BG_NOW * bgNow)
+
     }
 
     data class Pending(
@@ -110,13 +114,7 @@ class ConfirmTrancheController(
             return 0.0
         }
         val slope = if (prev != null) bg - prev else 0.0
-        val z = B0 +
-            BG_CONFIRM * p.bgAtConfirm +
-            RISE_SINCE * (bg - p.bgAtConfirm) +
-            MAX_RISE_SINCE * (p.maxBgSince - p.bgAtConfirm) +
-            SLOPE_NOW * slope +
-            BG_NOW * bg
-        val prob = sigmoid(z)
+        val prob = releaseProbability(p.bgAtConfirm, bg - p.bgAtConfirm, p.maxBgSince - p.bgAtConfirm, slope, bg)
         pending = null
         return if (prob > releaseThreshold) p.heldU else 0.0
     }
@@ -126,11 +124,7 @@ class ConfirmTrancheController(
         val p = pending ?: return null
         if (bg == null || !bg.isFinite()) return null
         val slope = lastBg?.let { bg - it } ?: 0.0
-        return sigmoid(
-            B0 + BG_CONFIRM * p.bgAtConfirm + RISE_SINCE * (bg - p.bgAtConfirm) +
-                MAX_RISE_SINCE * (max(p.maxBgSince, bg) - p.bgAtConfirm) +
-                SLOPE_NOW * slope + BG_NOW * bg
-        )
+        return releaseProbability(p.bgAtConfirm, bg - p.bgAtConfirm, max(p.maxBgSince, bg) - p.bgAtConfirm, slope, bg)
     }
 
     /** Per-cycle safety limits for releasing an earlier withheld confirm tranche. */
@@ -175,3 +169,4 @@ class ConfirmTrancheController(
         require(min(immediateFraction, releaseThreshold) >= 0.0) { "fraction and threshold must be non-negative" }
     }
 }
+

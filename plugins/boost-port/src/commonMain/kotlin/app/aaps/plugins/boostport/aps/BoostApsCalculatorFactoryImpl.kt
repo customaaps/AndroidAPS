@@ -178,6 +178,8 @@ class BoostApsCalculatorFactoryImpl(
                         if (!calculated.persistence.persisted) return@cycle BoostApsCalculator.Result.Rejected(
                             calculated.persistence.problem ?: "Boost state was not saved")
                         val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, effectiveInput)
+                        result.boostV5_active = v5.activeMode && calculated.frame.v5 != null
+                        result.boostV5_state = calculated.frame.v5?.mealHypothesis?.name
                         try { result.reason.append(deviceAgeTag.tag(input.atMs)) }
                         catch (cancelled: CancellationException) { throw cancelled }
                         catch (_: Exception) { /* Optional device-age telemetry must not discard a calculated candidate. */ }
@@ -195,6 +197,8 @@ class BoostApsCalculatorFactoryImpl(
                         // Source schedules configuration outside the dosing call. Serialize it here
                         // after the persisted result: changed settings first affect the NEXT cycle.
                         val configNotice = input.maxBolusAllowed?.let { autoConfig.evaluate(input.atMs, input.profile.max_iob, it) }
+                        storage.getString(BoostAutoConfigOwner.SUMMARY, "").takeIf { it.isNotEmpty() }
+                            ?.let { result.reason.append("autocfg=$it; ") }
                         storage.getString(BoostApsSettingKeys.ApsBoostV5RedriveSummary.key, "").takeIf { it.isNotEmpty() }
                             ?.let { result.reason.append("autordv=$it; ") }
                         if (settings.b(BoostApsSettingKeys.ApsBoostActivityShadowEnabled)) {

@@ -1,8 +1,8 @@
 package app.aaps.plugins.aps.openAPSBoostV5
 
+import kotlin.math.roundToLong
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToLong
 
 /**
  * Boost V5 auto-configuration — derive sensible initial V5 knobs from the user's own V1 dosing
@@ -97,6 +97,16 @@ object BoostV5AutoConfig {
      */
     const val CUMULATIVE_CAP_MAX_U = 10.0
 
+    /** Primer ceiling as a fraction of committedCap, by control class (see [compute]). */
+    const val PRIMER_FRAC_HYPO_PRONE = 0.375
+    const val PRIMER_FRAC_DEFAULT = 0.6
+    const val PRIMER_FRAC_WELL_CONTROLLED = 0.75
+    val PRIMER_FRACTIONS: List<Double> = listOf(PRIMER_FRAC_HYPO_PRONE, PRIMER_FRAC_DEFAULT, PRIMER_FRAC_WELL_CONTROLLED)
+
+    /** Range of DoubleKey.ApsBoostV5TrancheThreshold; the derivation's grid spans the same. */
+    const val TRANCHE_THRESHOLD_MIN = 0.20
+    const val TRANCHE_THRESHOLD_MAX = 0.80
+
     /** What the plugin gathers from the user's last-N-day V1 history. */
     data class V1Profile(
         val daysWithData: Int,
@@ -108,7 +118,11 @@ object BoostV5AutoConfig {
         val timeBelow54Pct: Double,
         val meanGlucoseMgdl: Double,
         val currentMaxIobU: Double,           // the user's existing AAPS maxIOB
-        val currentMaxBolusU: Double          // the user's existing AAPS max bolus
+        val currentMaxBolusU: Double,         // the user's existing AAPS max bolus
+        // Confirm-tranche threshold derivation over the person's own confirm episodes, gathered over
+        // TrancheThresholdDeriver.LOOKBACK_DAYS rather than this profile's window. Null when the
+        // caller did not gather it, which leaves the threshold where it is.
+        val tranche: TrancheThresholdDeriver.Derivation? = null
     )
 
     /** Suggested V5 knobs (each already clamped to its preference range) + human-readable reasons. */
@@ -127,7 +141,12 @@ object BoostV5AutoConfig {
         // 2026-07-20 V1-acceleration primer: per-user fizzle-safe base (0 = off) + delivery routing.
         val primerCapU: Double,
         val primerTbrFallback: Boolean,
-        val rationale: List<String>
+        val rationale: List<String>,
+        // Confirm-tranche release threshold derived from the person's own episodes, or null when the
+        // evidence fell short. Whether it is written is decided by
+        // BoostV5AutoConfigApply.resolveTrancheThreshold, which needs the counts in [tranche].
+        val trancheThreshold: Double? = null,
+        val tranche: TrancheThresholdDeriver.Derivation? = null
     )
 
     /** Returns null when there isn't enough data to responsibly auto-configure. */
@@ -212,9 +231,9 @@ object BoostV5AutoConfig {
         // larger cut everywhere below it (measured ~85% less primer insulin overall, concentrated on
         // genuine rises). See backtesting/scripts/2026-07-primer-scaling.
         val primerFrac = when {
-            hypoProne       -> 0.375
-            wellControlled  -> 0.75
-            else            -> 0.6
+            hypoProne       -> PRIMER_FRAC_HYPO_PRONE
+            wellControlled  -> PRIMER_FRAC_WELL_CONTROLLED
+            else            -> PRIMER_FRAC_DEFAULT
         }
         // Clamp is now SELF-SCALING instead of a flat constant. The old flat 0.6 (and the 0.9 that
         // briefly replaced it) clipped high-need users: a well-controlled user with committedCapU 2.5
@@ -227,9 +246,23 @@ object BoostV5AutoConfig {
         // Route only CLEARLY well-controlled users to the bolus; everyone else gets the retractable
         // temp-basal (safe-by-unwinding). The bolus is thus inherently TBR-safe (well-controlled only),
         // so the primer cap is NOT raise-guarded — the delivery routing is the safety differentiator.
-        // A user can force the bolus via ApsBoostV5PrimerBolusMode (the override).
+        // A user can force the bolus via ApsBoostV5PrimerBolusMode (the override). Onboarding writes this
+        // once; the weekly re-derivation then re-evaluates it from its own window, moving to the temp
+        // basal on the first window that is not well controlled and back to the bolus only after two
+        // consecutive well-controlled windows (BoostV5AutoConfigApply.resolvePrimerRoute).
         val primerTbrFallback = !wellControlled
-        reasons += "Primer ceiling ${primerCapU}U ${if (primerTbrFallback) "via retractable temp-basal (recommended; override-able to bolus)" else "as bolus (well-controlled)"} — reclaims V1's earlier acceleration response. This is now a CEILING paid only on a confirm-strength rise (using the configured rise thresholds) and scaled down by BG room and IOB headroom; the old acceleration multiplier is removed because it paid most on flat traces"
+        reasons += "Primer ceiling ${primerCapU}U ${if (primerTbrFallback) "via retractable temp-basal (recommended; override-able to bolus)" else "as bolus (well-controlled)"} — reclaims V1's earlier acceleration response. This is now a CEILING paid only on a confirm-strength rise (delta≥${PRIMER_DELTA_MIN.toInt()} to fire, full at ≥${PRIMER_DELTA_FULL.toInt()} mg/dL/5min) and scaled down by BG room and IOB headroom; the old acceleration multiplier is removed because it paid most on flat traces"
+
+        // Confirm-tranche release threshold: only the threshold of the release rule is personal, and
+        // it is measured on the person's own confirm episodes. A missing derivation, or one short of
+        // evidence, suggests nothing and the operative value stays as it is.
+        val tr = p.tranche
+        val trancheThreshold = tr?.threshold?.let { round2(it.coerceIn(TRANCHE_THRESHOLD_MIN, TRANCHE_THRESHOLD_MAX)) }
+        reasons += when {
+            tr == null               -> "Tranche threshold: not derived (no confirm history gathered)"
+            trancheThreshold == null -> "Tranche threshold: not derived (${tr.nSmall} small, ${tr.nLarge} large confirm episodes; needs ${TrancheThresholdDeriver.MIN_LABELLED} with ${TrancheThresholdDeriver.MIN_PER_CLASS} of each)"
+            else                     -> "Tranche threshold $trancheThreshold from ${tr.nSmall} small and ${tr.nLarge} large confirm episodes (J ${round2(tr.youdenJ ?: 0.0)})"
+        }
 
         return V5Suggestion(
             aggression = aggression, hypoCaution = hypoCaution,
@@ -241,7 +274,9 @@ object BoostV5AutoConfig {
             velocityBudgetFloor = velocityBudgetFloor,
             primerCapU = primerCapU,
             primerTbrFallback = primerTbrFallback,
-            rationale = reasons
+            rationale = reasons,
+            trancheThreshold = trancheThreshold,
+            tranche = tr
         )
     }
 
@@ -282,3 +317,4 @@ object BoostV5AutoConfig {
     private fun round2(x: Double) = (x * 100.0).roundToLong() / 100.0
     private fun pct(x: Double) = "${(x * 10.0).roundToLong() / 10.0}%"
 }
+

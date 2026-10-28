@@ -9,6 +9,7 @@ import app.aaps.core.interfaces.overview.graph.OverviewDataCache
 import app.aaps.core.interfaces.scenes.SceneExpiryCheck
 import app.aaps.core.interfaces.widget.WidgetUpdater
 import app.aaps.core.interfaces.workflow.CalculationSignalsEmitter
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.objects.workflow.WorkOutcome
 import app.aaps.shared.tests.TestBaseWithProfile
 import com.google.common.truth.Truth.assertThat
@@ -27,7 +28,6 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyBlocking
 import org.mockito.kotlin.whenever
 import kotlin.test.assertFailsWith
-import kotlin.test.assertIs
 
 class PostCalculationRunnerTest : TestBaseWithProfile() {
 
@@ -66,7 +66,7 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
     fun `missing or stale data returns failure`() = runTest {
         whenever(workflowChainData.postFor(any(), any())).thenReturn(null)
 
-        assertIs<WorkOutcome.Failure>(run())
+        assertThat(run()).isEqualTo(WorkOutcome.StaleInput)
     }
 
     @Test
@@ -85,7 +85,7 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
     fun `full phase invokes loop on new bg and updates widget`() = runTest {
         val ads = mock<AutosensDataStore>()
         val bg = mock<InMemoryGlucoseValue>()
-        whenever(bg.timestamp).thenReturn(5000L)
+        whenever(bg.timestamp).thenReturn(500000L)
         whenever(iobCobCalculator.ads).thenReturn(ads)
         whenever(ads.actualBg()).thenReturn(bg)
         whenever(loop.lastBgTriggeredRun).thenReturn(0L)
@@ -106,11 +106,11 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
     fun `full phase invokes loop even when the chain was not started by a new bg`() = runTest {
         val ads = mock<AutosensDataStore>()
         val bg = mock<InMemoryGlucoseValue>()
-        whenever(bg.timestamp).thenReturn(5000L)
+        whenever(bg.timestamp).thenReturn(500000L)
         whenever(iobCobCalculator.ads).thenReturn(ads)
         whenever(ads.actualBg()).thenReturn(bg)
         // A loop run happened for an older BG, the newest one was never used
-        whenever(loop.lastBgTriggeredRun).thenReturn(4000L)
+        whenever(loop.lastBgTriggeredRun).thenReturn(100000L)
         val data = dataWith(runLoopAndWidgetPhase = true)
         whenever(workflowChainData.postFor(any(), any())).thenReturn(data)
 
@@ -124,10 +124,10 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
     fun `full phase skips loop when newest bg was already used`() = runTest {
         val ads = mock<AutosensDataStore>()
         val bg = mock<InMemoryGlucoseValue>()
-        whenever(bg.timestamp).thenReturn(5000L)
+        whenever(bg.timestamp).thenReturn(500000L)
         whenever(iobCobCalculator.ads).thenReturn(ads)
         whenever(ads.actualBg()).thenReturn(bg)
-        whenever(loop.lastBgTriggeredRun).thenReturn(5000L)
+        whenever(loop.lastBgTriggeredRun).thenReturn(500000L)
         val data = dataWith(runLoopAndWidgetPhase = true)
         whenever(workflowChainData.postFor(any(), any())).thenReturn(data)
 
@@ -147,10 +147,10 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
     fun `a loop run cancelled before its decision gives the bg back`() = runTest {
         val ads = mock<AutosensDataStore>()
         val bg = mock<InMemoryGlucoseValue>()
-        whenever(bg.timestamp).thenReturn(5000L)
+        whenever(bg.timestamp).thenReturn(500000L)
         whenever(iobCobCalculator.ads).thenReturn(ads)
         whenever(ads.actualBg()).thenReturn(bg)
-        whenever(loop.lastBgTriggeredRun).thenReturn(4000L)
+        whenever(loop.lastBgTriggeredRun).thenReturn(100000L)
         whenever(loop.lastRun).thenReturn(Loop.LastRun().apply { lastAPSRun = 1000L })
         whenever(loop.invoke(any(), any(), any())).doSuspendableAnswer { throw CancellationException("replaced") }
         val data = dataWith(runLoopAndWidgetPhase = true)
@@ -158,8 +158,8 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
 
         assertFailsWith<CancellationException> { run() }
 
-        verify(loop).lastBgTriggeredRun = 5000L
-        verify(loop).lastBgTriggeredRun = 4000L
+        verify(loop).lastBgTriggeredRun = 500000L
+        verify(loop).lastBgTriggeredRun = 100000L
     }
 
     /**
@@ -170,10 +170,10 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
     fun `a loop run cancelled after its decision keeps the bg used`() = runTest {
         val ads = mock<AutosensDataStore>()
         val bg = mock<InMemoryGlucoseValue>()
-        whenever(bg.timestamp).thenReturn(5000L)
+        whenever(bg.timestamp).thenReturn(500000L)
         whenever(iobCobCalculator.ads).thenReturn(ads)
         whenever(ads.actualBg()).thenReturn(bg)
-        whenever(loop.lastBgTriggeredRun).thenReturn(4000L)
+        whenever(loop.lastBgTriggeredRun).thenReturn(100000L)
         val lastRun = Loop.LastRun().apply { lastAPSRun = 1000L }
         whenever(loop.lastRun).thenReturn(lastRun)
         whenever(loop.invoke(any(), any(), any())).doSuspendableAnswer {
@@ -185,8 +185,8 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
 
         assertFailsWith<CancellationException> { run() }
 
-        verify(loop).lastBgTriggeredRun = 5000L
-        verify(loop, never()).lastBgTriggeredRun = 4000L
+        verify(loop).lastBgTriggeredRun = 500000L
+        verify(loop, never()).lastBgTriggeredRun = 100000L
     }
 
     /**
@@ -198,7 +198,7 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
         whenever(config.APS).thenReturn(true)
         val ads = mock<AutosensDataStore>()
         val bg = mock<InMemoryGlucoseValue>()
-        whenever(bg.timestamp).thenReturn(5000L)
+        whenever(bg.timestamp).thenReturn(500000L)
         whenever(iobCobCalculator.ads).thenReturn(ads)
         whenever(ads.actualBg()).thenReturn(bg)
         whenever(loop.lastBgTriggeredRun).thenReturn(0L)
@@ -234,7 +234,7 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
         whenever(sceneExpiryCheck.endIfOverdue()).doSuspendableAnswer { throw IllegalStateException("broken scene") }
         val ads = mock<AutosensDataStore>()
         val bg = mock<InMemoryGlucoseValue>()
-        whenever(bg.timestamp).thenReturn(5000L)
+        whenever(bg.timestamp).thenReturn(500000L)
         whenever(iobCobCalculator.ads).thenReturn(ads)
         whenever(ads.actualBg()).thenReturn(bg)
         whenever(loop.lastBgTriggeredRun).thenReturn(0L)
@@ -260,5 +260,31 @@ class PostCalculationRunnerTest : TestBaseWithProfile() {
         Assertions.assertEquals(WorkOutcome.Success, result)
         verify(loop, never()).invoke(any(), any(), any())
         verify(widgetUpdater).update("WorkFlow")
+    }
+
+    @Test fun `native cadence selects fresh sensor reading and allows minute advance`() = runTest {
+        val ads = mock<AutosensDataStore>()
+        whenever(iobCobCalculator.ads).thenReturn(ads)
+        whenever(preferences.get(BooleanKey.ApsLoopAtNativeCadence)).thenReturn(true)
+        whenever(ads.actualBgNative()).thenReturn(InMemoryGlucoseValue(500000L, 100.0))
+        whenever(loop.lastBgTriggeredRun).thenReturn(440000L)
+        val data = dataWith(true)
+        whenever(workflowChainData.postFor(any(), any())).thenReturn(data)
+        assertThat(run()).isEqualTo(WorkOutcome.Success)
+        verify(loop).invoke(any(), any(), any())
+        verify(ads, never()).actualBg()
+    }
+
+    @Test fun `default cadence holds short advance without consuming the new reading`() = runTest {
+        val ads = mock<AutosensDataStore>()
+        whenever(iobCobCalculator.ads).thenReturn(ads)
+        whenever(ads.actualBg()).thenReturn(InMemoryGlucoseValue(500000L, 100.0))
+        whenever(loop.lastBgTriggeredRun).thenReturn(440000L)
+        val data = dataWith(true)
+        whenever(workflowChainData.postFor(any(), any())).thenReturn(data)
+        assertThat(run()).isEqualTo(WorkOutcome.Success)
+        verify(loop, never()).invoke(any(), any(), any())
+        verify(loop, never()).lastBgTriggeredRun = 500000L
+        verify(ads, never()).actualBgNative()
     }
 }

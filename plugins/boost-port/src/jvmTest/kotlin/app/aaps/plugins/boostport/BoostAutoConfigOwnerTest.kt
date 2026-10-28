@@ -70,12 +70,50 @@ class BoostAutoConfigOwnerTest {
                 "getBgReadingsDataFromTimeToTime" -> List(readings) { i -> GV(timestamp = now - i * 60_000L,
                     value = when { i < severe54 -> 50.0; i < low70 -> 65.0; else -> 120.0 }, raw = 0.0,
                     trendArrow = TrendArrow.NONE, noise = null, sourceSensor = SourceSensor.UNKNOWN) }
+                "getApsResults" -> emptyList<app.aaps.core.interfaces.aps.APSResult>()
                 else -> error("unexpected DB $name")
             }
         }
     }
     private fun owner(d: Disk, h: History) = BoostAutoConfigOwner(d.api, h.db, h.tdd) { "iso-$it" }
     private fun resolved(d: Disk, key: String) = d.values[BoostAutoConfigOwner.resolved(key)] == true
+
+    @Test fun writtenLedgerSurvivesRestartAndPreservesManualComputedCaps(): Unit = runBlocking {
+        val d = Disk(); val h = History()
+        owner(d, h).evaluate(now, 3.0, 5.0)
+        assertTrue(d.values[BoostAutoConfigOwner.WRITTEN].toString().contains(Knob.ApsBoostCumulativeSmbCap60Min.key))
+        d.values[Knob.ApsBoostCumulativeSmbCap60Min.key] = Knob.ApsBoostCumulativeSmbCap60Min.defaultValue
+        d.values[Knob.ApsBoostV5PrimerCapU.key] = 0.0
+        h.dose = 40.0
+        owner(d, h).evaluate(now + 7 * 86_400_000L, 3.0, 5.0)
+        assertEquals(Knob.ApsBoostCumulativeSmbCap60Min.defaultValue, d.values[Knob.ApsBoostCumulativeSmbCap60Min.key])
+        assertEquals(0.0, d.values[Knob.ApsBoostV5PrimerCapU.key])
+        assertTrue(d.values[BoostApsSettingKeys.ApsBoostV5RedriveSummary.key].toString().contains("kept-CumulativeSmbCap60Min"))
+    }
+
+    @Test fun weeklySwitchAndRouteTightenImmediatelyAndRequireTwoWindowsToLoosen(): Unit = runBlocking {
+        val d = Disk(); val h = History()
+        owner(d, h).evaluate(now, 3.0, 5.0)
+        val aec = BoostApsSettingKeys.ApsBoostV5AggressiveEarlyConfirm.key
+        val route = BoostApsSettingKeys.ApsBoostV5PrimerTbrFallback.key
+        assertEquals(true, d.values[aec]); assertEquals(false, d.values[route])
+        h.low70 = 90; h.severe54 = 20
+        owner(d, h).evaluate(now + 7 * 86_400_000L, 3.0, 5.0)
+        assertEquals(false, d.values[aec]); assertEquals(true, d.values[route])
+        h.low70 = 0; h.severe54 = 0
+        owner(d, h).evaluate(now + 14 * 86_400_000L, 3.0, 5.0)
+        assertEquals(false, d.values[aec]); assertEquals(true, d.values[route])
+        owner(d, h).evaluate(now + 21 * 86_400_000L, 3.0, 5.0)
+        assertEquals(true, d.values[aec]); assertEquals(false, d.values[route])
+    }
+
+    @Test fun malformedWrittenLedgerRejectsWithoutAnyWrite(): Unit = runBlocking {
+        val d = Disk(); val h = History()
+        d.values[BoostAutoConfigOwner.WRITTEN] = "broken"
+        val before = d.values.toMap()
+        assertFails { owner(d, h).evaluate(now, 3.0, 5.0) }
+        assertEquals(before, d.values); assertEquals(0, d.commits)
+    }
 
     @Test fun insufficientHistoryKeepsKnobsOpenAndRetriesWithoutInventedSettings() = runBlocking {
         val d = Disk(); val h = History().apply { days = 6 }
@@ -204,3 +242,4 @@ class BoostAutoConfigOwnerTest {
         assertTrue(d.values.isEmpty())
     }
 }
+

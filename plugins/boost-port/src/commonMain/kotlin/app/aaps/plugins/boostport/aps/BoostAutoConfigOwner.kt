@@ -17,6 +17,8 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
     private val historySync: BoostHistorySyncOwner? = null,
     private val iso: (Long) -> String) {
     companion object {
+        const val WRITTEN = "boost_v5_autoconfig_written"
+        const val SUMMARY = "boost_v5_autoconfig_summary"
         const val SCHEMA = "boost_v5_autoconfig_schema_version"
         const val REDRIVE_SCHEMA = "boost_v5_redrive_schema_version"
         const val LAST_REDRIVE = "boost_v5_autoconfig_last_redrive_ms"
@@ -24,7 +26,8 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
         val booleanKeys = listOf(BoostApsSettingKeys.ApsBoostV5FastCarbConfirm,
             BoostApsSettingKeys.ApsBoostV5AggressiveEarlyConfirm, BoostApsSettingKeys.ApsBoostV5VelocityBudgetActive,
             BoostApsSettingKeys.ApsBoostV5PrimerTbrFallback)
-        val ownedKeys = listOf(BoostApsSettingKeys.IntValue(SCHEMA, 0),
+        val ownedKeys = listOf(BoostApsSettingKeys.StringValue(WRITTEN, ""), BoostApsSettingKeys.StringValue(SUMMARY, ""),
+            BoostApsSettingKeys.IntValue(SCHEMA, 0),
             BoostApsSettingKeys.IntValue(REDRIVE_SCHEMA, 0), BoostApsSettingKeys.LongValue(LAST_REDRIVE, 0L)) +
             (Apply.managedDoubleKeys.map { it.key } + booleanKeys.map { it.key }).map {
                 BoostApsSettingKeys.BooleanValue(resolved(it), false) }
@@ -52,6 +55,9 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
         fun writeLedger(key: String, values: Map<String, Double>) {
             pending[key] = JsonObject(values.mapValues { JsonPrimitive(it.value) }).toString()
         }
+        val written = ledger(WRITTEN)
+        val awaiting = ledger(BoostApsSettingKeys.ApsBoostV5AutoConfigPending.key)
+        fun record(key: String, value: Double) { require(value.isFinite()); written[key] = value }
         if (store.getInt(REDRIVE_SCHEMA, 0) < Derive.REDRIVE_SCHEMA_VERSION) {
             pending[LAST_REDRIVE] = 0L
             pending[REDRIVE_SCHEMA] = Derive.REDRIVE_SCHEMA_VERSION
@@ -72,16 +78,24 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
             val profile = gather(now, Derive.LOOKBACK_DAYS, maxIob, maxBolus)
             Derive.compute(profile)?.let { suggestion ->
                 val res = Apply.applyAutoConfig(suggestion, profile.tbrBelow70Pct, profile.timeBelow54Pct,
-                    { done(it.key) }, { number(it.key) }, { k, v -> pending[k.key] = v }, { mark(it.key) })
+                    { done(it.key) }, { number(it.key) }, { k, v -> pending[k.key] = v }, { mark(it.key) },
+                    { written[it.key] }, { k, v -> record(k.key, v) })
                 applied += res.count { it.outcome == Apply.Outcome.APPLIED }
                 held += res.count { it.outcome == Apply.Outcome.SUGGESTED_NOT_APPLIED_TBR }
                 val values = listOf(suggestion.fastCarbConfirm, suggestion.aggressiveEarlyConfirm,
                     suggestion.velocityBudgetFloor, suggestion.primerTbrFallback)
+                pending[SUMMARY] = res.joinToString(",") { "${it.key.name}=${it.outcome}:${it.operativeValue}" } +
+                    res.lastOrNull { it.key == Knob.ApsBoostV5TrancheThreshold }?.let { "," + Apply.trancheBreadcrumb(it, suggestion.tranche) }.orEmpty()
                 booleanKeys.zip(values).forEach { (k, v) ->
                     if (!done(k.key)) {
                         if (!store.contains(k.key) || flag(k.key) == k.defaultValue) {
                             pending[k.key] = v
+                            record(k.key, if (v) 1.0 else 0.0)
                             if (v != k.defaultValue) applied++
+                        } else if (k == BoostApsSettingKeys.ApsBoostV5FastCarbConfirm ||
+                            k == BoostApsSettingKeys.ApsBoostV5AggressiveEarlyConfirm ||
+                            k == BoostApsSettingKeys.ApsBoostV5PrimerTbrFallback) {
+                            record(k.key, Apply.SWITCH_USER_SET_MARK)
                         }
                         mark(k.key)
                     }
@@ -105,26 +119,54 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
                         "$prefix,skip=INSUFFICIENT_HISTORY,days=${profile.daysWithData},bg=${profile.bgReadingCount}"
                 } else {
                     val baseline = ledger(BoostApsSettingKeys.ApsBoostV5RedriveBaseline.key)
-                    val awaiting = ledger(BoostApsSettingKeys.ApsBoostV5AutoConfigPending.key)
                     val operativeBefore = Apply.managedDoubleKeys.associateWith { number(it.key) ?: it.defaultValue }
                     val res = Apply.redrive(suggestion, profile.tbrBelow70Pct, profile.timeBelow54Pct,
                         { number(it.key) }, { baseline[it.key] }, { awaiting[it.key] },
                         { k, v -> pending[k.key] = v }, { k, v -> baseline[k.key] = v },
-                        { k, v -> if (v == null) awaiting.remove(k.key) else awaiting[k.key] = v })
+                        { k, v -> if (v == null) awaiting.remove(k.key) else awaiting[k.key] = v },
+                        { written[it.key] }, { k, v -> record(k.key, v) })
+                    fun previous(key: String) = awaiting[key]?.let { it >= 0.5 }
+                    fun verdict(key: String, value: Boolean?) { if (value == null) awaiting.remove(key) else awaiting[key] = if (value) 1.0 else 0.0 }
+                    val routeKey = BoostApsSettingKeys.ApsBoostV5PrimerTbrFallback
+                    val route = if (written[routeKey.key] == Apply.SWITCH_USER_SET_MARK)
+                        Apply.RouteResolution(Apply.Outcome.KEPT_USER_TUNED, flag(routeKey.key), "kept:user-set primer route")
+                    else Apply.resolvePrimerRoute(!suggestion.primerTbrFallback, profile.bgReadingCount,
+                        previous(Apply.PRIMER_ROUTE_PREV_WC_KEY),
+                        if (store.contains(routeKey.key) || pending.containsKey(routeKey.key)) flag(routeKey.key) else null,
+                        written[routeKey.key]?.let { it >= 0.5 }, { pending[routeKey.key] = it },
+                        { record(routeKey.key, if (it) 1.0 else 0.0) }, { verdict(Apply.PRIMER_ROUTE_PREV_WC_KEY, it) })
+                    val raiseGuard = profile.tbrBelow70Pct > Apply.TBR_RAISE_GUARD_PCT || profile.timeBelow54Pct >= Apply.TBR54_RAISE_GUARD_PCT
+                    val switches = listOf(BoostApsSettingKeys.ApsBoostV5AggressiveEarlyConfirm to suggestion.aggressiveEarlyConfirm,
+                        BoostApsSettingKeys.ApsBoostV5FastCarbConfirm to suggestion.fastCarbConfirm).map { (key, allowed) ->
+                        val verdictKey = Apply.switchPreviousVerdictKey(key.key)
+                        val outcome = Apply.resolveInsulinAddingSwitch(allowed, raiseGuard, profile.bgReadingCount,
+                            previous(verdictKey), if (store.contains(key.key) || pending.containsKey(key.key)) flag(key.key) else null,
+                            key.defaultValue, written[key.key]?.takeIf { it >= 0 }?.let { it >= 0.5 },
+                            written[key.key] == Apply.SWITCH_USER_SET_MARK, { pending[key.key] = it },
+                            { record(key.key, if (it) 1.0 else 0.0) }, { verdict(verdictKey, it) })
+                        Apply.switchBreadcrumb(key.key, outcome, allowed) to outcome
+                    }
                     writeLedger(BoostApsSettingKeys.ApsBoostV5RedriveBaseline.key, baseline)
                     writeLedger(BoostApsSettingKeys.ApsBoostV5AutoConfigPending.key, awaiting)
                     val changed = res.filter { it.outcome == Apply.Outcome.REDRIVEN }
                     val blocked = res.filter { it.outcome == Apply.Outcome.SUGGESTED_NOT_APPLIED_TBR }
                     val retired = res.filter { it.outcome == Apply.Outcome.RETIRED_USER_EDITED }
-                    redriven = changed.size
-                    held += blocked.size
+                    redriven = changed.size + (if (route.outcome == Apply.Outcome.REDRIVEN) 1 else 0) +
+                        switches.count { it.second.outcome == Apply.Outcome.REDRIVEN }
+                    held += blocked.size + switches.count { it.second.outcome == Apply.Outcome.SUGGESTED_NOT_APPLIED_TBR }
                     fun short(k: Knob) = k.name.removePrefix("ApsBoostV5").removePrefix("ApsBoost")
                     pending[BoostApsSettingKeys.ApsBoostV5RedriveSummary.key] = "$prefix,ev=${res.size},ch=${changed.size}" +
                         changed.joinToString("") { ",${short(it.key)}:${it.operativeValue}" } +
                         blocked.joinToString("") { ",held-${short(it.key)}:${it.suggestedValue}" } +
-                        retired.joinToString("") { ",retired-${short(it.key)}" }
-                    if (changed.isNotEmpty() || blocked.isNotEmpty()) {
-                        val line = changed.joinToString("; ") { "${short(it.key)} ${it.suggestedValue} (was ${operativeBefore.getValue(it.key)})" }
+                        retired.joinToString("") { ",retired-${short(it.key)}" } +
+                        res.filter { it.outcome == Apply.Outcome.KEPT_USER_TUNED }.joinToString("") { ",kept-${short(it.key)}:${it.operativeValue}" } +
+                        "," + Apply.primerRouteBreadcrumb(route, !suggestion.primerTbrFallback) +
+                        switches.joinToString("") { ",${it.first}" } +
+                        res.lastOrNull { it.key == Knob.ApsBoostV5TrancheThreshold }?.let { "," + Apply.trancheBreadcrumb(it, suggestion.tranche) }.orEmpty()
+                    if (redriven > 0 || blocked.isNotEmpty()) {
+                        val line = changed.joinToString("; ") { "${short(it.key)} ${it.suggestedValue} (was ${operativeBefore.getValue(it.key)})" } +
+                            (if (route.outcome == Apply.Outcome.REDRIVEN) "; ${route.reason}" else "") +
+                            switches.filter { it.second.outcome == Apply.Outcome.REDRIVEN }.joinToString("") { "; ${it.first}" }
                         val entry = "${iso(now)} ${line.ifEmpty { "held only" }}"
                         pending[BoostApsSettingKeys.ApsBoostV5RedriveHistory.key] =
                             (listOf(entry) + text(BoostApsSettingKeys.ApsBoostV5RedriveHistory.key).split("\n")
@@ -133,10 +175,13 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
                 }
             }
         }
+        if (written != ledger(WRITTEN)) writeLedger(WRITTEN, written)
+        if (awaiting != ledger(BoostApsSettingKeys.ApsBoostV5AutoConfigPending.key))
+            writeLedger(BoostApsSettingKeys.ApsBoostV5AutoConfigPending.key, awaiting)
         currentCoroutineContext().ensureActive()
         if (pending.isNotEmpty()) {
             val watched = pending.keys + Apply.managedDoubleKeys.map { it.key } + booleanKeys.map { it.key } +
-                listOf(BoostApsSettingKeys.ApsBoostV5RedriveBaseline.key, BoostApsSettingKeys.ApsBoostV5AutoConfigPending.key)
+                listOf(WRITTEN, SUMMARY, BoostApsSettingKeys.ApsBoostV5RedriveBaseline.key, BoostApsSettingKeys.ApsBoostV5AutoConfigPending.key)
             val current = store.getAll()
             check(watched.all { original[it] == current[it] }) { "Boost config settings changed while reading history" }
         }
@@ -183,10 +228,16 @@ internal class BoostAutoConfigOwner(private val store: KeyValueStore,
             boluses.filter { it.type == BS.Type.SMB && it.amount > 0 }.map { it.amount },
             if (n > 0) 100.0 * bgs.count { it.value >= 1 && it.value < 70 } / n else 0.0,
             if (n > 0) 100.0 * bgs.count { it.value >= 1 && it.value < 54 } / n else 0.0,
-            if (n > 0) bgs.sumOf { it.value } / n else 0.0, maxIob, maxBolus)
+            if (n > 0) bgs.sumOf { it.value } / n else 0.0, maxIob, maxBolus, tranche =
+                if (amounts.size >= Derive.MIN_DAYS && n >= Derive.MIN_BG_READINGS) {
+                    try { BoostTrancheHistoryReader(persistence).read(now) }
+                    catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                    catch (_: Exception) { null }
+                } else null)
     }
 }
 
 /** Presentation counts; canonical source policy reasons remain in the persisted ledgers. */
 data class BoostAutoConfigNotice(val applied: Int, val redriven: Int, val held: Int)
+
 

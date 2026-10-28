@@ -28,6 +28,8 @@ class GlucoseStatusTestSMB : TestBaseWithProfile() {
     fun prepare() {
         whenever(dateUtil.now()).thenReturn(1514766900000L + T.mins(1).msecs())
         whenever(iobCobCalculator.ads).thenReturn(autosensDataStore)
+        // Baseline cases exercise the legacy-series fallback explicitly; Mockito otherwise supplies an empty list.
+        whenever(autosensDataStore.getBucketedDataNativeTableCopy()).thenReturn(null)
     }
 
     @Test fun toStringShouldBeOverloaded() {
@@ -110,5 +112,18 @@ class GlucoseStatusTestSMB : TestBaseWithProfile() {
         val list: MutableList<InMemoryGlucoseValue> = ArrayList()
         list.add(InMemoryGlucoseValue(value = 214.0, timestamp = 1514766900000, trendArrow = TrendArrow.FLAT, sourceSensor = SourceSensor.UNKNOWN))
         return list
+    }
+
+    @Test fun nativeMinuteReadingsKeepFiveMinuteDeltaUnits() {
+        val now = dateUtil.now()
+        whenever(autosensDataStore.getBucketedDataNativeTableCopy()).thenReturn(
+            (0..45).map { InMemoryGlucoseValue(now - it * 60_000L, 100.0 + it) }.toMutableList())
+        val status = GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, deltaCalculator)
+            .getGlucoseStatusData(false)!!
+        assertThat(status.date).isEqualTo(now)
+        assertThat(status.glucose).isEqualTo(100.0)
+        assertThat(status.delta).isWithin(0.001).of(-5.0)
+        assertThat(status.shortAvgDelta).isWithin(0.001).of(-5.0)
+        assertThat(status.longAvgDelta).isWithin(0.001).of(-5.0)
     }
 }

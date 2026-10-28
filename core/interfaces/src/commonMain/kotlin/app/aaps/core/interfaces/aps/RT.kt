@@ -52,6 +52,8 @@ data class RT(
 
     var carbRatioReason: String? = null,
     var boostTier: String? = null,
+    var boostV5_active: Boolean? = null,
+    var boostV5_state: String? = null,
     var boostActive: Boolean? = null,
     var fastCarbProtection: Boolean? = null,
     var dynamicISF: Double? = null,
@@ -171,4 +173,5 @@ data class RT(
         fun deserialize(jsonString: String) = serializer.decodeFromString(serializer(), jsonString)
     }
 }
+
 

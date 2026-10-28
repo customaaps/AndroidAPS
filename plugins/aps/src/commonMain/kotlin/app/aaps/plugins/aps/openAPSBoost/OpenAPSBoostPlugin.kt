@@ -314,7 +314,8 @@ class OpenAPSBoostPlugin(
                 runningMode == RM.Mode.DISCONNECTED_PUMP || runningMode == RM.Mode.SUSPENDED_BY_PUMP,
                 runningMode.pausesLoopExecution() && runningMode != RM.Mode.DISCONNECTED_PUMP && runningMode != RM.Mode.SUSPENDED_BY_PUMP,
                 switched, originalProfileTargetMgDl = originalTargetMgDl,
-                maxBolusAllowed = constraintsChecker.getMaxBolusAllowed().value())
+                maxBolusAllowed = constraintsChecker.getMaxBolusAllowed().value(),
+                cycleSpacingMinutes = iobCobCalculator.ads.detectedCadenceMinutes)
             when (val calculated = owner.calculate(request)) {
                 is BoostApsCalculator.Result.Rejected -> {
                     aapsLogger.error(LTag.APS, calculated.reason)
@@ -377,7 +378,7 @@ class OpenAPSBoostPlugin(
         title = ApsStrings.openapsboost,
         items = BoostApsPreferenceKeys.sections() + listOf(
             PreferenceSubScreenDef("boost_settings_common", ApsStrings.boost_settings_common,
-                listOf(DoubleKey.ApsMaxBasal, DoubleKey.ApsSmbMaxIob, BooleanKey.ApsUseSmb,
+                listOf(BooleanKey.ApsLoopAtNativeCadence, DoubleKey.ApsMaxBasal, DoubleKey.ApsSmbMaxIob, BooleanKey.ApsUseSmb,
                     BooleanKey.ApsUseSmbAlways, BooleanKey.ApsUseSmbWithCob, BooleanKey.ApsUseSmbWithLowTt,
                     BooleanKey.ApsUseSmbWithHighTt, BooleanKey.ApsUseSmbAfterCarbs, BooleanKey.ApsUseUam,
                     IntKey.ApsMaxSmbFrequency, IntKey.ApsMaxMinutesOfBasalToLimitSmb,
