@@ -17,7 +17,8 @@ dependencies {
     implementation(project(":core:utils"))
     implementation(project(":core:ui"))
     implementation(project(":pump:common"))
-    implementation(libs.joda.time)
+    // Match the app's Android Joda variant; the plain jar duplicates its no-tzdb classes.
+    implementation(libs.net.danlew.android.joda)
     implementation(libs.io.reactivex.rxjava3.rxkotlin)
     implementation(libs.io.reactivex.rxjava3.rxandroid)
     implementation(libs.kotlinx.coroutines.rx3)
