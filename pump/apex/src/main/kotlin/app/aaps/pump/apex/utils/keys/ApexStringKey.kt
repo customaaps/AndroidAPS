@@ -1,5 +1,6 @@
 package app.aaps.pump.apex.utils.keys
 
+import app.aaps.core.keys.PreferenceType
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.keys.interfaces.ElementVisibility
 import app.aaps.core.keys.interfaces.StringValidator
@@ -44,6 +45,14 @@ enum class ApexStringKey(
     BolusSpeed("apex_bolus_speed", BolusDeliverySpeed.Standard.name),
     CalcBatteryType("apex_battery_type", BatteryType.Custom.name),
     FirmwareVer("apex_fw_ver", FirmwareVersion.AUTO.name);
+
+    // Static entries must use the list renderer; TEXT_FIELD ignores their labels and choices.
+    // Firmware entries are supplied by ApexPumpPlugin for the current engineering mode.
+    override val preferenceType: PreferenceType
+        get() = when (this) {
+            AlarmSoundLength, BolusSpeed, CalcBatteryType, FirmwareVer -> PreferenceType.LIST
+            else -> PreferenceType.TEXT_FIELD
+        }
 
     override val title: TextRef
         get() = when (this) {

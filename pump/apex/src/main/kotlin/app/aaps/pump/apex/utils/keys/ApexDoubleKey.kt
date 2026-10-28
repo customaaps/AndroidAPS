@@ -1,5 +1,6 @@
 package app.aaps.pump.apex.utils.keys
 
+import app.aaps.core.keys.UnitType
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.keys.interfaces.ElementVisibility
 import app.aaps.pump.apex.R
@@ -26,6 +27,10 @@ enum class ApexDoubleKey(
     MaxBolus("apex_max_bolus", 0.0, 0.0, 25.0),
     BatteryLowVoltage("apex_low_batt_vtg", 1.2, 1.0, 1.8),
     BatteryHighVoltage("apex_high_batt_vtg", 1.5, 1.0, 1.8);
+
+    // These are decimal editors, including the pump's fractional insulin limits.
+    // NONE rounds the voltage to whole volts and gives a 1 V slider step.
+    override val unitType: UnitType = UnitType.DOUBLE_2
 
     override val title: TextRef
         get() = when (this) {
