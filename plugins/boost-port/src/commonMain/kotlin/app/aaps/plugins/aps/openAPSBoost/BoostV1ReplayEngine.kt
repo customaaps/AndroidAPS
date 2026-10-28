@@ -734,6 +734,7 @@ internal class BoostV1ReplayEngine(
         var minCOBPredBG = 999.0
         var minUAMPredBG = 999.0
         var minGuardBG: Double = bg
+        var minGuardBGSource = "IOB"
         var minCOBGuardBG = 999.0
         var minUAMGuardBG = 999.0
         var minIOBGuardBG = 999.0
@@ -931,19 +932,20 @@ internal class BoostV1ReplayEngine(
 
         if ((cid > 0.0 || remainingCIpeak > 0)) {
             if (enableUAM) {
-                minGuardBG = fractionCarbsLeft * minCOBGuardBG + (1 - fractionCarbsLeft) * minUAMGuardBG
+                minGuardBG = fractionCarbsLeft * minCOBGuardBG + (1 - fractionCarbsLeft) * minUAMGuardBG; minGuardBGSource = "COB+UAM"
             } else {
-                minGuardBG = minCOBGuardBG
+                minGuardBG = minCOBGuardBG; minGuardBGSource = "COB"
             }
         } else if (enableUAM) {
-            minGuardBG = minUAMGuardBG
+            minGuardBG = minUAMGuardBG; minGuardBGSource = "UAM"
         } else {
-            minGuardBG = minIOBGuardBG
+            minGuardBG = minIOBGuardBG; minGuardBGSource = "IOB"
         }
         minGuardBG = round(minGuardBG, 0)
         // Expose V1's computed minGuardBG on RT so V5's silent shadow can use the
         // same predicted-low V1 chose for its hard-gate evaluation.
         rT.minGuardBG = minGuardBG
+        rT.minGuardBGSource = minGuardBGSource
 
         var minZTUAMPredBG = minUAMPredBG
         if (minZTGuardBG < threshold) {
@@ -986,7 +988,7 @@ internal class BoostV1ReplayEngine(
         rT.reason.append(
             "COB: ${round(meal_data.mealCOB, 1).withoutZeros()}, Dev: ${convert_bg(deviation.toDouble())}, BGI: ${convert_bg(bgi)}, ISF: ${convert_bg(sens)}, CR: ${
                 round(carbRatio, 2).withoutZeros()
-            }, Target: ${convert_bg(target_bg)}, minPredBG ${convert_bg(minPredBG)}, minGuardBG ${convert_bg(minGuardBG)}, IOBpredBG ${convert_bg(lastIOBpredBG)}"
+            }, Target: ${convert_bg(target_bg)}, minPredBG ${convert_bg(minPredBG)}, minGuardBG ${convert_bg(minGuardBG)} ($minGuardBGSource), IOBpredBG ${convert_bg(lastIOBpredBG)}"
         )
         if (lastCOBpredBG != null) {
             rT.reason.append(", COBpredBG " + convert_bg(lastCOBpredBG.toDouble()))
@@ -1020,7 +1022,7 @@ internal class BoostV1ReplayEngine(
         }
 
         if (enableSMB && minGuardBG < threshold) {
-            consoleError.add("minGuardBG ${convert_bg(minGuardBG)} projected below ${convert_bg(threshold)} - disabling SMB")
+            consoleError.add("minGuardBG ${convert_bg(minGuardBG)} ($minGuardBGSource) projected below ${convert_bg(threshold)} - disabling SMB")
             enableSMB = false
         }
         // Boost uses 30% maxDelta threshold (vs 20% in standard)
@@ -1054,7 +1056,7 @@ internal class BoostV1ReplayEngine(
             rT.reason.append("IOB ${iob_data.iob} < ${round(-profile.current_basal * 20 / 60, 2)}")
             rT.reason.append(" and minDelta ${convert_bg(minDelta)} > expectedDelta ${convert_bg(expectedDelta)}; ")
         } else if (bg < threshold || minGuardBG < threshold) {
-            rT.reason.append("minGuardBG ${convert_bg(minGuardBG)} < ${convert_bg(threshold)}")
+            rT.reason.append("minGuardBG ${convert_bg(minGuardBG)} ($minGuardBGSource) < ${convert_bg(threshold)}")
             bgUndershoot = target_bg - minGuardBG
             val worstCaseInsulinReq = bgUndershoot / sens
             var durationReq = round(60 * worstCaseInsulinReq / profile.current_basal)

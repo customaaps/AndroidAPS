@@ -29,26 +29,31 @@ mg/dL, equal to the target's default; the explicit target trial remains separate
 This eligibility block retires the fixed Boost clock window and brings current
 night/sleep/learned-lie-in/genuine-wake policy into the active owner.
 
-## Remaining diagnostic parity
+## Diagnostic transfer and target adaptations
 
-The persisted live ISF-EMA and VWA-TDD counterfactual shadows are still represented
-by pure helpers, rather than source live state plus Nightscout fields. The source
-V1 minGuard curve-name breadcrumbs and boostVersion configuration metadata also
-remain different. These are actual trace/telemetry gaps, not evidence that the
-entire source has been copied. Existing target Overview/Wear/platform UI is reused
-rather than replaced with source widgets. Device tests of selected Boost/Loop and
-real sensor/pump timing remain separate from JVM/host/build verification.
+The live persisted ISF-EMA and VWA-TDD comparisons, RT/Nightscout fields, V1 guard
+curve-name breadcrumbs and source-version metadata are connected in the
+[diagnostic transfer](APS_DIAGNOSTICS_62_20261029.md). These fields never feed the
+engine's ISF, CR, SMB, basal or standard Loop constraints. ISF/EMA uses the already
+captured target preparation; VWA retains source curve/history arithmetic.
+
+The target removed the legacy devicestatus configuration piggyback. Boost version
+identity therefore travels in every RT and the separate running-config settings
+document. Clients do not apply it as a preference. Existing target Overview/Wear/
+platform UI is retained. The user's device checks of selection/settings/calculation
+were reported successful on 28 October; this is distinct from controlled validation
+of actual sensor/pump delivery timing and from JVM/host/build verification.
 
 | Source unit | Target entry point | Status |
 |---|---|---|
-| `BoostIsfShadow.kt` | `BoostV1IsfShadowCalculation.kt` | diagnostic_partial |
+| `BoostIsfShadow.kt` | `BoostIsfDiagnosticOwner.kt` | adapted_diagnostic |
 | `BoostMealModel.kt` | `V1ReplayTreeModels.kt` | adapted |
 | `BoostMlFeatureBuilder.kt` | `V1ReplayFeatures.kt` | adapted |
 | `BoostRiskModel.kt` | `V1ReplayTreeModels.kt` | adapted |
 | `BoostV1SafetyRules.kt` | `BoostV1SafetyRules.kt` | adapted |
-| `BoostVwaTddShadow.kt` | `BoostVwaTddShadowMath.kt` | diagnostic_partial |
+| `BoostVwaTddShadow.kt` | `BoostVwaTddDiagnostic.kt` | adapted_diagnostic |
 | `DailyStepHistoryTracker.kt` | `DailyStepHistoryTracker.kt` | adapted |
-| `DetermineBasalBoost.kt` | `BoostV1ReplayEngine.kt` | adapted_with_diagnostic_gap |
+| `DetermineBasalBoost.kt` | `BoostV1ReplayEngine.kt` | adapted |
 | `DeviceAgeTag.kt` | `DeviceAgeTag.kt` | adapted |
 | `HealthConnectHrIngest.kt` | `BoostHealthConnectIngest.kt` | adapted |
 | `HealthConnectPermissionActivity.kt` | `BoostDataPermissionsActivity.kt` | adapted |
@@ -58,7 +63,7 @@ real sensor/pump timing remain separate from JVM/host/build verification.
 | `HrSourceResolver.kt` | `HrSourceResolver.kt` | adapted |
 | `MealTimeLearner.kt` | `MealTimeLearner.kt` | adapted |
 | `NightWindow.kt` | `NightWindow.kt` | adapted |
-| `OpenAPSBoostPlugin.kt` | `OpenAPSBoostPlugin.kt` | adapted_with_diagnostic_gap |
+| `OpenAPSBoostPlugin.kt` | `OpenAPSBoostPlugin.kt` | adapted |
 | `SleepHistoryTracker.kt` | `SleepHistoryTracker.kt` | adapted |
 | `SleepStateDetector.kt` | `SleepStateDetector.kt` | adapted |
 | `StepFeed.kt` | `StepFeed.kt` | adapted |

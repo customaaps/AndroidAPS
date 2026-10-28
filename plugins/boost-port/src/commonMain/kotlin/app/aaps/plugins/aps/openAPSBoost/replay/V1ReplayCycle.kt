@@ -23,6 +23,7 @@ internal data class V1ReplayCycle(
     val recentLowBG45Min: Double,
     val timeSinceLastSmbMin: Double,
     val postRescueTightRampCap: Double?,
+    val diagnosticInput: BoostIsfDiagnosticInput? = null,
 ) {
     fun calculate(
         engine: BoostV1ReplayEngine,
@@ -37,3 +38,7 @@ internal data class V1ReplayCycle(
         timeSinceLastSmbMin = timeSinceLastSmbMin, postRescueTightRampCap = postRescueTightRampCap,
     )
 }
+
+/** Captured preparation only, never read back by the engine. */
+internal data class BoostIsfDiagnosticInput(val parts: BoostTddParts, val isf: BoostIsfPreparationResult,
+    val settings: BoostIsfSettings)

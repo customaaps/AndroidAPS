@@ -89,6 +89,12 @@ class RunningConfigurationImpl(
             // doc, which is sent when they change. The hot doc is sent only when the scene changes.
             put("usedAutosensOnMainPhone", constraintsChecker.isAutosensModeEnabled().value())
             put("version", config.VERSION_NAME)
+            // Read-only, computed by the selected APS. Never applied as a preference on a client.
+            val apsMetadata = activePlugin.activeAPS?.configurationMetadata().orEmpty()
+            if (apsMetadata.isNotEmpty()) put("apsConfiguration", buildJsonObject {
+                apsMetadata.forEach { (key, value) -> put(key, value) }
+                put("boostPortBuild", config.VERSION_NAME)
+            })
         }
     }
 

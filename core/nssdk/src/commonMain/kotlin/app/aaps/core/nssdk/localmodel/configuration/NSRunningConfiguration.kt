@@ -30,7 +30,9 @@ data class NSRunningConfiguration(
     // Whether autosens is in use on the master, computed there from cold settings. In the cold doc, because the hot doc
     // ([activeScene], [eatReminder]) is sent only when one of them changes.
     val usedAutosensOnMainPhone: Boolean? = null,
-    val authorizedClients: NSAuthorizedClients? = null
+    val authorizedClients: NSAuthorizedClients? = null,
+    // Display/trace only: never imported as operative settings.
+    val apsConfiguration: Map<String, String>? = null
 )
 
 /**

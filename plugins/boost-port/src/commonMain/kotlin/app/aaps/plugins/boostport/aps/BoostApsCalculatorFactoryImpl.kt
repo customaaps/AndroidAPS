@@ -59,6 +59,7 @@ class BoostApsCalculatorFactoryImpl(
                 else app.aaps.core.data.model.TE.Type.INSULIN_CHANGE)?.takeIf { it.isValid }?.timestamp
         }
         private val needOwner = BoostInsulinNeedOwner(storage, persistence, tdd, dateUtil::beginOfDay)
+        private val diagnostics = BoostIsfDiagnosticOwner(storage, tdd)
         private val hrDark = HrFeedDarkTracker()
         private var session: BoostReplaySession? = null
         private var previousMealLikelihood: Double? = null
@@ -190,6 +191,9 @@ class BoostApsCalculatorFactoryImpl(
                         if (!calculated.persistence.persisted) return@cycle BoostApsCalculator.Result.Rejected(
                             calculated.persistence.problem ?: "Boost state was not saved")
                         val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, effectiveInput)
+                        try { diagnostics.complete(result, calculated.frame.v1, cycle.diagnosticInput, input.atMs) }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (_: Exception) { result.reason.append("Boost ISF/TDD diagnostics unavailable; ") }
                         result.boostV5_active = v5.activeMode && calculated.frame.v5 != null
                         result.boostV5_state = calculated.frame.v5?.mealHypothesis?.name
                         try { result.reason.append(deviceAgeTag.tag(input.atMs)) }

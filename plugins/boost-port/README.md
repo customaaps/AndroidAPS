@@ -23,6 +23,8 @@ Boost V2 and V7 remain excluded.
 - Boost 6.2 automatic configuration, value ownership, weekly switch/primer-route
   resolution and personalized tranche history; bounded initial repair through Nightscout.
 - Boost 6.2 device-age telemetry and daily insulin-need diagnostics.
+- Persisted read-only ISF-EMA/VWA-TDD comparisons, minGuard curve traces and
+  source-version metadata in RT/Nightscout running configuration.
 - The source live 14-day TBR gate for aggressive early confirmation, shared
   with the composed and velocity-budget floors.
 - Native CGM history/deltas, sensor-cadence sleep telemetry and an opt-in global
@@ -42,9 +44,16 @@ night/sleep/learned-lie-in/genuine-wake conditions. Standard Loop constraints,
 target StepFeed hardening and raw import/export keys are preserved.
 
 The [source inventory](SOURCE_TARGET_INVENTORY_20261028.md) accounts for all 39
-implementation units and four matching model/metadata assets. It records remaining
-ISF/VWA-TDD live shadow, guard-curve trace and source version-metadata gaps; mapping
-all files is not a claim of complete diagnostic or clinical parity.
+implementation units and four matching model/metadata assets. The subsequent
+[diagnostic transfer](APS_DIAGNOSTICS_62_20261029.md) connects the live ISF/VWA-TDD
+comparisons, guard traces and version metadata. Mapping all files remains distinct
+from behavioral and clinical validation; target platform and ISF/CR adaptations
+are recorded explicitly.
+
+The subsequent [diagnostic transfer](APS_DIAGNOSTICS_62_20261029.md) connects the
+remaining source counterfactuals, guard traces and version identity. Its full CI
+result was pending at publication; the preceding test/APK counts do not validate
+that new patch. The already-running CI builds its APK separately from the tests.
 
 The earlier [sleep checkpoint](APS_SLEEP_FRESHNESS_62_20261028.md) records 1414 JVM
 and 137 Android tests. The [activation checkpoint](APS_ACTIVATION_20261028.md)
@@ -82,13 +91,14 @@ See [APS integration](APS_INTEGRATION_20261027.md), the
 Older reports record their own historical validation state; they must not be
 read as proof that later changes passed.
 
-## Remaining work
+## Device validation and intended differences
 
-1. Verify selected Boost V6 calculations and standard Loop interaction on a device.
-2. Validate native-cadence operation with real CGM/pump timing. Host/device/Apple
-   tests remain distinct from JVM tests and APK builds.
-3. Complete remaining source diagnostic parity: live ISF/VWA-TDD shadows, guard
-   curve-name breadcrumbs and source-specific Boost version upload metadata.
+The user reported Boost selection, settings and calculation checks as working on
+28 October 2026. Real CGM/pump delivery timing and clinical validation remain
+separate from those checks and from JVM/host/build results. The source V1/V5/V6
+scope in the inventory is implemented with explicit target adaptations: Dmitry's
+ISF/Autosens order, shared Dynamic CR, target defensive checks and platform UI
+remain. V2/V7 and their experimental instrumentation remain excluded.
 
 The base archive remains the 114 original source blobs pinned in
 [SOURCE_MANIFEST.md](SOURCE_MANIFEST.md); it is not rewritten as later features

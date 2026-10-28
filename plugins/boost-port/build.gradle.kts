@@ -13,6 +13,7 @@ val generateV1Reference = tasks.register<Exec>("generateV1ReplayReference") {
     inputs.file("tools/night_mode_sources.py")
     inputs.file("tools/sleep_telemetry_sources.py")
     inputs.file("tools/auto_config_sources.py")
+    inputs.file("tools/diagnostic_sources.py")
     inputs.dir("port-source/6.2.0")
     inputs.file("legacy-snapshot/plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoostV5/DetermineBasalBoostV5.kt.source")
     inputs.file("port-source/BoostApsKeyDefaults.json.source")

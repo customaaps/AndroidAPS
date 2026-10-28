@@ -32,6 +32,7 @@ internal data class BoostIsfPreparationResult(
     val ratio: Double,
     val tdd: Double,
     val isfDebug: String,
+    val shadowEligible: Boolean = false,
 )
 
 /** Explicit read boundary using the target KMP API. No wall-clock or persisted writes. */

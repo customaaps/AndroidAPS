@@ -38,7 +38,9 @@ internal object BoostApsResultMapper {
             insulinReqPctEffective = source.insulinReqPctEffective, deltaAcceleration = source.deltaAcceleration,
             boostProfileSwitch = source.boostProfileSwitch, mlHypoRisk = source.mlHypoRisk,
             mlMealLikely = source.mlMealLikely, minGuardBG = source.minGuardBG,
+            minGuardBGSource = source.minGuardBGSource, boostVersion = BoostSourceVersion.VALUE,
             consoleLog = source.consoleLog?.toMutableList(), consoleError = source.consoleError?.toMutableList(),
         )
     }
 }
+

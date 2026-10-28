@@ -23,6 +23,7 @@ internal class SourceJsonObject private constructor(private val values: MutableM
         is JsonPrimitive -> value.content
         else -> value.toString()
     }
+    fun optDouble(key: String, fallback: Double): Double = values[key]?.let { runCatching { number(it).toDouble() }.getOrNull() } ?: fallback
     fun getJSONArray(key: String): SourceJsonArray = SourceJsonArray(values.getValue(key) as JsonArray)
     fun getJSONObject(key: String): SourceJsonObject = SourceJsonObject(values.getValue(key) as JsonObject)
     fun optJSONArray(key: String): SourceJsonArray? = (values[key] as? JsonArray)?.let(::SourceJsonArray)
@@ -46,6 +47,7 @@ internal class SourceJsonArray private constructor(private val values: MutableLi
     fun length(): Int = values.size
     fun getLong(index: Int): Long = number(values[index]).toLong()
     fun getInt(index: Int): Int = number(values[index]).toInt()
+    fun optDouble(index: Int, fallback: Double): Double = values.getOrNull(index)?.let { runCatching { number(it).toDouble() }.getOrNull() } ?: fallback
     fun getJSONArray(index: Int): SourceJsonArray = SourceJsonArray(values[index] as JsonArray)
     fun getJSONObject(index: Int): SourceJsonObject = SourceJsonObject(values[index] as JsonObject)
     internal fun json(): JsonArray = JsonArray(values.toList())

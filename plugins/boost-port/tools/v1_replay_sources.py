@@ -15,6 +15,7 @@ import activity_sources
 import night_mode_sources
 import sleep_telemetry_sources
 import auto_config_sources
+import diagnostic_sources
 from pathlib import Path
 
 MODULE = Path(__file__).resolve().parents[1]
@@ -64,7 +65,7 @@ import {REPLAY}.V1ReplayMealModel as BoostMealModel
 
 
 def portable(source):
-    s = boundaries(source)
+    s = boundaries(diagnostic_sources.guard_traces(source))
     s = s.replace('import java.text.DecimalFormat\n', '').replace('import java.time.Instant\n', '').replace('import java.time.ZoneId\n', '')
     s = s.replace('import kotlin.math.abs', f'import {REPLAY}.V1ReplayFeatures as BoostMlFeatureBuilder\nimport kotlin.math.floor\nimport kotlin.math.roundToLong\nimport kotlin.math.abs')
     a = s.index('    /**\n     * Restore the lookback ring buffer')
@@ -94,7 +95,7 @@ def portable(source):
 
 
 def reference(source):
-    s = boundaries(source, reference=True)
+    s = boundaries(diagnostic_sources.guard_traces(source), reference=True)
     return s.replace('package app.aaps.plugins.aps.openAPSBoost', 'package ' + REFERENCE, 1)
 
 
@@ -297,6 +298,9 @@ def isf_preparation(reference=False):
     body = body[a:]
     body = body.replace('    ): BoostIsfResult {', '    ): BoostIsfPreparationResult {')
     body = body.replace('BoostIsfResult(', 'BoostIsfPreparationResult(')
+    body = body.replace('var sensNormalTarget = profileSens', 'var shadowEligible = false\n        var sensNormalTarget = profileSens')
+    body = body.replace('sensNormalTarget = 1800.0 / (tdd * logTerm)', 'shadowEligible = true\n                    sensNormalTarget = 1800.0 / (tdd * logTerm)')
+    body = body.replace('isfDebug = debug.toString(),', 'isfDebug = debug.toString(),\n            shadowEligible = shadowEligible,')
     a = body.index('                    // ISF shadow — compute')
     b = body.index('                } else {', a)
     body = body[:a] + body[b:]
@@ -514,6 +518,7 @@ def main():
     verify_archive()
     s = ENGINE.read_text()
     ports = {
+        diagnostic_sources.PORT: diagnostic_sources.vwa(),
         PORT: portable(s),
         DATA_PORT / 'V1ReplayProfile.kt': portable_profile(),
         DATA_PORT / 'V1ReplayFeatures.kt': portable_features(),
@@ -566,6 +571,7 @@ def main():
         night_mode_sources.write_reference(args.reference_output)
         sleep_telemetry_sources.write_reference(args.reference_output)
         auto_config_sources.write_reference(args.reference_output)
+        diagnostic_sources.write_reference(args.reference_output)
     print('V1/V5/V6 archives and reviewed portable arithmetic transformations verified')
 
 

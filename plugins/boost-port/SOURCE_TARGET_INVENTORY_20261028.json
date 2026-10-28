@@ -5,9 +5,9 @@
     {
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostIsfShadow.kt",
       "source_blob_sha": "ece9e8f4d81663a05f9aa42f2ba3f9983d2faa3d",
-      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostV1IsfShadowCalculation.kt",
-      "status": "diagnostic_partial",
-      "note": "Pure comparisons exist; live EMA shadow state and upload fields are not connected."
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/boostport/aps/BoostIsfDiagnosticOwner.kt",
+      "status": "adapted_diagnostic",
+      "note": "Live persisted source-key EMA comparison; original-source JVM oracle, RT fields and optional error/cancellation boundary. Never changes dosing."
     },
     {
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostMealModel.kt",
@@ -40,9 +40,9 @@
     {
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostVwaTddShadow.kt",
       "source_blob_sha": "a0787acec53c0411b5579f5b6ddc39e712d1b2da",
-      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/boostport/telemetry/BoostVwaTddShadowMath.kt",
-      "status": "diagnostic_partial",
-      "note": "Pure VWA math exists; live counterfactual state/upload fields remain."
+      "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/boostport/aps/BoostVwaTddDiagnostic.kt",
+      "status": "adapted_diagnostic",
+      "note": "Pinned full source state, curve, population seed and history warming; common codec/clock/suspend boundaries, RT fields and original-source oracle."
     },
     {
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/DailyStepHistoryTracker.kt",
@@ -55,8 +55,8 @@
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/DetermineBasalBoost.kt",
       "source_blob_sha": "3d1e715b350bbf54654998bb465fd9420ec0650e",
       "target_path": "plugins/boost-port/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/BoostV1ReplayEngine.kt",
-      "status": "adapted_with_diagnostic_gap",
-      "note": "Dmitry ISF/Autosens and shared Dynamic CR are intentionally retained; source minGuard curve labels remain a trace difference."
+      "status": "adapted",
+      "note": "Source guard-curve labels added. Dmitry ISF/Autosens and shared Dynamic CR deliberately retained; numerical calculation order unchanged."
     },
     {
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/DeviceAgeTag.kt",
@@ -125,8 +125,8 @@
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/OpenAPSBoostPlugin.kt",
       "source_blob_sha": "85b34774c353c652dea091ec26cb7586eadf5045",
       "target_path": "plugins/aps/src/commonMain/kotlin/app/aaps/plugins/aps/openAPSBoost/OpenAPSBoostPlugin.kt",
-      "status": "adapted_with_diagnostic_gap",
-      "note": "Selectable APS adapter plus sequential calculator/owners; source shadow and boostVersion upload metadata are not complete."
+      "status": "adapted",
+      "note": "Selected target APS owner connects V1/V5/V6, activity/sleep/policies and diagnostic state. Version metadata uses RT and target running-config settings channel; source UI is replaced by target UI."
     },
     {
       "source_path": "plugins/aps/src/main/kotlin/app/aaps/plugins/aps/openAPSBoost/SleepHistoryTracker.kt",

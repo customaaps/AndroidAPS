@@ -142,6 +142,9 @@ class OpenAPSBoostPlugin(
     private var ownerRunning = false
     private var importInProgress = false
 
+    override fun configurationMetadata() = mapOf("boostVersion" to app.aaps.plugins.boostport.aps.BoostSourceVersion.VALUE,
+        "boostSourceCommit" to app.aaps.plugins.boostport.aps.BoostSourceVersion.UPSTREAM_COMMIT)
+
     override fun usingDynamicIsf() = true
     override fun offersDynamicSensitivity() = true
     override fun getIsfMgdl(profile: Profile, caller: String): Double? = null

@@ -48,4 +48,5 @@ internal data class V1ReplayResult(
     var mlMealG3Released: Boolean? = null,
     var mlG3ReleaseSource: String? = null,
     var minGuardBG: Double? = null,
+    var minGuardBGSource: String? = null,
 )

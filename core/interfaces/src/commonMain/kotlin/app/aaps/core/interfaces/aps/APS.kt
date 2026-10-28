@@ -9,6 +9,9 @@ interface APS {
      */
     val algorithm: APSResult.Algorithm
 
+    /** Read-only algorithm identity for the running configuration upload. */
+    fun configurationMetadata(): Map<String, String> = emptyMap()
+
     /**
      * Result of last invocation
      */

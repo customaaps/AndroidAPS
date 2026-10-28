@@ -27,6 +27,7 @@ internal object BoostIsfPreparation {
 
         val globalScale = 100.0 / profilePercent.toDouble()
 
+        var shadowEligible = false
         var sensNormalTarget = profileSens
         var ratio = 1.0
         // ISF shadow accumulator — populated when V4.4.2-style EMA ratio is computed below.
@@ -78,6 +79,7 @@ internal object BoostIsfPreparation {
                 // Safety: TDD must be positive and produce a sane ISF
                 val logTerm = ln((bgNormalTarget / insulinDivisor) + 1.0)
                 if (tdd > 0 && logTerm > 0) {
+                    shadowEligible = true
                     sensNormalTarget = 1800.0 / (tdd * logTerm)
                     sensNormalTarget *= globalScale
                     debug.append("\nTDD ISF at target: ${Round.roundTo(sensNormalTarget, 0.1)} mg/dl/U (profile was ${Round.roundTo(profileSens, 0.1)})")
@@ -137,6 +139,7 @@ internal object BoostIsfPreparation {
             ratio = Round.roundTo(ratio, 0.01),
             tdd = tdd,
             isfDebug = debug.toString(),
+            shadowEligible = shadowEligible,
         )
     }
 

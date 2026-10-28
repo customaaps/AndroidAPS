@@ -267,4 +267,29 @@ internal class RunningConfigurationImplTest {
         assertEquals(0, result.size)
         verify(activePlugin, never()).activePump
     }
+    @Test
+    fun selectedApsMetadataIsPublishedReadOnlyAlongsideTargetBuild() {
+        whenever(config.appInitialized).thenReturn(true)
+        whenever(config.VERSION_NAME).thenReturn("target-test-build")
+        val pump = mock<Pump>()
+        whenever(activePlugin.activePump).thenReturn(pump)
+        whenever(pump.isInitialized()).thenReturn(true)
+        whenever(pump.model()).thenReturn(PumpType.ACCU_CHEK_COMBO)
+        whenever(preferences.getSyncKeys()).thenReturn(emptyList())
+        val allowed = mock<Constraint<Boolean>>()
+        whenever(allowed.value()).thenReturn(true)
+        whenever(constraintsChecker.isAutosensModeEnabled()).thenReturn(allowed)
+        val aps = mock<app.aaps.core.interfaces.aps.APS>()
+        whenever(activePlugin.activeAPS).thenReturn(aps)
+        whenever(aps.configurationMetadata()).thenReturn(mapOf("boostVersion" to "6.2.0+test"))
+        val wire = sut.configuration()["apsConfiguration"]!!.jsonObject
+        assertEquals(JsonPrimitive("6.2.0+test"), wire["boostVersion"])
+        assertEquals(JsonPrimitive("target-test-build"), wire["boostPortBuild"])
+        // Read-only metadata never passes through applySyncedPrefs.
+        sut.applyCold(NSRunningConfiguration(apsConfiguration = mapOf("boostVersion" to "remote")))
+        verify(preferences, never()).putRemote(any<app.aaps.core.keys.interfaces.StringNonPreferenceKey>(), any(), any())
+        whenever(aps.configurationMetadata()).thenReturn(emptyMap())
+        assertNull(sut.configuration()["apsConfiguration"])
+    }
+
 }

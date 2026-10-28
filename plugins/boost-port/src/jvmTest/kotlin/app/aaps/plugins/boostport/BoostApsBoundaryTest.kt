@@ -56,7 +56,7 @@ class BoostApsBoundaryTest {
         } as KeyValueStore
     }
     private fun calculator(disk: Disk, cancel: Boolean = false, zone: java.time.ZoneId? = null, activity: BoostApsActivitySource? = null,
-        syncClient: app.aaps.core.interfaces.sync.NsClient? = null): BoostApsCalculator {
+        syncClient: app.aaps.core.interfaces.sync.NsClient? = null, tddOverride: TddCalculator? = null): BoostApsCalculator {
         val db = proxy<PersistenceLayer> { name, _ ->
             if (cancel) throw CancellationException("query cancelled")
             when (name) {
@@ -91,7 +91,7 @@ class BoostApsBoundaryTest {
         val syncs = syncClient?.let { ns -> proxy<app.aaps.core.interfaces.plugin.ActivePlugin> { name, _ ->
             check(name == "getActiveSyncs"); arrayListOf(ns)
         } }
-        return BoostApsCalculatorFactoryImpl(db, tdd, DynamicCarbRatioPolicy.Disabled, disk.store, prefs, date, util,
+        return BoostApsCalculatorFactoryImpl(db, tddOverride ?: tdd, DynamicCarbRatioPolicy.Disabled, disk.store, prefs, date, util,
             assets, activity, activePlugin = syncs).create()
     }
     private fun <T> immediate(block: suspend () -> T): T {
@@ -134,6 +134,8 @@ class BoostApsBoundaryTest {
         assertEquals(10.0, result.result.profileCarbRatio)
         assertTrue((result.result.units ?: 0.0) == 0.0)
         assertNotNull(result.result.predBGs)
+        assertEquals(BoostSourceVersion.VALUE, result.result.boostVersion)
+        assertTrue(result.result.minGuardBGSource in setOf("IOB", "UAM", "COB", "COB+UAM"))
         assertNotNull(BoostReplayStateCodec.decode(disk.values.getValue(BoostApsSettingKeys.Session.key) as String))
         assertFalse(disk.values.containsKey("boost_port_replay_session_v1"))
         assertNotNull(result.result.sleepState)
@@ -489,6 +491,32 @@ class BoostApsBoundaryTest {
         assertEquals(settings.night().endOfDayMs, settings.activity().nightEndOfDayMs)
         assertEquals(1320, settings.sleep().nightStartMin)
         assertEquals(420, settings.sleep().nightEndMin)
+    }
+
+    @Test fun selectedApsCycleConnectsCapturedTddDiagnosticsAndRestoresBothSourceStates() {
+        val disk = Disk()
+        disk.values[BoostApsSettingKeys.ApsBoostUseTdd.key] = true
+        val totals = proxy<TddCalculator> { name, args -> when (name) {
+            "calculate" -> null
+            "averageTDD" -> app.aaps.core.data.aps.AverageTDD(app.aaps.core.data.model.TDD(timestamp = fixture.time, totalAmount = 40.0), true)
+            "calculateDaily" -> {
+                val start = args[1] as Long; val end = args[2] as Long
+                app.aaps.core.data.model.TDD(timestamp = fixture.time, totalAmount = (end - start) * 2.0)
+            }
+            else -> error("Unexpected TDD call $name")
+        } }
+        fun calculate(at: Long) = assertIs<BoostApsCalculator.Result.Calculated>(immediate {
+            calculator(disk, tddOverride = totals).calculate(input().copy(atMs = at))
+        }).result
+        val first = calculate(fixture.time)
+        assertNotNull(first.isfShadow_ratioEma); assertNotNull(first.boostVwa_blend)
+        assertEquals(1, first.boostVwa_curveDays)
+        val initial = BoostIsfDiagnosticOwner.decodeEma(disk.values.getValue(BoostApsSettingKeys.ApsBoostIsfShadowState.key) as String)
+        val restored = calculate(fixture.time + 5 * 60_000L)
+        assertNotNull(restored.isfShadow_ratioEma); assertEquals(2, restored.boostVwa_curveDays)
+        val next = BoostIsfDiagnosticOwner.decodeEma(disk.values.getValue(BoostApsSettingKeys.ApsBoostIsfShadowState.key) as String)
+        assertEquals(initial.firstSeenMs, next.firstSeenMs)
+        assertEquals(fixture.time + 5 * 60_000L, next.lastUpdateMs)
     }
 
 }

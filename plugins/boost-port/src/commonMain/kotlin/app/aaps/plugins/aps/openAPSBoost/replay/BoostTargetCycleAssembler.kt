@@ -69,6 +69,7 @@ internal class BoostTargetCycleAssembler(
             input.meal.copy(), input.microBolusAllowed, atMs, input.flatBg,
             history.recentSmbVolume60, input.cumulativeSmbCap, history.recentLowBg45,
             history.minutesSinceLastSmb, input.postRescueTightRampCap,
+            BoostIsfDiagnosticInput(parts, prepared.isf, input.isfSettings),
         )
     }
 }
