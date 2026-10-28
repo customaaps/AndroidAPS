@@ -438,7 +438,13 @@ open class VirtualPumpPlugin(
                 PumpType.entries
                     .filter { it !in PumpType.RECORD_TAGS }
                     .sortedBy { it.description }
-                    .associate { it.description to TextRef.Literal(it.description) }
+                    .associate { type ->
+                        // Keep the stored description stable; localize only the label shown to the user.
+                        type.description to when (type) {
+                            PumpType.GENERIC_AAPS -> CoreUiStrings.virtual_pump
+                            else -> TextRef.Literal(type.description)
+                        }
+                    }
             ),
             BooleanKey.VirtualPumpStatusUpload
         ),
