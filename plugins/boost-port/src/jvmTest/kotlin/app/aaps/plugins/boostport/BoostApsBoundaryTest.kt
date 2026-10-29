@@ -103,6 +103,36 @@ class BoostApsBoundaryTest {
         return assertNotNull(value).getOrThrow()
     }
 
+    @Test fun liveStepSourceIsSampledAndItsStatusLeadsTheVisibleScriptDebug() {
+        var opened = 0
+        var sampled = 0
+        var closed = 0
+        val activity = object : BoostApsActivitySource {
+            override fun open(): BoostApsActivitySource.Lease {
+                opened++
+                return object : BoostApsActivitySource.Lease {
+                    override fun snapshot(nowMs: Long, offsetMinutes: Int): BoostApsActivitySource.Snapshot {
+                        sampled++
+                        return BoostApsActivitySource.Snapshot(42, 80, 120, 200, 400, true,
+                            "phone=step-counter; health-connect=permission_required")
+                    }
+                    override fun healthConnect(enabled: Boolean, nowMs: Long, pollMinutes: Int) {}
+                    override fun close() { closed++ }
+                }
+            }
+        }
+        val owner = calculator(Disk(), activity = activity)
+        try {
+            val result = assertIs<BoostApsCalculator.Result.Calculated>(immediate { owner.calculate(input()) })
+            assertEquals(1, opened)
+            assertEquals(1, sampled)
+            assertEquals("Step sources: phone=step-counter; health-connect=permission_required",
+                result.result.consoleError?.firstOrNull())
+            assertTrue(result.result.consoleError.orEmpty().any { it.contains("5m=42") })
+        } finally { owner.close() }
+        assertEquals(1, closed)
+    }
+
     @Test fun invalidAutoConfigurationLimitsRejectBeforeAnyStateWrite() {
         for (limit in listOf(Double.NaN, Double.POSITIVE_INFINITY, -1.0)) {
             val disk = Disk()

@@ -192,7 +192,10 @@ class BoostApsCalculatorFactoryImpl(
                             calculated.persistence.problem ?: "Boost state was not saved")
                         val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, effectiveInput)
                         phone.sourceStatus?.let { status ->
-                            result.consoleLog = (result.consoleLog ?: mutableListOf()).apply { add("Step sources: $status") }
+                            val sourceLine = "Step sources: $status"
+                            result.consoleLog = (result.consoleLog ?: mutableListOf()).apply { add(0, sourceLine) }
+                            // DetermineBasalResult.scriptDebug exposes consoleError, not consoleLog.
+                            result.consoleError = (result.consoleError ?: mutableListOf()).apply { add(0, sourceLine) }
                         }
                         try { diagnostics.complete(result, calculated.frame.v1, cycle.diagnosticInput, input.atMs) }
                         catch (cancelled: CancellationException) { throw cancelled }

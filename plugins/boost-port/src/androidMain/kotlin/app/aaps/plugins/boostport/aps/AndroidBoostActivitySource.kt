@@ -82,6 +82,8 @@ class AndroidBoostActivitySource(private val context: Context, private val persi
                 else -> "waiting-for-sensor"
             }
         } catch (error: Exception) {
+            // A failure registering the second sensor must release the first one too.
+            runCatching { sensors?.unregisterListener(listener) }
             registered = false; detectorRegistered = false
             phoneStatus = "registration-failed"
             logger.warn(LTag.APS, "Boost phone step sensor unavailable: ${error.message}")
@@ -212,7 +214,10 @@ class AndroidBoostActivitySource(private val context: Context, private val persi
                 val hc = stepHistorySnapshot(nowMs, offsetMinutes)
                 val today = (nowMs + offsetMinutes * 60_000L) / 86_400_000L
                 val seed = hc?.takeIf { it.todayIndex == today }?.let { it.chosenSource?.let { source -> it.perSourceDay[source]?.get(today) } }
-                seed?.let { tracker.seedToday(today, it) }
+                seed?.let { steps -> synchronized(lock) {
+                    tracker.seedToday(today, steps)
+                    detector.seedToday(today, steps)
+                } }
                 val phone = phoneSnapshot(nowMs, offsetMinutes)
                 return phone.copy(stepsToday = maxOf(phone.stepsToday, (seed ?: 0L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()),
                     sourceStatus = "${phone.sourceStatus}; health-connect=${synchronized(lock) { hcStatus }}")
