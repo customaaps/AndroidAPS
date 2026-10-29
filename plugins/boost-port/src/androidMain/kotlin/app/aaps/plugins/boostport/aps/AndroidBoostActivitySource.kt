@@ -24,37 +24,95 @@ import kotlinx.coroutines.*
 class AndroidBoostActivitySource(private val context: Context, private val persistence: PersistenceLayer,
     private val logger: AAPSLogger) : BoostApsActivitySource {
     private val lock = Any()
-    private val tracker = BoostPhoneStepTracker()
+    private var tracker = BoostPhoneStepTracker()
+    private var detector = BoostPhoneStepTracker()
+    private var detectorCount = 0L
+    private var detectorStarted = false
+    private var detectorRegistered = false
+    private var phoneStatus = "not-started"
     private var leases = 0
     private var registered = false
     private val sensors get() = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
     private val listener = object : SensorEventListener {
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
         override fun onSensorChanged(event: SensorEvent?) {
-            if (event?.sensor?.type != Sensor.TYPE_STEP_COUNTER) return
-            val raw = event.values.firstOrNull() ?: return
-            if (raw.isFinite() && raw >= 0f) tracker.accept(raw.toLong(), System.currentTimeMillis())
+            event ?: return
+            val now = System.currentTimeMillis()
+            synchronized(lock) {
+                if (leases <= 0) return
+                when (event.sensor.type) {
+                    Sensor.TYPE_STEP_COUNTER -> {
+                        val raw = event.values.firstOrNull() ?: return
+                        if (registered && raw.isFinite() && raw >= 0f) tracker.accept(raw.toLong(), now)
+                    }
+                    Sensor.TYPE_STEP_DETECTOR -> {
+                        if (!detectorRegistered || event.values.firstOrNull() != 1f) return
+                        if (!detectorStarted) { detector.accept(0, now); detectorStarted = true }
+                        detector.accept(++detectorCount, now)
+                    }
+                    else -> Unit
+                }
+            }
         }
     }
     private fun refreshRegistration() = synchronized(lock) {
         try {
-        val allowed = context.checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
-        if (!allowed && registered) { sensors?.unregisterListener(listener); registered = false }
-        if (allowed && leases > 0 && !registered) {
-            val sensor = sensors?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-            if (sensor != null) registered = sensors?.registerListener(listener, sensor,
-                SensorManager.SENSOR_DELAY_NORMAL, Handler(Looper.getMainLooper())) == true
-        }
+            val allowed = context.checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+            if (!allowed) {
+                if (registered || detectorRegistered) sensors?.unregisterListener(listener)
+                registered = false; detectorRegistered = false
+                tracker = BoostPhoneStepTracker(); detector = BoostPhoneStepTracker()
+                detectorCount = 0; detectorStarted = false
+                phoneStatus = "permission-required"
+                return@synchronized
+            }
+            if (leases <= 0) return@synchronized
+            val manager = sensors
+            val counter = manager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+            val pulses = manager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+            val handler = Handler(Looper.getMainLooper())
+            if (!registered && counter != null) registered = manager?.registerListener(listener, counter,
+                SensorManager.SENSOR_DELAY_NORMAL, 0, handler) == true
+            // Some phones expose only the detector, or starve the cumulative counter.
+            if (!detectorRegistered && pulses != null) detectorRegistered = manager?.registerListener(listener, pulses,
+                SensorManager.SENSOR_DELAY_NORMAL, 0, handler) == true
+            phoneStatus = when {
+                counter == null && pulses == null -> "sensor-unavailable"
+                !registered && !detectorRegistered -> "registration-failed"
+                else -> "waiting-for-sensor"
+            }
         } catch (error: Exception) {
-            registered = false
+            registered = false; detectorRegistered = false
+            phoneStatus = "registration-failed"
             logger.warn(LTag.APS, "Boost phone step sensor unavailable: ${error.message}")
         }
     }
+
+    private fun phoneSnapshot(nowMs: Long, offset: Int): BoostApsActivitySource.Snapshot = synchronized(lock) {
+        val counter = if (registered) tracker.snapshot(nowMs, offset) else BoostApsActivitySource.Snapshot()
+        val pulses = if (detectorRegistered) detector.snapshot(nowMs, offset) else BoostApsActivitySource.Snapshot()
+        when {
+            counter.phoneFeedLive && pulses.phoneFeedLive -> counter.copy(
+                steps5 = maxOf(counter.steps5, pulses.steps5), steps15 = maxOf(counter.steps15, pulses.steps15),
+                steps30 = maxOf(counter.steps30, pulses.steps30), steps60 = maxOf(counter.steps60, pulses.steps60),
+                stepsToday = maxOf(counter.stepsToday, pulses.stepsToday), sourceStatus = "phone=counter+detector")
+            counter.phoneFeedLive -> counter.copy(sourceStatus = "phone=step-counter")
+            pulses.phoneFeedLive -> pulses.copy(sourceStatus = "phone=step-detector")
+            else -> BoostApsActivitySource.Snapshot(sourceStatus = "phone=$phoneStatus")
+        }
+    }
+
     override fun requestPermissions() {
         context.startActivity(Intent(context, BoostDataPermissionsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
     override fun open(): BoostApsActivitySource.Lease {
-        synchronized(lock) { leases++ }
+        synchronized(lock) {
+            if (leases == 0) {
+                tracker = BoostPhoneStepTracker(); detector = BoostPhoneStepTracker()
+                detectorCount = 0; detectorStarted = false
+            }
+            leases++
+        }
         refreshRegistration()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val adapter = AndroidHealthConnectReadOnlyAdapter(context)
@@ -68,6 +126,7 @@ class AndroidBoostActivitySource(private val context: Context, private val persi
                 }
         }
         val ingest = BoostHealthConnectIngest(persistence, reader)
+        val publisher = BoostStepCountPublisher(persistence)
         val stepHistory = BoostHealthConnectStepHistory(object : BoostStepHistoryReader {
             override suspend fun read(nowMs: Long): BoostStepHistoryReader.Result = when (val result = adapter.readStepIntervals(nowMs)) {
                 is AndroidHealthConnectReadOnlyAdapter.ReadOutcome.Data -> BoostStepHistoryReader.Result.Ready(result.items.map {
@@ -82,6 +141,57 @@ class AndroidBoostActivitySource(private val context: Context, private val persi
             private var ingestJob: Job? = null
             private var stepsJob: Job? = null
             private var stepsEnabled = false
+            private var hcStatus = "not-requested"
+            private var lastLiveRead: Long? = null
+
+            init {
+                // Persist independently of loop/CGM cadence, including while the settings screen is open.
+                scope.launch {
+                    while (isActive) {
+                        val now = System.currentTimeMillis()
+                        val offset = java.util.TimeZone.getDefault().getOffset(now) / 60_000
+                        try {
+                            refreshRegistration()
+                            val phoneRows = synchronized(lock) {
+                                if (closed) emptyList() else {
+                                    val sample = phoneSnapshot(now, offset)
+                                    when (sample.sourceStatus) {
+                                        "phone=counter+detector" -> tracker.completedRows(now, offset) + detector.completedRows(now, offset)
+                                        "phone=step-counter" -> tracker.completedRows(now, offset)
+                                        "phone=step-detector" -> detector.completedRows(now, offset)
+                                        else -> emptyList()
+                                    }
+                                }
+                            }
+                            publisher.publish(phoneRows, now)
+                            // Live steps follow READ_STEPS permission, not the optional daily-shadow setting.
+                            if (synchronized(lock) { !closed } &&
+                                lastLiveRead?.let { now >= it && now - it < 5 * 60_000L } != true) {
+                                lastLiveRead = now
+                                when (val read = adapter.readLiveStepBuckets(now)) {
+                                    is AndroidHealthConnectReadOnlyAdapter.ReadOutcome.Data -> {
+                                        val rows = BoostStepCountPublisher.healthConnectRows(read.items.singleOrNull().orEmpty(), now, offset * 60_000L)
+                                        publisher.publish(rows, now)
+                                        val last = rows.maxOfOrNull { it.timestamp }
+                                        synchronized(lock) { hcStatus = when {
+                                            last == null -> "no-data"
+                                            now - last > 12 * 60_000L -> "stale"
+                                            else -> "live"
+                                        } }
+                                    }
+                                    is AndroidHealthConnectReadOnlyAdapter.ReadOutcome.Blocked -> synchronized(lock) { hcStatus = read.access.name.lowercase() }
+                                    is AndroidHealthConnectReadOnlyAdapter.ReadOutcome.Failed -> synchronized(lock) { hcStatus = read.code }
+                                }
+                            }
+                        } catch (cancelled: CancellationException) { throw cancelled }
+                        catch (error: Exception) {
+                            synchronized(lock) { hcStatus = "read-or-persist-failed" }
+                            logger.warn(LTag.APS, "Boost steps acquisition failed: ${error::class.simpleName}")
+                        }
+                        delay(60_000L)
+                    }
+                }
+            }
             override fun stepHistorySnapshot(nowMs: Long, offsetMinutes: Int): BoostStepHistorySnapshot? = synchronized(lock) {
                 if (closed || !stepsEnabled) null else stepHistory.snapshot(nowMs, offsetMinutes)
             }
@@ -103,8 +213,9 @@ class AndroidBoostActivitySource(private val context: Context, private val persi
                 val today = (nowMs + offsetMinutes * 60_000L) / 86_400_000L
                 val seed = hc?.takeIf { it.todayIndex == today }?.let { it.chosenSource?.let { source -> it.perSourceDay[source]?.get(today) } }
                 seed?.let { tracker.seedToday(today, it) }
-                return if (synchronized(lock) { registered }) tracker.snapshot(nowMs, offsetMinutes)
-                else BoostApsActivitySource.Snapshot(stepsToday = (seed ?: 0L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                val phone = phoneSnapshot(nowMs, offsetMinutes)
+                return phone.copy(stepsToday = maxOf(phone.stepsToday, (seed ?: 0L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()),
+                    sourceStatus = "${phone.sourceStatus}; health-connect=${synchronized(lock) { hcStatus }}")
             }
             override fun healthConnect(enabled: Boolean, nowMs: Long, pollMinutes: Int) = synchronized(lock) {
                 if (closed) return@synchronized
@@ -119,7 +230,9 @@ class AndroidBoostActivitySource(private val context: Context, private val persi
             override fun close() = synchronized(lock) {
                 if (closed) return@synchronized
                 closed = true; scope.cancel(); stepHistory.clear(); leases--
-                if (leases == 0 && registered) { sensors?.unregisterListener(listener); registered = false }
+                if (leases == 0 && (registered || detectorRegistered)) {
+                    sensors?.unregisterListener(listener); registered = false; detectorRegistered = false
+                }
             }
         }
     }

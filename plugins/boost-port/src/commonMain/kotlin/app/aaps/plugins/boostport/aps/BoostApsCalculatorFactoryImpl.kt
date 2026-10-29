@@ -105,7 +105,7 @@ class BoostApsCalculatorFactoryImpl(
                 activityLease?.stepHistory(settings.b(BoostApsSettingKeys.ApsBoostActivityShadowEnabled),
                     input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs))
                 val phone = activityLease?.snapshot(input.atMs, dateUtil.getTimeZoneOffsetMinutes(input.atMs))
-                    ?: BoostApsActivitySource.Snapshot()
+                    ?: BoostApsActivitySource.Snapshot(sourceStatus = "phone=adapter-unavailable; health-connect=adapter-unavailable")
                 require(listOf(phone.steps5, phone.steps15, phone.steps30, phone.steps60, phone.stepsToday).all { it >= 0 })
                 // This cycle's HR/steps determine sleep before any night/activity/V5 decision.
                 // Meal evidence comes from the last completed model call, never from the future.
@@ -191,6 +191,9 @@ class BoostApsCalculatorFactoryImpl(
                         if (!calculated.persistence.persisted) return@cycle BoostApsCalculator.Result.Rejected(
                             calculated.persistence.problem ?: "Boost state was not saved")
                         val result = BoostApsResultMapper.toRt(calculated.frame.finalCandidate, effectiveInput)
+                        phone.sourceStatus?.let { status ->
+                            result.consoleLog = (result.consoleLog ?: mutableListOf()).apply { add("Step sources: $status") }
+                        }
                         try { diagnostics.complete(result, calculated.frame.v1, cycle.diagnosticInput, input.atMs) }
                         catch (cancelled: CancellationException) { throw cancelled }
                         catch (_: Exception) { result.reason.append("Boost ISF/TDD diagnostics unavailable; ") }

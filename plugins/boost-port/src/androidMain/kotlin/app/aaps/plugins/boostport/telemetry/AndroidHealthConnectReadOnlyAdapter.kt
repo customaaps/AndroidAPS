@@ -6,6 +6,8 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.request.AggregateGroupByDurationRequest
+import java.time.Duration
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Instant
 import kotlin.coroutines.cancellation.CancellationException
@@ -182,6 +184,34 @@ internal class AndroidHealthConnectReadOnlyAdapter(private val context: Context)
             ReadOutcome.Blocked(HealthConnectReadPolicy.Access.PERMISSION_REQUIRED)
         } catch (_: Exception) {
             ReadOutcome.Failed("steps-read-failed")
+        }
+    }
+    /** Recent completed buckets for the live SC/graph feed, independent of the 28-day day ledger. */
+    suspend fun readLiveStepBuckets(nowMs: Long): ReadOutcome<Map<Long, Long>> {
+        val client = clientOrNull()
+            ?: return ReadOutcome.Blocked(HealthConnectReadPolicy.Access.SDK_UNAVAILABLE)
+        return try {
+            if (HealthPermission.getReadPermission(StepsRecord::class) !in
+                client.permissionController.getGrantedPermissions()
+            ) return ReadOutcome.Blocked(HealthConnectReadPolicy.Access.PERMISSION_REQUIRED)
+            val end = nowMs / 300_000L * 300_000L
+            if (end < 3 * 3_600_000L) return ReadOutcome.Failed("invalid-steps-window")
+            val buckets = client.aggregateGroupByDuration(AggregateGroupByDurationRequest(
+                metrics = setOf(StepsRecord.COUNT_TOTAL),
+                timeRangeFilter = TimeRangeFilter.between(
+                    Instant.ofEpochMilli(end - 3 * 3_600_000L), Instant.ofEpochMilli(end)),
+                timeRangeSlicer = Duration.ofMinutes(5)))
+            // The aggregate API deduplicates Activity sources using the user's HC priorities.
+            // Null is missing data, not a measured zero.
+            ReadOutcome.Data(listOf(buckets.mapNotNull { bucket ->
+                bucket.result[StepsRecord.COUNT_TOTAL]?.let { bucket.endTime.toEpochMilli() to it }
+            }.toMap()))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: SecurityException) {
+            ReadOutcome.Blocked(HealthConnectReadPolicy.Access.PERMISSION_REQUIRED)
+        } catch (_: Exception) {
+            ReadOutcome.Failed("live-steps-read-failed")
         }
     }
 }

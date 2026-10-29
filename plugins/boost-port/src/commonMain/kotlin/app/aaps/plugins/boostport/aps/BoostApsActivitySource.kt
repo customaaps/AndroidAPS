@@ -3,7 +3,8 @@ package app.aaps.plugins.boostport.aps
 /** Optional platform data acquisition; absence is unknown phone activity, not measured inactivity. */
 interface BoostApsActivitySource {
     data class Snapshot(val steps5: Int = 0, val steps15: Int = 0, val steps30: Int = 0,
-        val steps60: Int = 0, val stepsToday: Int = 0, val phoneFeedLive: Boolean = false)
+        val steps60: Int = 0, val stepsToday: Int = 0, val phoneFeedLive: Boolean = false,
+        val sourceStatus: String? = null)
     interface Lease {
         fun snapshot(nowMs: Long, offsetMinutes: Int): Snapshot
         /** Source-style asynchronous backfill; close cancels the owned worker. */
