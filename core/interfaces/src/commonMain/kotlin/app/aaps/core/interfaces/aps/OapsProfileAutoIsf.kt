@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class OapsProfileAutoIsf(
-    var dia: Double, // AMA only
+    var dia: Double, // Captured insulin DIA in hours; only AMA uses it in determine-basal.
     var min_5m_carbimpact: Double, // AMA only
     var max_iob: Double,
     var max_daily_basal: Double,

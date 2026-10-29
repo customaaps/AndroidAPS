@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
@@ -41,7 +42,7 @@ class OpenAPSComposeContentTest {
             whenever(it.toFlow(EventResetOpenAPSGui::class)).thenReturn(emptyFlow())
         }
         val rh = mock<ResourceHelper> { whenever(it.gs(CoreUiStrings.not_available_full)).thenReturn("N/A") }
-        val content = OpenAPSComposeContent(apsPlugin, rxBus, rh, mock<DateUtil>())
+        val content = OpenAPSComposeContent(apsPlugin, rxBus, rh, mock<DateUtil>()) { GlucoseUnit.MGDL }
 
         compose.setContent {
             MaterialTheme {

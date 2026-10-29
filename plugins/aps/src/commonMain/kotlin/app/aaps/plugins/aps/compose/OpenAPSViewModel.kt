@@ -1,6 +1,8 @@
 package app.aaps.plugins.aps.compose
 
 import androidx.compose.runtime.Immutable
+import app.aaps.core.data.model.GlucoseUnit
+import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.aps.AutosensResult
 import app.aaps.core.interfaces.aps.CurrentTemp
@@ -53,8 +55,11 @@ class OpenAPSViewModel(
     private val rxBus: RxBus,
     private val rh: TextResolver,
     private val dateUtil: DateUtil,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    glucoseUnit: () -> GlucoseUnit
 ) {
+
+    private val valueFormatter = OpenAPSValueFormatter(rh, glucoseUnit)
 
     private val _uiState = MutableStateFlow(OpenAPSUiState())
     val uiState: StateFlow<OpenAPSUiState> = _uiState.asStateFlow()
@@ -137,7 +142,7 @@ class OpenAPSViewModel(
 
             // Profile (OapsProfile or OapsProfileAutoIsf)
             val profileRows = lastAPSResult.oapsProfileAutoIsf?.toRows()
-                ?: lastAPSResult.oapsProfile?.toRows()
+                ?: lastAPSResult.oapsProfile?.toRows(includeAmaFields = lastAPSResult.algorithm == APSResult.Algorithm.AMA)
             if (profileRows != null) {
                 add(
                     OpenAPSSection(
@@ -224,159 +229,159 @@ class OpenAPSViewModel(
 
     // --- Mapping functions ---
 
+    private fun numberRow(key: String, value: Number) = KeyValueRow(key, valueFormatter.format(key, value))
+
     private fun GlucoseStatus.toRows(): List<KeyValueRow> = listOf(
-        KeyValueRow("glucose", glucose.toString()),
-        KeyValueRow("delta", delta.toString()),
-        KeyValueRow("shortAvgDelta", shortAvgDelta.toString()),
-        KeyValueRow("longAvgDelta", longAvgDelta.toString())
+        numberRow("glucose", glucose),
+        numberRow("delta", delta),
+        numberRow("shortAvgDelta", shortAvgDelta),
+        numberRow("longAvgDelta", longAvgDelta)
     )
 
     private fun CurrentTemp.toRows(): List<KeyValueRow> = buildList {
-        add(KeyValueRow("duration", duration.toString()))
-        add(KeyValueRow("rate", rate.toString()))
-        minutesrunning?.let { add(KeyValueRow("minutesrunning", it.toString())) }
+        add(numberRow("duration", duration))
+        add(numberRow("rate", rate))
+        minutesrunning?.let { add(numberRow("minutesrunning", it)) }
     }
 
     private fun IobTotal.toRows(arraySize: Int): List<KeyValueRow> = buildList {
         add(KeyValueRow("arraySize", rh.gs(ApsStrings.array_of_elements, arraySize)))
-        add(KeyValueRow("iob", iob.toString()))
-        add(KeyValueRow("activity", activity.toString()))
-        add(KeyValueRow("bolussnooze", bolussnooze.toString()))
-        add(KeyValueRow("basaliob", basaliob.toString()))
-        add(KeyValueRow("netbasalinsulin", netbasalinsulin.toString()))
-        add(KeyValueRow("hightempinsulin", hightempinsulin.toString()))
+        add(numberRow("iob", iob))
+        add(numberRow("activity", activity))
+        add(numberRow("bolussnooze", bolussnooze))
+        add(numberRow("basaliob", basaliob))
+        add(numberRow("netbasalinsulin", netbasalinsulin))
+        add(numberRow("hightempinsulin", hightempinsulin))
         add(KeyValueRow("lastBolusTime", if (lastBolusTime > 0) dateUtil.dateAndTimeString(lastBolusTime) else "0"))
-        add(KeyValueRow("netInsulin", netInsulin.toString()))
-        add(KeyValueRow("extendedBolusInsulin", extendedBolusInsulin.toString()))
+        add(numberRow("netInsulin", netInsulin))
+        add(numberRow("extendedBolusInsulin", extendedBolusInsulin))
     }
 
-    private fun OapsProfile.toRows(): List<KeyValueRow> = buildList {
-        add(KeyValueRow("dia", dia.toString()))
-        add(KeyValueRow("min_5m_carbimpact", min_5m_carbimpact.toString()))
-        add(KeyValueRow("max_iob", max_iob.toString()))
-        add(KeyValueRow("max_daily_basal", max_daily_basal.toString()))
-        add(KeyValueRow("max_basal", max_basal.toString()))
-        add(KeyValueRow("min_bg", min_bg.toString()))
-        add(KeyValueRow("max_bg", max_bg.toString()))
-        add(KeyValueRow("target_bg", target_bg.toString()))
-        add(KeyValueRow("carb_ratio", carb_ratio.toString()))
-        add(KeyValueRow("sens", sens.toString()))
-        add(KeyValueRow("autosens_adjust_targets", autosens_adjust_targets.toString()))
-        add(KeyValueRow("max_daily_safety_multiplier", max_daily_safety_multiplier.toString()))
-        add(KeyValueRow("current_basal_safety_multiplier", current_basal_safety_multiplier.toString()))
+    private fun OapsProfile.toRows(includeAmaFields: Boolean): List<KeyValueRow> = buildList {
+        add(numberRow("dia", dia))
+        if (includeAmaFields) add(numberRow("min_5m_carbimpact", min_5m_carbimpact))
+        add(numberRow("max_iob", max_iob))
+        add(numberRow("max_daily_basal", max_daily_basal))
+        add(numberRow("max_basal", max_basal))
+        add(numberRow("min_bg", min_bg))
+        add(numberRow("max_bg", max_bg))
+        add(numberRow("target_bg", target_bg))
+        add(numberRow("carb_ratio", carb_ratio))
+        add(numberRow("sens", sens))
+        if (includeAmaFields) add(KeyValueRow("autosens_adjust_targets", autosens_adjust_targets.toString()))
+        add(numberRow("max_daily_safety_multiplier", max_daily_safety_multiplier))
+        add(numberRow("current_basal_safety_multiplier", current_basal_safety_multiplier))
         add(KeyValueRow("high_temptarget_raises_sensitivity", high_temptarget_raises_sensitivity.toString()))
         add(KeyValueRow("low_temptarget_lowers_sensitivity", low_temptarget_lowers_sensitivity.toString()))
         add(KeyValueRow("sensitivity_raises_target", sensitivity_raises_target.toString()))
         add(KeyValueRow("resistance_lowers_target", resistance_lowers_target.toString()))
         add(KeyValueRow("adv_target_adjustments", adv_target_adjustments.toString()))
         add(KeyValueRow("exercise_mode", exercise_mode.toString()))
-        add(KeyValueRow("half_basal_exercise_target", half_basal_exercise_target.toString()))
-        add(KeyValueRow("maxCOB", maxCOB.toString()))
+        add(numberRow("half_basal_exercise_target", half_basal_exercise_target))
+        add(numberRow("maxCOB", maxCOB))
         add(KeyValueRow("skip_neutral_temps", skip_neutral_temps.toString()))
-        add(KeyValueRow("remainingCarbsCap", remainingCarbsCap.toString()))
+        add(numberRow("remainingCarbsCap", remainingCarbsCap))
         add(KeyValueRow("enableUAM", enableUAM.toString()))
         add(KeyValueRow("A52_risk_enable", A52_risk_enable.toString()))
-        add(KeyValueRow("SMBInterval", SMBInterval.toString()))
+        add(numberRow("SMBInterval", SMBInterval))
         add(KeyValueRow("enableSMB_with_COB", enableSMB_with_COB.toString()))
         add(KeyValueRow("enableSMB_with_temptarget", enableSMB_with_temptarget.toString()))
         add(KeyValueRow("allowSMB_with_high_temptarget", allowSMB_with_high_temptarget.toString()))
         add(KeyValueRow("enableSMB_always", enableSMB_always.toString()))
         add(KeyValueRow("enableSMB_after_carbs", enableSMB_after_carbs.toString()))
-        add(KeyValueRow("maxSMBBasalMinutes", maxSMBBasalMinutes.toString()))
-        add(KeyValueRow("maxUAMSMBBasalMinutes", maxUAMSMBBasalMinutes.toString()))
-        add(KeyValueRow("bolus_increment", bolus_increment.toString()))
-        add(KeyValueRow("carbsReqThreshold", carbsReqThreshold.toString()))
-        add(KeyValueRow("current_basal", current_basal.toString()))
+        add(numberRow("maxSMBBasalMinutes", maxSMBBasalMinutes))
+        add(numberRow("maxUAMSMBBasalMinutes", maxUAMSMBBasalMinutes))
+        add(numberRow("bolus_increment", bolus_increment))
+        add(numberRow("carbsReqThreshold", carbsReqThreshold))
+        add(numberRow("current_basal", current_basal))
         add(KeyValueRow("temptargetSet", temptargetSet.toString()))
-        add(KeyValueRow("autosens_max", autosens_max.toString()))
+        add(numberRow("autosens_max", autosens_max))
         add(KeyValueRow("out_units", out_units))
-        lgsThreshold?.let { add(KeyValueRow("lgsThreshold", it.toString())) }
-        add(KeyValueRow("variable_sens", variable_sens.toString()))
-        add(KeyValueRow("insulinDivisor", insulinDivisor.toString()))
-        add(KeyValueRow("TDD", TDD.toString()))
+        lgsThreshold?.let { add(numberRow("lgsThreshold", it)) }
+        add(numberRow("variable_sens", variable_sens))
+        add(numberRow("insulinDivisor", insulinDivisor))
+        add(numberRow("TDD", TDD))
     }
 
     private fun OapsProfileAutoIsf.toRows(): List<KeyValueRow> = buildList {
-        add(KeyValueRow("dia", dia.toString()))
-        add(KeyValueRow("min_5m_carbimpact", min_5m_carbimpact.toString()))
-        add(KeyValueRow("max_iob", max_iob.toString()))
-        add(KeyValueRow("max_daily_basal", max_daily_basal.toString()))
-        add(KeyValueRow("max_basal", max_basal.toString()))
-        add(KeyValueRow("min_bg", min_bg.toString()))
-        add(KeyValueRow("max_bg", max_bg.toString()))
-        add(KeyValueRow("target_bg", target_bg.toString()))
-        add(KeyValueRow("carb_ratio", carb_ratio.toString()))
-        add(KeyValueRow("sens", sens.toString()))
-        add(KeyValueRow("autosens_adjust_targets", autosens_adjust_targets.toString()))
-        add(KeyValueRow("max_daily_safety_multiplier", max_daily_safety_multiplier.toString()))
-        add(KeyValueRow("current_basal_safety_multiplier", current_basal_safety_multiplier.toString()))
+        add(numberRow("dia", dia))
+        add(numberRow("max_iob", max_iob))
+        add(numberRow("max_daily_basal", max_daily_basal))
+        add(numberRow("max_basal", max_basal))
+        add(numberRow("min_bg", min_bg))
+        add(numberRow("max_bg", max_bg))
+        add(numberRow("target_bg", target_bg))
+        add(numberRow("carb_ratio", carb_ratio))
+        add(numberRow("sens", sens))
+        add(numberRow("max_daily_safety_multiplier", max_daily_safety_multiplier))
+        add(numberRow("current_basal_safety_multiplier", current_basal_safety_multiplier))
         add(KeyValueRow("high_temptarget_raises_sensitivity", high_temptarget_raises_sensitivity.toString()))
         add(KeyValueRow("low_temptarget_lowers_sensitivity", low_temptarget_lowers_sensitivity.toString()))
         add(KeyValueRow("sensitivity_raises_target", sensitivity_raises_target.toString()))
         add(KeyValueRow("resistance_lowers_target", resistance_lowers_target.toString()))
         add(KeyValueRow("adv_target_adjustments", adv_target_adjustments.toString()))
         add(KeyValueRow("exercise_mode", exercise_mode.toString()))
-        add(KeyValueRow("half_basal_exercise_target", half_basal_exercise_target.toString()))
-        add(KeyValueRow("maxCOB", maxCOB.toString()))
+        add(numberRow("half_basal_exercise_target", half_basal_exercise_target))
+        add(numberRow("maxCOB", maxCOB))
         add(KeyValueRow("skip_neutral_temps", skip_neutral_temps.toString()))
-        add(KeyValueRow("remainingCarbsCap", remainingCarbsCap.toString()))
+        add(numberRow("remainingCarbsCap", remainingCarbsCap))
         add(KeyValueRow("enableUAM", enableUAM.toString()))
         add(KeyValueRow("A52_risk_enable", A52_risk_enable.toString()))
-        add(KeyValueRow("SMBInterval", SMBInterval.toString()))
+        add(numberRow("SMBInterval", SMBInterval))
         add(KeyValueRow("enableSMB_with_COB", enableSMB_with_COB.toString()))
         add(KeyValueRow("enableSMB_with_temptarget", enableSMB_with_temptarget.toString()))
         add(KeyValueRow("allowSMB_with_high_temptarget", allowSMB_with_high_temptarget.toString()))
         add(KeyValueRow("enableSMB_always", enableSMB_always.toString()))
         add(KeyValueRow("enableSMB_after_carbs", enableSMB_after_carbs.toString()))
-        add(KeyValueRow("maxSMBBasalMinutes", maxSMBBasalMinutes.toString()))
-        add(KeyValueRow("maxUAMSMBBasalMinutes", maxUAMSMBBasalMinutes.toString()))
-        add(KeyValueRow("bolus_increment", bolus_increment.toString()))
-        add(KeyValueRow("carbsReqThreshold", carbsReqThreshold.toString()))
-        add(KeyValueRow("current_basal", current_basal.toString()))
+        add(numberRow("maxSMBBasalMinutes", maxSMBBasalMinutes))
+        add(numberRow("maxUAMSMBBasalMinutes", maxUAMSMBBasalMinutes))
+        add(numberRow("bolus_increment", bolus_increment))
+        add(numberRow("carbsReqThreshold", carbsReqThreshold))
+        add(numberRow("current_basal", current_basal))
         add(KeyValueRow("temptargetSet", temptargetSet.toString()))
-        add(KeyValueRow("autosens_max", autosens_max.toString()))
+        add(numberRow("autosens_max", autosens_max))
         add(KeyValueRow("out_units", out_units))
-        lgsThreshold?.let { add(KeyValueRow("lgsThreshold", it.toString())) }
+        lgsThreshold?.let { add(numberRow("lgsThreshold", it)) }
         // AutoISF-specific
-        add(KeyValueRow("variable_sens", variable_sens.toString()))
+        add(numberRow("variable_sens", variable_sens))
         add(KeyValueRow("autoISF_version", autoISF_version))
         add(KeyValueRow("enable_autoISF", enable_autoISF.toString()))
-        add(KeyValueRow("autoISF_max", autoISF_max.toString()))
-        add(KeyValueRow("autoISF_min", autoISF_min.toString()))
-        add(KeyValueRow("bgAccel_ISF_weight", bgAccel_ISF_weight.toString()))
-        add(KeyValueRow("bgBrake_ISF_weight", bgBrake_ISF_weight.toString()))
-        add(KeyValueRow("pp_ISF_weight", pp_ISF_weight.toString()))
-        add(KeyValueRow("lower_ISFrange_weight", lower_ISFrange_weight.toString()))
-        add(KeyValueRow("higher_ISFrange_weight", higher_ISFrange_weight.toString()))
-        add(KeyValueRow("dura_ISF_weight", dura_ISF_weight.toString()))
-        add(KeyValueRow("smb_delivery_ratio", smb_delivery_ratio.toString()))
-        add(KeyValueRow("smb_delivery_ratio_min", smb_delivery_ratio_min.toString()))
-        add(KeyValueRow("smb_delivery_ratio_max", smb_delivery_ratio_max.toString()))
-        add(KeyValueRow("smb_delivery_ratio_bg_range", smb_delivery_ratio_bg_range.toString()))
-        add(KeyValueRow("smb_max_range_extension", smb_max_range_extension.toString()))
+        add(numberRow("autoISF_max", autoISF_max))
+        add(numberRow("autoISF_min", autoISF_min))
+        add(numberRow("bgAccel_ISF_weight", bgAccel_ISF_weight))
+        add(numberRow("bgBrake_ISF_weight", bgBrake_ISF_weight))
+        add(numberRow("pp_ISF_weight", pp_ISF_weight))
+        add(numberRow("lower_ISFrange_weight", lower_ISFrange_weight))
+        add(numberRow("higher_ISFrange_weight", higher_ISFrange_weight))
+        add(numberRow("dura_ISF_weight", dura_ISF_weight))
+        add(numberRow("smb_delivery_ratio", smb_delivery_ratio))
+        add(numberRow("smb_delivery_ratio_min", smb_delivery_ratio_min))
+        add(numberRow("smb_delivery_ratio_max", smb_delivery_ratio_max))
+        add(numberRow("smb_delivery_ratio_bg_range", smb_delivery_ratio_bg_range))
+        add(numberRow("smb_max_range_extension", smb_max_range_extension))
         add(KeyValueRow("enableSMB_EvenOn_OddOff_always", enableSMB_EvenOn_OddOff_always.toString()))
-        add(KeyValueRow("iob_threshold_percent", iob_threshold_percent.toString()))
-        add(KeyValueRow("profile_percentage", profile_percentage.toString()))
+        add(numberRow("iob_threshold_percent", iob_threshold_percent))
+        add(numberRow("profile_percentage", profile_percentage))
     }
 
     private fun MealData.toRows(): List<KeyValueRow> = buildList {
-        add(KeyValueRow("carbs", carbs.toString()))
-        add(KeyValueRow("mealCOB", mealCOB.toString()))
-        add(KeyValueRow("slopeFromMaxDeviation", slopeFromMaxDeviation.toString()))
-        add(KeyValueRow("slopeFromMinDeviation", slopeFromMinDeviation.toString()))
+        add(numberRow("carbs", carbs))
+        add(numberRow("mealCOB", mealCOB))
+        add(numberRow("slopeFromMaxDeviation", slopeFromMaxDeviation))
+        add(numberRow("slopeFromMinDeviation", slopeFromMinDeviation))
         add(KeyValueRow("lastBolusTime", if (lastBolusTime > 0) dateUtil.dateAndTimeString(lastBolusTime) else "0"))
         add(KeyValueRow("lastCarbTime", if (lastCarbTime > 0) dateUtil.dateAndTimeString(lastCarbTime) else "0"))
-        add(KeyValueRow("usedMinCarbsImpact", usedMinCarbsImpact.toString()))
+        add(numberRow("usedMinCarbsImpact", usedMinCarbsImpact))
     }
 
     private fun AutosensResult.toRows(): List<KeyValueRow> = buildList {
-        add(KeyValueRow("ratio", ratio.toString()))
-        add(KeyValueRow("carbsAbsorbed", carbsAbsorbed.toString()))
+        add(numberRow("ratio", ratio))
+        add(numberRow("carbsAbsorbed", carbsAbsorbed))
         add(KeyValueRow("sensResult", sensResult))
         add(KeyValueRow("pastSensitivity", pastSensitivity))
         add(KeyValueRow("ratioLimit", ratioLimit))
-        add(KeyValueRow("ratioFromTdd", ratioFromTdd.toString()))
-        add(KeyValueRow("ratioFromCarbs", ratioFromCarbs.toString()))
+        add(numberRow("ratioFromTdd", ratioFromTdd))
+        add(numberRow("ratioFromCarbs", ratioFromCarbs))
     }
 
     private fun RT.toRows(): List<KeyValueRow> = buildList {
@@ -384,24 +389,24 @@ class OpenAPSViewModel(
         add(KeyValueRow("runningDynamicIsf", runningDynamicIsf.toString()))
         timestamp?.let { add(KeyValueRow("timestamp", dateUtil.dateAndTimeString(it))) }
         add(KeyValueRow("temp", temp))
-        bg?.let { add(KeyValueRow("bg", it.toString())) }
+        bg?.let { add(numberRow("bg", it)) }
         tick?.let { add(KeyValueRow("tick", it)) }
-        eventualBG?.let { add(KeyValueRow("eventualBG", it.toString())) }
-        targetBG?.let { add(KeyValueRow("targetBG", it.toString())) }
-        snoozeBG?.let { add(KeyValueRow("snoozeBG", it.toString())) }
-        insulinReq?.let { add(KeyValueRow("insulinReq", it.toString())) }
-        carbsReq?.let { add(KeyValueRow("carbsReq", it.toString())) }
-        carbsReqWithin?.let { add(KeyValueRow("carbsReqWithin", it.toString())) }
-        units?.let { add(KeyValueRow("units", it.toString())) }
+        eventualBG?.let { add(numberRow("eventualBG", it)) }
+        targetBG?.let { add(numberRow("targetBG", it)) }
+        snoozeBG?.let { add(numberRow("snoozeBG", it)) }
+        insulinReq?.let { add(numberRow("insulinReq", it)) }
+        carbsReq?.let { add(numberRow("carbsReq", it)) }
+        carbsReqWithin?.let { add(numberRow("carbsReqWithin", it)) }
+        units?.let { add(numberRow("units", it)) }
         deliverAt?.let { add(KeyValueRow("deliverAt", dateUtil.dateAndTimeString(it))) }
-        sensitivityRatio?.let { add(KeyValueRow("sensitivityRatio", it.toString())) }
+        sensitivityRatio?.let { add(numberRow("sensitivityRatio", it)) }
         val reasonStr = reason.toString()
         if (reasonStr.isNotEmpty()) add(KeyValueRow("reason", reasonStr))
-        duration?.let { add(KeyValueRow("duration", it.toString())) }
-        rate?.let { add(KeyValueRow("rate", it.toString())) }
-        COB?.let { add(KeyValueRow("COB", it.toString())) }
-        IOB?.let { add(KeyValueRow("IOB", it.toString())) }
-        variable_sens?.let { add(KeyValueRow("variable_sens", it.toString())) }
-        isfMgdlForCarbs?.let { add(KeyValueRow("isfMgdlForCarbs", it.toString())) }
+        duration?.let { add(numberRow("duration", it)) }
+        rate?.let { add(numberRow("rate", it)) }
+        COB?.let { add(numberRow("COB", it)) }
+        IOB?.let { add(numberRow("IOB", it)) }
+        variable_sens?.let { add(numberRow("variable_sens", it)) }
+        isfMgdlForCarbs?.let { add(numberRow("isfMgdlForCarbs", it)) }
     }
 }

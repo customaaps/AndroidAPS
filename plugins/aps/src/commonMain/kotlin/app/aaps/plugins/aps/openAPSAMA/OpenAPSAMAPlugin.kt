@@ -92,7 +92,8 @@ class OpenAPSAMAPlugin(
                 apsPlugin = plugin as APS,
                 rxBus = rxBus,
                 rh = rh,
-                dateUtil = dateUtil
+                dateUtil = dateUtil,
+                glucoseUnit = profileFunction::getUnits
             )
         }
         .icon(IcPluginOpenAPS)

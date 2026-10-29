@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.rx.bus.RxBus
@@ -15,7 +16,8 @@ class OpenAPSComposeContent(
     private val apsPlugin: APS,
     private val rxBus: RxBus,
     private val rh: TextResolver,
-    private val dateUtil: DateUtil
+    private val dateUtil: DateUtil,
+    private val glucoseUnit: () -> GlucoseUnit
 ) : ComposablePluginContent {
 
     @Composable
@@ -31,7 +33,8 @@ class OpenAPSComposeContent(
                 rxBus = rxBus,
                 rh = rh,
                 dateUtil = dateUtil,
-                scope = scope
+                scope = scope,
+                glucoseUnit = glucoseUnit
             )
         }
 

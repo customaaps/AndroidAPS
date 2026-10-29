@@ -115,7 +115,8 @@ class OpenAPSBoostPlugin(
                 apsPlugin = plugin as APS,
                 rxBus = rxBus,
                 rh = rh,
-                dateUtil = dateUtil
+                dateUtil = dateUtil,
+                glucoseUnit = profileFunction::getUnits
             )
         }
         .icon(IcPluginOpenAPS)
@@ -283,7 +284,7 @@ class OpenAPSBoostPlugin(
             val advancedFiltering = preferences.get(BooleanKey.ApsIgnoreBgSource) ||
                 constraintsChecker.isAdvancedFilteringEnabled().also { inputConstraints.copyReasons(it) }.value()
             val oapsProfile = OapsProfile(
-                dia = 0.0, // not used
+                dia = profile.iCfg.dia, // captured insulin DIA; IOB is calculated separately
                 min_5m_carbimpact = 0.0, // not used
                 max_iob = constraintsChecker.getMaxIOBAllowed().also { inputConstraints.copyReasons(it) }.value(),
                 max_daily_basal = profile.getMaxDailyBasal(),
