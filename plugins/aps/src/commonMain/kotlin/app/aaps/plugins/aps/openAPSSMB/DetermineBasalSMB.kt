@@ -84,7 +84,7 @@ class DetermineBasalSMB(
     //if (profile.out_units === "mmol/L") round(value / 18, 1).toFixed(1);
     //else Math.round(value);
 
-    fun enable_smb(profile: OapsProfile, microBolusAllowed: Boolean, meal_data: MealData, target_bg: Double): Boolean {
+    fun enable_smb(profile: OapsProfile, microBolusAllowed: Boolean, meal_data: MealData, target_bg: Double, smbOnEvenTarget: Boolean = false): Boolean {
         // disable SMB when a high temptarget is set
         if (!microBolusAllowed) {
             consoleError.add("SMB disabled (!microBolusAllowed)")
@@ -92,6 +92,22 @@ class DetermineBasalSMB(
         } else if (!profile.allowSMB_with_high_temptarget && profile.temptargetSet && Constants.isAboveNormalTarget(target_bg)) {
             consoleError.add("SMB disabled due to high temptarget of $target_bg")
             return false
+        }
+
+        // The AutoISF alternative enables SMB only when the profile target is even.
+        // Keep the microbolus and high-temp-target safety checks above in force.
+        if (smbOnEvenTarget) {
+            val targetEven = if (profile.out_units == "mmol/L") {
+                round(profile.target_bg / 18.0, 1) * 10.0 % 2.0 == 0.0
+            } else {
+                round(profile.target_bg).toInt() % 2 == 0
+            }
+            if (!targetEven) {
+                consoleError.add("SMB disabled because profile target is odd")
+                return false
+            }
+            consoleError.add("SMB enabled because profile target is even")
+            return true
         }
 
         // enable SMB/UAM if always-on (unless previously disabled for high temptarget)
@@ -213,7 +229,8 @@ class DetermineBasalSMB(
 
     fun determine_basal(
         glucose_status: GlucoseStatus, currenttemp: CurrentTemp, iob_data_array: Array<IobTotal>, profile: OapsProfile, autosens_data: AutosensResult, meal_data: MealData,
-        microBolusAllowed: Boolean, currentTime: Long, flatBGsDetected: Boolean, dynIsfMode: Boolean
+        microBolusAllowed: Boolean, currentTime: Long, flatBGsDetected: Boolean, dynIsfMode: Boolean,
+        smbRatio: Double = 0.5, smbMaxRangeExtension: Double = 1.0, smbOnEvenTarget: Boolean = false
     ): RT {
         consoleError = mutableListOf()
         consoleLog = mutableListOf()
@@ -466,7 +483,7 @@ class DetermineBasalSMB(
         ZTpredBGs.add(bg)
         UAMpredBGs.add(bg)
 
-        var enableSMB = enable_smb(profile, microBolusAllowed, meal_data, target_bg)
+        var enableSMB = enable_smb(profile, microBolusAllowed, meal_data, target_bg, smbOnEvenTarget)
 
         // enable UAM (if enabled in preferences)
         val enableUAM = profile.enableUAM
@@ -1161,14 +1178,14 @@ class DetermineBasalSMB(
                 if (iob_data.iob > mealInsulinReq && iob_data.iob > 0) {
                     consoleError.add("IOB ${iob_data.iob} > COB ${meal_data.mealCOB}; mealInsulinReq = $mealInsulinReq")
                     consoleError.add("profile.maxUAMSMBBasalMinutes: ${profile.maxUAMSMBBasalMinutes} profile.current_basal: ${profile.current_basal}")
-                    maxBolus = round(profile.current_basal * profile.maxUAMSMBBasalMinutes / 60, 1)
+                    maxBolus = round(smbMaxRangeExtension * profile.current_basal * profile.maxUAMSMBBasalMinutes / 60, 1)
                 } else {
                     consoleError.add("profile.maxSMBBasalMinutes: ${profile.maxSMBBasalMinutes} profile.current_basal: ${profile.current_basal}")
-                    maxBolus = round(profile.current_basal * profile.maxSMBBasalMinutes / 60, 1)
+                    maxBolus = round(smbMaxRangeExtension * profile.current_basal * profile.maxSMBBasalMinutes / 60, 1)
                 }
-                // bolus 1/2 the insulinReq, up to maxBolus, rounding down to nearest bolus increment
+                // Apply the configured SMB delivery ratio, retaining the maxBolus and pump-increment caps.
                 val roundSMBTo = 1 / profile.bolus_increment
-                val microBolus = floor(min(insulinReq / 2, maxBolus) * roundSMBTo) / roundSMBTo
+                val microBolus = floor(min(insulinReq * smbRatio, maxBolus) * roundSMBTo) / roundSMBTo
                 // calculate a long enough zero temp to eventually correct back up to target
                 val smbTarget = target_bg
                 val worstCaseInsulinReq = (smbTarget - (naive_eventualBG + minIOBPredBG) / 2.0) / sens
