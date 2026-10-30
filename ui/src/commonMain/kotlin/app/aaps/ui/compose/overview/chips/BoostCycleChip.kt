@@ -49,44 +49,43 @@ internal fun BoostCycleChip(
         onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onClick() },
         shape = RoundedCornerShape(AapsSpacing.chipCornerRadius),
         color = MaterialTheme.colorScheme.tertiaryContainer,
-        modifier = modifier.height(64.dp * LocalAapsScale.current)
+        // Fixed compact rows keep every field readable inside this small card.
+        modifier = modifier.height(58.dp * LocalAapsScale.current)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = AapsSpacing.medium, vertical = 5.dp)
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = AapsSpacing.medium, vertical = 4.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().weight(1f)) {
-                Icon(IcPluginOpenAPS, contentDescription = "Boost", tint = accent, modifier = Modifier.size(17.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(16.dp)) {
+                Icon(IcPluginOpenAPS, contentDescription = "Boost", tint = accent, modifier = Modifier.size(14.dp))
                 BasicText(
                     text = status,
-                    modifier = Modifier.weight(0.42f).padding(start = AapsSpacing.small),
-                    style = MaterialTheme.typography.bodyMedium.copy(color = accent),
-                    maxLines = 1,
-                    softWrap = false,
-                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 17.sp, stepSize = 1.sp)
+                    modifier = Modifier.weight(0.36f).padding(start = AapsSpacing.small),
+                    style = MaterialTheme.typography.labelSmall.copy(color = accent),
+                    maxLines = 1, softWrap = false,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = 13.sp, stepSize = 1.sp)
                 )
                 BasicText(
                     text = "dose ${dose.ifBlank { "—" }}U · budget ${budget.ifBlank { "—" }}U",
-                    modifier = Modifier.weight(0.58f),
+                    modifier = Modifier.weight(0.64f),
                     style = MaterialTheme.typography.labelSmall.copy(color = quiet),
-                    maxLines = 1,
-                    softWrap = false,
-                    autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = 12.sp, stepSize = 1.sp)
+                    maxLines = 1, softWrap = false,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 6.sp, maxFontSize = 11.sp, stepSize = 1.sp)
                 )
             }
             BasicText(
                 text = "×${multiplier.ifBlank { "—" }} · ${cycle?.let { "${it}c" } ?: "—"}",
-                style = MaterialTheme.typography.bodyMedium.copy(color = accent),
-                maxLines = 1,
-                softWrap = false,
-                autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 15.sp, stepSize = 1.sp)
+                modifier = Modifier.fillMaxWidth().height(16.dp),
+                style = MaterialTheme.typography.labelSmall.copy(color = accent),
+                maxLines = 1, softWrap = false,
+                autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 14.sp, stepSize = 1.sp)
             )
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().weight(1f)) {
-                BasicText("SCORE", style = MaterialTheme.typography.labelSmall.copy(color = quiet), maxLines = 1, modifier = Modifier.width(42.dp))
-                Box(modifier = Modifier.weight(1f).height(7.dp).clip(RoundedCornerShape(4.dp)).background(quiet.copy(alpha = 0.28f))) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(14.dp)) {
+                BasicText("SCORE", style = MaterialTheme.typography.labelSmall.copy(color = quiet), maxLines = 1, modifier = Modifier.width(38.dp))
+                Box(modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(4.dp)).background(quiet.copy(alpha = 0.28f))) {
                     Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(scoreProgress.coerceIn(0f, 1f)).background(accent))
                 }
-                BasicText(text = score.ifBlank { "—" }, modifier = Modifier.width(36.dp).padding(start = AapsSpacing.small), style = MaterialTheme.typography.labelSmall.copy(color = text), maxLines = 1)
+                BasicText(text = score.ifBlank { "—" }, modifier = Modifier.width(32.dp).padding(start = AapsSpacing.small), style = MaterialTheme.typography.labelSmall.copy(color = text), maxLines = 1)
             }
         }
     }

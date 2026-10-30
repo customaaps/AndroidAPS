@@ -105,6 +105,16 @@ fun OverviewScreenStacked(
             formatDuration = formatDuration
         )
         eatReminderBanner()
+        // The free strip above the BG ring keeps the mode/profile row from pushing the ring down.
+        OverviewPrimaryChips(
+            runningMode = runningMode, runningModeText = runningModeText,
+            runningModeRemaining = runningModeRemaining, runningModeProgress = runningModeProgress,
+            runningModeSceneManaged = runningModeSceneManaged, smbEnabled = smbEnabled,
+            profileName = profileName, isProfileModified = isProfileModified,
+            profileProgress = profileProgress, profileSceneManaged = profileSceneManaged,
+            onNavigate = onNavigate, commandsAllowed = commandsAllowed,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -146,6 +156,7 @@ fun OverviewScreenStacked(
                 onTbrChipClick = onTbrChipClick,
                 onIobChipClick = onIobChipClick,
                 commandsAllowed = commandsAllowed,
+                showPrimaryChips = false,
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)

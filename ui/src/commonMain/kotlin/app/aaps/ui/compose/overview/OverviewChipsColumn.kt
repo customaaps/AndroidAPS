@@ -55,33 +55,28 @@ fun OverviewChipsColumn(
     // The command chips (running mode / profile / temp target) open mutating screens — their click is disabled on an
     // unpaired client (same MASTER_OR_PAIRED_CLIENT gate as nav/Manage), while the chip stays visible as status.
     commandsAllowed: Boolean = true,
+    showPrimaryChips: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        NarrowChips(
-            runningMode = runningMode,
-            runningModeText = runningModeText,
-            runningModeRemaining = runningModeRemaining,
-            runningModeProgress = runningModeProgress,
-            runningModeSceneManaged = runningModeSceneManaged,
-            smbEnabled = smbEnabled,
-            profileName = profileName,
-            isProfileModified = isProfileModified,
-            profileProgress = profileProgress,
-            profileSceneManaged = profileSceneManaged,
-            tempTargetText = tempTargetText,
-            tempTargetState = tempTargetState,
-            tempTargetProgress = tempTargetProgress,
-            tempTargetReason = tempTargetReason,
-            tempTargetSceneManaged = tempTargetSceneManaged,
-            tbrState = tbrState,
-            tbrText = tbrText,
-            onNavigate = onNavigate,
-            onTbrChipClick = onTbrChipClick,
-            commandsAllowed = commandsAllowed
+        if (showPrimaryChips) {
+            OverviewPrimaryChips(
+                runningMode = runningMode, runningModeText = runningModeText,
+                runningModeRemaining = runningModeRemaining, runningModeProgress = runningModeProgress,
+                runningModeSceneManaged = runningModeSceneManaged, smbEnabled = smbEnabled,
+                profileName = profileName, isProfileModified = isProfileModified,
+                profileProgress = profileProgress, profileSceneManaged = profileSceneManaged,
+                onNavigate = onNavigate, commandsAllowed = commandsAllowed
+            )
+        }
+        OverviewSecondaryChips(
+            tempTargetText = tempTargetText, tempTargetState = tempTargetState,
+            tempTargetProgress = tempTargetProgress, tempTargetReason = tempTargetReason,
+            tempTargetSceneManaged = tempTargetSceneManaged, tbrState = tbrState, tbrText = tbrText,
+            onNavigate = onNavigate, onTbrChipClick = onTbrChipClick, commandsAllowed = commandsAllowed
         )
         IobCobChipsRow(
             iobUiState = iobUiState,
@@ -89,14 +84,8 @@ fun OverviewChipsColumn(
             onIobChipClick = onIobChipClick
         )
         SensitivityChipBlock(
-            state = sensitivityUiState.copy(isfFrom = "", isfTo = ""),
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@Composable
-private fun NarrowChips(
+            state = sensitivityUiSt@Composable
+fun OverviewPrimaryChips(
     runningMode: RM.Mode?,
     runningModeText: String,
     runningModeRemaining: String,
@@ -107,27 +96,15 @@ private fun NarrowChips(
     isProfileModified: Boolean,
     profileProgress: Float,
     profileSceneManaged: Boolean,
-    tempTargetText: String,
-    tempTargetState: TempTargetChipState,
-    tempTargetProgress: Float,
-    tempTargetReason: TT.Reason?,
-    tempTargetSceneManaged: Boolean,
-    tbrState: TbrState,
-    tbrText: String = "",
     onNavigate: (NavigationRequest) -> Unit,
-    onTbrChipClick: () -> Unit,
-    commandsAllowed: Boolean
+    commandsAllowed: Boolean,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         if (runningModeText.isNotEmpty()) {
             RunningModeChip(
-                mode = runningMode,
-                text = runningModeText,
-                progress = runningModeProgress,
-                remaining = runningModeRemaining,
-                sceneManaged = runningModeSceneManaged,
+                mode = runningMode, text = runningModeText, progress = runningModeProgress,
+                remaining = runningModeRemaining, sceneManaged = runningModeSceneManaged,
                 smbEnabled = smbEnabled,
                 enabled = commandsAllowed && LocalClientRole.current.allows(ElementType.RUNNING_MODE.role),
                 onClick = { onNavigate(NavigationRequest.Element(ElementType.RUNNING_MODE)) }
@@ -135,38 +112,41 @@ private fun NarrowChips(
         }
         ProfileChip(
             profileName = profileName.ifEmpty { stringResource(CoreUiStrings.no_profile_set) },
-            isModified = isProfileModified,
-            progress = profileProgress,
+            isModified = isProfileModified, progress = profileProgress,
             onClick = { onNavigate(NavigationRequest.Element(ElementType.PROFILE_MANAGEMENT)) },
-            sceneManaged = profileSceneManaged,
-            isNoProfile = profileName.isEmpty(),
-            // Stays clickable even on an unpaired client: profile management opens read-only there,
-            // so this is a view affordance, not a command one (unlike the running-mode / TT chips).
+            sceneManaged = profileSceneManaged, isNoProfile = profileName.isEmpty(),
             modifier = Modifier.weight(1f)
         )
     }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AapsSpacing.small)
-    ) {
+}
+
+@Composable
+private fun OverviewSecondaryChips(
+    tempTargetText: String,
+    tempTargetState: TempTargetChipState,
+    tempTargetProgress: Float,
+    tempTargetReason: TT.Reason?,
+    tempTargetSceneManaged: Boolean,
+    tbrState: TbrState,
+    tbrText: String,
+    onNavigate: (NavigationRequest) -> Unit,
+    onTbrChipClick: () -> Unit,
+    commandsAllowed: Boolean
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AapsSpacing.small)) {
         if (tempTargetText.isNotEmpty()) {
             TempTargetChip(
-                targetText = tempTargetText,
-                state = tempTargetState,
-                progress = tempTargetProgress,
-                reason = tempTargetReason,
-                modifier = Modifier.weight(0.6f),
+                targetText = tempTargetText, state = tempTargetState, progress = tempTargetProgress,
+                reason = tempTargetReason, modifier = Modifier.weight(0.6f),
                 onClick = { onNavigate(NavigationRequest.Element(ElementType.TEMP_TARGET_MANAGEMENT)) },
                 sceneManaged = tempTargetSceneManaged,
                 enabled = commandsAllowed && LocalClientRole.current.allows(ElementType.TEMP_TARGET_MANAGEMENT.role)
             )
         }
         TbrChip(
-            state = tbrState,
-            valueText = tbrText,
+            state = tbrState, valueText = tbrText,
             modifier = if (tempTargetText.isNotEmpty()) Modifier.weight(0.4f) else Modifier,
             onClick = onTbrChipClick
         )
     }
 }
-

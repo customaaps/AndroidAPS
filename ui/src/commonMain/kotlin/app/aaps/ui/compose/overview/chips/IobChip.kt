@@ -1,15 +1,16 @@
 package app.aaps.ui.compose.overview.chips
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -21,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsSpacing
@@ -60,7 +62,7 @@ internal fun IobChip(
             shape = RoundedCornerShape(AapsSpacing.chipCornerRadius),
             color = if (hasValue) ElementType.INSULIN.color().copy(alpha = 0.2f) else Color.Transparent,
             modifier = modifier
-                .heightIn(min = AapsSpacing.chipHeight)
+                .height(AapsSpacing.chipHeight)
                 .semantics { contentDescription = chipDescription }
         ) {
             Row(
@@ -76,11 +78,13 @@ internal fun IobChip(
                         modifier = Modifier.size(AapsSpacing.chipIconSize)
                     )
                 }
-                Text(
+                BasicText(
                     text = state.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = if (showIcon) AapsSpacing.medium else 0.dp)
+                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                    modifier = Modifier.weight(1f, fill = false).padding(start = if (showIcon) AapsSpacing.medium else 0.dp),
+                    maxLines = 1,
+                    softWrap = false,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = MaterialTheme.typography.bodyMedium.fontSize, stepSize = 1.sp)
                 )
             }
         }
