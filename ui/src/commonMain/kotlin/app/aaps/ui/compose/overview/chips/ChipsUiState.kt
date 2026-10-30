@@ -34,5 +34,8 @@ data class SensitivityUiState(
     val hasData: Boolean = false,
     val profileIsf: String = "",
     val crFrom: String = "",
-    val crTo: String = ""
+    val crTo: String = "",
+    val isBoostActive: Boolean = false,
+    val boostStatus: String = "",
+    val boostDetail: String = ""
 )

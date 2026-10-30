@@ -10,6 +10,7 @@ import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.dialogs.OkCancelDialog
 import app.aaps.core.ui.compose.stringResource
 import app.aaps.ui.compose.overview.chips.SensitivityChip
+import app.aaps.ui.compose.overview.chips.BoostCycleChip
 import app.aaps.ui.compose.overview.chips.SensitivityUiState
 
 @Composable
@@ -17,18 +18,18 @@ fun SensitivityChipBlock(
     state: SensitivityUiState,
     modifier: Modifier = Modifier
 ) {
-    if (state.asText.isEmpty() && state.isfFrom.isEmpty()) return
+    if (!state.isBoostActive && state.asText.isEmpty() && state.isfFrom.isEmpty()) return
 
     var showSensitivityDialog by remember { mutableStateOf(false) }
-    SensitivityChip(
-        state = state,
-        onClick = { if (state.dialogText.isNotEmpty()) showSensitivityDialog = true },
-        modifier = modifier
-    )
+    if (state.isBoostActive) {
+        BoostCycleChip(state.boostStatus, onClick = { showSensitivityDialog = true }, modifier = modifier)
+    } else {
+        SensitivityChip(state, onClick = { if (state.dialogText.isNotEmpty()) showSensitivityDialog = true }, modifier = modifier)
+    }
     if (showSensitivityDialog) {
         OkCancelDialog(
-            title = stringResource(CoreUiStrings.sensitivity),
-            message = state.dialogText,
+            title = if (state.isBoostActive) "Boost cycle" else stringResource(CoreUiStrings.sensitivity),
+            message = if (state.isBoostActive) state.boostDetail else state.dialogText,
             onConfirm = { showSensitivityDialog = false },
             onDismiss = { showSensitivityDialog = false }
         )

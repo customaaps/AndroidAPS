@@ -8,6 +8,8 @@ import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.overview.SensitivityOverview
 import app.aaps.core.interfaces.overview.graph.OverviewDataCache
 import app.aaps.core.interfaces.resources.TextResolver
@@ -34,6 +36,7 @@ import kotlinx.coroutines.launch
 class ChipsViewModel(
     @Assisted cache: OverviewDataCache,
     private val iobCobCalculator: IobCobCalculator,
+    private val activePlugin: ActivePlugin,
     private val loop: Loop,
     private val config: Config,
     private val persistenceLayer: PersistenceLayer,
@@ -110,6 +113,17 @@ class ChipsViewModel(
     private suspend fun buildSensitivityUiState(): SensitivityUiState {
         // Worked out in one place for the chip, its dialog and the watch - see SensitivityOverview
         val data = sensitivityOverview.build()
+        val aps = activePlugin.activeAPS
+        val result = aps?.lastAPSResult
+        val isBoostActive = aps?.algorithm == APSResult.Algorithm.BOOST
+        val reason = result?.reason.orEmpty()
+        val boostStatus = when {
+            reason.contains("recovering", true) -> "RECOVERING"
+            reason.contains("committed", true) -> "COMMITTED"
+            reason.contains("confirmed", true) -> "CONFIRMED"
+            result == null -> "CALCULATING"
+            else -> "ACTIVE"
+        }
         return SensitivityUiState(
             asText = data.asText,
             isfFrom = data.isfFrom,
@@ -121,7 +135,10 @@ class ChipsViewModel(
             hasData = data.hasData,
             profileIsf = data.profileIsf,
             crFrom = data.crFrom,
-            crTo = data.crTo
+            crTo = data.crTo,
+            isBoostActive = isBoostActive,
+            boostStatus = if (isBoostActive) boostStatus else "",
+            boostDetail = reason.ifBlank { "Boost cycle is waiting for a result." }
         )
     }
 
