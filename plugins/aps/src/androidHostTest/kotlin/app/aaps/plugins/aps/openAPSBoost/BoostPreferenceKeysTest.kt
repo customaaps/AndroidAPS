@@ -35,6 +35,19 @@ class BoostPreferenceKeysTest {
             }
         }
     }
+    @Test fun boostSettingsAreMasterSyncedAndVisibleToAuthorizedClients() {
+        val editable = BoostApsPreferenceKeys.editable
+        assertEquals(65, editable.size)
+        editable.forEach { key ->
+            assertTrue(key.showInNsClientMode, key.key)
+            assertEquals(SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional), key.sync, key.key)
+            assertFalse(key.showInPumpControlMode, key.key)
+        }
+        // Internal algorithm state is intentionally NOT exposed to the client configuration.
+        assertNull(BoostApsSettingKeys.Session.sync)
+        assertNull(BoostApsSettingKeys.ApsBoostV5State.sync)
+    }
+
     @Test fun clocksRejectMalformedValuesAndOffsetEditorCannotGuessMmolForSmallMgdlOffsets() {
         val clocks = BoostApsPreferenceKeys.editable.filterIsInstance<StringPreferenceKey>()
         assertEquals(2, clocks.size)
