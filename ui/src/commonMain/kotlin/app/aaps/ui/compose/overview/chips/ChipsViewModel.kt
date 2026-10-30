@@ -121,13 +121,18 @@ class ChipsViewModel(
         // suggested result received through Nightscout instead of local lastAPSResult.
         // This is display-only and never changes dosing or pump commands.
         val result = if (config.AAPSCLIENT) processedDeviceStatusData.getAPSResult() else aps?.lastAPSResult
-        val isBoostActive = if (config.AAPSCLIENT) {
-            result?.algorithm == APSResult.Algorithm.BOOST
-        } else {
-            aps?.algorithm == APSResult.Algorithm.BOOST
-        }
-        val reason = result?.reason.orEmpty()
         val boost = result?.rawData() as? RT
+        // Preserve the selected APS algorithm when the client's received result is
+        // missing or has UNKNOWN algorithm. AAPSClient has no local APS cycle, so
+        // remote-result availability must never hide the Boost chip.
+        val isBoostActive = aps?.algorithm == APSResult.Algorithm.BOOST ||
+            (config.AAPSCLIENT && (
+                result?.algorithm == APSResult.Algorithm.BOOST ||
+                    boost?.boostVersion?.isNotBlank() == true ||
+                    boost?.boostV5_active == true ||
+                    boost?.boostActive == true
+                ))
+        val reason = result?.reason.orEmpty()
         val debugLines = result?.scriptDebug?.takeIf { !it.isNullOrEmpty() }
             ?: boost?.consoleError?.takeIf { !it.isNullOrEmpty() }
             ?: boost?.consoleLog?.takeIf { !it.isNullOrEmpty() }
