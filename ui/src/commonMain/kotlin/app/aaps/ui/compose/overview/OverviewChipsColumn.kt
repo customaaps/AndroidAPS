@@ -52,8 +52,6 @@ fun OverviewChipsColumn(
     onNavigate: (NavigationRequest) -> Unit,
     onTbrChipClick: () -> Unit,
     onIobChipClick: () -> Unit,
-    // The command chips (running mode / profile / temp target) open mutating screens — their click is disabled on an
-    // unpaired client (same MASTER_OR_PAIRED_CLIENT gate as nav/Manage), while the chip stays visible as status.
     commandsAllowed: Boolean = true,
     showPrimaryChips: Boolean = true,
     modifier: Modifier = Modifier
@@ -64,19 +62,31 @@ fun OverviewChipsColumn(
     ) {
         if (showPrimaryChips) {
             OverviewPrimaryChips(
-                runningMode = runningMode, runningModeText = runningModeText,
-                runningModeRemaining = runningModeRemaining, runningModeProgress = runningModeProgress,
-                runningModeSceneManaged = runningModeSceneManaged, smbEnabled = smbEnabled,
-                profileName = profileName, isProfileModified = isProfileModified,
-                profileProgress = profileProgress, profileSceneManaged = profileSceneManaged,
-                onNavigate = onNavigate, commandsAllowed = commandsAllowed
+                runningMode = runningMode,
+                runningModeText = runningModeText,
+                runningModeRemaining = runningModeRemaining,
+                runningModeProgress = runningModeProgress,
+                runningModeSceneManaged = runningModeSceneManaged,
+                smbEnabled = smbEnabled,
+                profileName = profileName,
+                isProfileModified = isProfileModified,
+                profileProgress = profileProgress,
+                profileSceneManaged = profileSceneManaged,
+                onNavigate = onNavigate,
+                commandsAllowed = commandsAllowed
             )
         }
         OverviewSecondaryChips(
-            tempTargetText = tempTargetText, tempTargetState = tempTargetState,
-            tempTargetProgress = tempTargetProgress, tempTargetReason = tempTargetReason,
-            tempTargetSceneManaged = tempTargetSceneManaged, tbrState = tbrState, tbrText = tbrText,
-            onNavigate = onNavigate, onTbrChipClick = onTbrChipClick, commandsAllowed = commandsAllowed
+            tempTargetText = tempTargetText,
+            tempTargetState = tempTargetState,
+            tempTargetProgress = tempTargetProgress,
+            tempTargetReason = tempTargetReason,
+            tempTargetSceneManaged = tempTargetSceneManaged,
+            tbrState = tbrState,
+            tbrText = tbrText,
+            onNavigate = onNavigate,
+            onTbrChipClick = onTbrChipClick,
+            commandsAllowed = commandsAllowed
         )
         IobCobChipsRow(
             iobUiState = iobUiState,
@@ -84,7 +94,13 @@ fun OverviewChipsColumn(
             onIobChipClick = onIobChipClick
         )
         SensitivityChipBlock(
-            state = sensitivityUiSt@Composable
+            state = sensitivityUiState.copy(isfFrom = "", isfTo = ""),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
 fun OverviewPrimaryChips(
     runningMode: RM.Mode?,
     runningModeText: String,
@@ -100,11 +116,17 @@ fun OverviewPrimaryChips(
     commandsAllowed: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         if (runningModeText.isNotEmpty()) {
             RunningModeChip(
-                mode = runningMode, text = runningModeText, progress = runningModeProgress,
-                remaining = runningModeRemaining, sceneManaged = runningModeSceneManaged,
+                mode = runningMode,
+                text = runningModeText,
+                progress = runningModeProgress,
+                remaining = runningModeRemaining,
+                sceneManaged = runningModeSceneManaged,
                 smbEnabled = smbEnabled,
                 enabled = commandsAllowed && LocalClientRole.current.allows(ElementType.RUNNING_MODE.role),
                 onClick = { onNavigate(NavigationRequest.Element(ElementType.RUNNING_MODE)) }
@@ -112,9 +134,11 @@ fun OverviewPrimaryChips(
         }
         ProfileChip(
             profileName = profileName.ifEmpty { stringResource(CoreUiStrings.no_profile_set) },
-            isModified = isProfileModified, progress = profileProgress,
+            isModified = isProfileModified,
+            progress = profileProgress,
             onClick = { onNavigate(NavigationRequest.Element(ElementType.PROFILE_MANAGEMENT)) },
-            sceneManaged = profileSceneManaged, isNoProfile = profileName.isEmpty(),
+            sceneManaged = profileSceneManaged,
+            isNoProfile = profileName.isEmpty(),
             modifier = Modifier.weight(1f)
         )
     }
@@ -133,18 +157,25 @@ private fun OverviewSecondaryChips(
     onTbrChipClick: () -> Unit,
     commandsAllowed: Boolean
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AapsSpacing.small)) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AapsSpacing.small)
+    ) {
         if (tempTargetText.isNotEmpty()) {
             TempTargetChip(
-                targetText = tempTargetText, state = tempTargetState, progress = tempTargetProgress,
-                reason = tempTargetReason, modifier = Modifier.weight(0.6f),
+                targetText = tempTargetText,
+                state = tempTargetState,
+                progress = tempTargetProgress,
+                reason = tempTargetReason,
+                modifier = Modifier.weight(0.6f),
                 onClick = { onNavigate(NavigationRequest.Element(ElementType.TEMP_TARGET_MANAGEMENT)) },
                 sceneManaged = tempTargetSceneManaged,
                 enabled = commandsAllowed && LocalClientRole.current.allows(ElementType.TEMP_TARGET_MANAGEMENT.role)
             )
         }
         TbrChip(
-            state = tbrState, valueText = tbrText,
+            state = tbrState,
+            valueText = tbrText,
             modifier = if (tempTargetText.isNotEmpty()) Modifier.weight(0.4f) else Modifier,
             onClick = onTbrChipClick
         )
