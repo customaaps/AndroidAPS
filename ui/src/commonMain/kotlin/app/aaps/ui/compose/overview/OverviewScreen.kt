@@ -68,8 +68,6 @@ fun OverviewScreen(
     tbrText: String = "",
     smbEnabled: Boolean,
     isSimpleMode: Boolean,
-    /** A detailed 3.4-inspired single-column presentation, selected in Appearance settings. */
-    classicUi: Boolean = false,
     calcProgress: Int,
     graphViewModel: GraphViewModel,
     chipsViewModel: ChipsViewModel,
@@ -153,7 +151,7 @@ fun OverviewScreen(
             // Two columns only where each one gets the width of a phone column. The text scale keeps that
             // true for the larger tablet text (see `typographyScaleFor`). Without the width check a nearly
             // square tablet window got two columns narrower than any phone has.
-            val twoColumns = !classicUi && isLandscape && maxWidth >= SPLIT_LAYOUT_MIN_WIDTH
+            val twoColumns = isLandscape && maxWidth >= SPLIT_LAYOUT_MIN_WIDTH
             if (twoColumns && isTablet) {
                 OverviewScreenTablet(
                     profileName = profileName,
@@ -254,7 +252,6 @@ fun OverviewScreen(
             tbrText = tbrText,
                     smbEnabled = smbEnabled,
                     isSimpleMode = isSimpleMode,
-                    classicUi = classicUi,
                     graphViewModel = graphViewModel,
                     chipsViewModel = chipsViewModel,
                     manageViewModel = manageViewModel,

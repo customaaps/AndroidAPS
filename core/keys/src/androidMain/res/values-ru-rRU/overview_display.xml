@@ -2,6 +2,4 @@
 <resources>
     <string name="pref_title_overview_temp_basal_as_percent">Показывать ВБС в %</string>
     <string name="pref_summary_overview_temp_basal_as_percent">Относительно базала текущего профиля; если он неизвестен, показывается известная абсолютная скорость.</string>
-    <string name="pref_title_overview_classic_ui">Классический вид главного экрана</string>
-    <string name="pref_summary_overview_classic_ui">Подробный одноколоночный вид, вдохновлённый интерфейсом 3.4.</string>
 </resources>

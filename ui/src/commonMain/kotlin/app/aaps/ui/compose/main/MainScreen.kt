@@ -48,7 +48,6 @@ import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.interfaces.notifications.AapsNotification
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.pump.BolusProgressState
-import app.aaps.core.keys.BooleanKey
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.LocalDateUtil
 import app.aaps.core.ui.compose.LocalSnackbarHostState
@@ -162,8 +161,6 @@ fun MainScreen(
     var showAutomationSheet by remember { mutableStateOf(false) }
     var showLoopActionSheet by remember { mutableStateOf(false) }
     val automationState by scenesViewModel.uiState.collectAsStateWithLifecycle()
-    val classicOverview by mainViewModel.preferences.observe(BooleanKey.OverviewClassicUi)
-        .collectAsStateWithLifecycle(initialValue = mainViewModel.preferences.get(BooleanKey.OverviewClassicUi))
     val snackbarHostState = LocalSnackbarHostState.current
 
     // Sync drawer state with ui state
@@ -281,7 +278,6 @@ fun MainScreen(
                         tbrText = uiState.tbrText,
                         smbEnabled = uiState.smbEnabled,
                         isSimpleMode = uiState.isSimpleMode,
-                        classicUi = classicOverview,
                         calcProgress = calcProgress,
                         graphViewModel = graphViewModel,
                         chipsViewModel = chipsViewModel,

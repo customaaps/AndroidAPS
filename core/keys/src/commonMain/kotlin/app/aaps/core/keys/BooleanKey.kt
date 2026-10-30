@@ -85,11 +85,6 @@ enum class BooleanKey(
         title = KeysStrings.pref_title_overview_temp_basal_as_percent,
         summary = KeysStrings.pref_summary_overview_temp_basal_as_percent
     ),
-    OverviewClassicUi(
-        key = "overview_classic_ui", defaultValue = false,
-        title = KeysStrings.pref_title_overview_classic_ui,
-        summary = KeysStrings.pref_summary_overview_classic_ui
-    ),
     OverviewShowTreatmentButton(key = "show_treatment_button", defaultValue = false, title = KeysStrings.pref_title_show_treatment_button, defaultedBySM = true),
     OverviewShowWizardButton(key = "show_wizard_button", defaultValue = true, title = KeysStrings.pref_title_show_wizard_button, defaultedBySM = true),
     OverviewShowInsulinButton(key = "show_insulin_button", defaultValue = true, title = KeysStrings.pref_title_show_insulin_button, defaultedBySM = true),

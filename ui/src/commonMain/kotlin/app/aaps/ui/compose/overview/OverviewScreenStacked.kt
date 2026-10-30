@@ -1,6 +1,5 @@
 package app.aaps.ui.compose.overview
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +55,6 @@ fun OverviewScreenStacked(
     tbrText: String = "",
     smbEnabled: Boolean,
     isSimpleMode: Boolean,
-    classicUi: Boolean = false,
     graphViewModel: GraphViewModel,
     chipsViewModel: ChipsViewModel,
     manageViewModel: ManageViewModel,
@@ -89,8 +85,7 @@ fun OverviewScreenStacked(
     val cobUiState by chipsViewModel.cobUiState.collectAsStateWithLifecycle()
     val statusState by statusViewModel.uiState.collectAsStateWithLifecycle()
 
-    // Classic view keeps the detailed status panel open, as the former 3.4 overview did.
-    var statusExpanded by rememberSaveable(classicUi) { mutableStateOf(classicUi) }
+    var statusExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -108,145 +103,59 @@ fun OverviewScreenStacked(
             formatDuration = formatDuration
         )
         eatReminderBanner()
-        if (classicUi) {
-            // Classic portrait order: profile/mode chips first, the BG display next,
-            // then the full-width status rows and graphs, like the standard AAPS overview.
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                OverviewPrimaryChips(
-                    runningMode = runningMode,
-                    runningModeText = runningModeText,
-                    runningModeRemaining = runningModeRemaining,
-                    runningModeProgress = runningModeProgress,
-                    runningModeSceneManaged = runningModeSceneManaged,
-                    smbEnabled = smbEnabled,
-                    profileName = profileName,
-                    isProfileModified = isProfileModified,
-                    profileProgress = profileProgress,
-                    profileSceneManaged = profileSceneManaged,
-                    onNavigate = onNavigate,
-                    commandsAllowed = commandsAllowed,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                val currentBg = bgInfoState.bgInfo
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    BgInfoSection(
-                        bgInfo = currentBg,
-                        timeAgoText = bgInfoState.timeAgoText,
-                        compactTimeAgoText = compactBgAgeText(bgInfoState.ageSeconds),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Column(
-                        modifier = Modifier.weight(1f).padding(start = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = "Δ: ${currentBg?.deltaText ?: "—"}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Δ15: ${currentBg?.shortAvgDeltaText ?: "—"}",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Text(
-                            text = "Δ40: ${currentBg?.longAvgDeltaText ?: "—"}",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-                OverviewChipsColumn(
-                    runningMode = runningMode,
-                    runningModeText = runningModeText,
-                    runningModeRemaining = runningModeRemaining,
-                    runningModeProgress = runningModeProgress,
-                    runningModeSceneManaged = runningModeSceneManaged,
-                    smbEnabled = smbEnabled,
-                    profileName = profileName,
-                    isProfileModified = isProfileModified,
-                    profileProgress = profileProgress,
-                    profileSceneManaged = profileSceneManaged,
-                    tempTargetText = tempTargetText,
-                    tempTargetState = tempTargetState,
-                    tempTargetProgress = tempTargetProgress,
-                    tempTargetReason = tempTargetReason,
-                    tempTargetSceneManaged = tempTargetSceneManaged,
-                    tbrState = tbrState,
-                    tbrText = tbrText,
-                    iobUiState = iobUiState,
-                    cobUiState = cobUiState,
-                    sensitivityUiState = sensitivityUiState,
-                    onNavigate = onNavigate,
-                    onTbrChipClick = onTbrChipClick,
-                    onIobChipClick = onIobChipClick,
-                    commandsAllowed = commandsAllowed,
-                    showPrimaryChips = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
+        // Compact current layout: the free strip above the BG ring holds mode/profile.
+        OverviewPrimaryChips(
+            runningMode = runningMode, runningModeText = runningModeText,
+            runningModeRemaining = runningModeRemaining, runningModeProgress = runningModeProgress,
+            runningModeSceneManaged = runningModeSceneManaged, smbEnabled = smbEnabled,
+            profileName = profileName, isProfileModified = isProfileModified,
+            profileProgress = profileProgress, profileSceneManaged = profileSceneManaged,
+            onNavigate = onNavigate, commandsAllowed = commandsAllowed,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                BgInfoSection(
+                    bgInfo = bgInfoState.bgInfo,
+                    timeAgoText = bgInfoState.timeAgoText,
+                    compactTimeAgoText = compactBgAgeText(bgInfoState.ageSeconds)
                 )
             }
-        } else {
-            // Compact current layout: the free strip above the BG ring holds mode/profile.
-            OverviewPrimaryChips(
-                runningMode = runningMode, runningModeText = runningModeText,
-                runningModeRemaining = runningModeRemaining, runningModeProgress = runningModeProgress,
-                runningModeSceneManaged = runningModeSceneManaged, smbEnabled = smbEnabled,
-                profileName = profileName, isProfileModified = isProfileModified,
-                profileProgress = profileProgress, profileSceneManaged = profileSceneManaged,
-                onNavigate = onNavigate, commandsAllowed = commandsAllowed,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)
+            OverviewChipsColumn(
+                runningMode = runningMode,
+                runningModeText = runningModeText,
+                runningModeRemaining = runningModeRemaining,
+                runningModeProgress = runningModeProgress,
+                runningModeSceneManaged = runningModeSceneManaged,
+                smbEnabled = smbEnabled,
+                profileName = profileName,
+                isProfileModified = isProfileModified,
+                profileProgress = profileProgress,
+                profileSceneManaged = profileSceneManaged,
+                tempTargetText = tempTargetText,
+                tempTargetState = tempTargetState,
+                tempTargetProgress = tempTargetProgress,
+                tempTargetReason = tempTargetReason,
+                tempTargetSceneManaged = tempTargetSceneManaged,
+                tbrState = tbrState,
+                tbrText = tbrText,
+                iobUiState = iobUiState,
+                cobUiState = cobUiState,
+                sensitivityUiState = sensitivityUiState,
+                onNavigate = onNavigate,
+                onTbrChipClick = onTbrChipClick,
+                onIobChipClick = onIobChipClick,
+                commandsAllowed = commandsAllowed,
+                showPrimaryChips = false,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp)
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    BgInfoSection(
-                        bgInfo = bgInfoState.bgInfo,
-                        timeAgoText = bgInfoState.timeAgoText,
-                        compactTimeAgoText = compactBgAgeText(bgInfoState.ageSeconds)
-                    )
-                }
-                OverviewChipsColumn(
-                    runningMode = runningMode,
-                    runningModeText = runningModeText,
-                    runningModeRemaining = runningModeRemaining,
-                    runningModeProgress = runningModeProgress,
-                    runningModeSceneManaged = runningModeSceneManaged,
-                    smbEnabled = smbEnabled,
-                    profileName = profileName,
-                    isProfileModified = isProfileModified,
-                    profileProgress = profileProgress,
-                    profileSceneManaged = profileSceneManaged,
-                    tempTargetText = tempTargetText,
-                    tempTargetState = tempTargetState,
-                    tempTargetProgress = tempTargetProgress,
-                    tempTargetReason = tempTargetReason,
-                    tempTargetSceneManaged = tempTargetSceneManaged,
-                    tbrState = tbrState,
-                    tbrText = tbrText,
-                    iobUiState = iobUiState,
-                    cobUiState = cobUiState,
-                    sensitivityUiState = sensitivityUiState,
-                    onNavigate = onNavigate,
-                    onTbrChipClick = onTbrChipClick,
-                    onIobChipClick = onIobChipClick,
-                    commandsAllowed = commandsAllowed,
-                    showPrimaryChips = false,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp)
-                )
-            }
         }
         OverviewStatusSection(
             sensitivity = sensitivityUiState,
