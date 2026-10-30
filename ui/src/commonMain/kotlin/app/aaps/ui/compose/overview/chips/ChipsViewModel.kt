@@ -8,6 +8,7 @@ import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
+import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.RT
@@ -42,6 +43,7 @@ class ChipsViewModel(
     private val config: Config,
     private val persistenceLayer: PersistenceLayer,
     private val sensitivityOverview: SensitivityOverview,
+    private val processedDeviceStatusData: ProcessedDeviceStatusData,
     private val rh: TextResolver,
     private val decimalFormatter: DecimalFormatter,
     private val rxBus: RxBus
@@ -115,8 +117,15 @@ class ChipsViewModel(
         // Worked out in one place for the chip, its dialog and the watch - see SensitivityOverview
         val data = sensitivityOverview.build()
         val aps = activePlugin.activeAPS
-        val result = aps?.lastAPSResult
-        val isBoostActive = aps?.algorithm == APSResult.Algorithm.BOOST
+        // APSClient does not run a local APS calculation. Read the master's latest
+        // suggested result received through Nightscout instead of local lastAPSResult.
+        // This is display-only and never changes dosing or pump commands.
+        val result = if (config.AAPSCLIENT) processedDeviceStatusData.getAPSResult() else aps?.lastAPSResult
+        val isBoostActive = if (config.AAPSCLIENT) {
+            result?.algorithm == APSResult.Algorithm.BOOST
+        } else {
+            aps?.algorithm == APSResult.Algorithm.BOOST
+        }
         val reason = result?.reason.orEmpty()
         val boost = result?.rawData() as? RT
         val debugLines = result?.scriptDebug?.takeIf { !it.isNullOrEmpty() }
