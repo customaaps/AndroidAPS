@@ -1,8 +1,12 @@
 package app.aaps.ui.widget.glance
 
+import app.aaps.core.data.configuration.Constants
+import app.aaps.core.data.iob.InMemoryGlucoseValue
+import app.aaps.core.data.time.T
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.overview.LastBgData
 import app.aaps.core.interfaces.overview.graph.OverviewDataCache
@@ -13,9 +17,11 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.TrendCalculator
 import app.aaps.core.keys.BooleanComposedKey
 import app.aaps.core.keys.IntComposedKey
+import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.ui.widget.directionToDrawableRes
+import app.aaps.core.objects.extensions.fromGv
 import dev.zacsweers.metro.Inject
 
 data class BgGraphRenderState(
@@ -42,6 +48,7 @@ class BgGraphStateLoader(
     private val profileFunction: ProfileFunction,
     private val profileUtil: ProfileUtil,
     private val lastBgData: LastBgData,
+    private val persistenceLayer: PersistenceLayer,
     private val trendCalculator: TrendCalculator,
     private val iobCobCalculator: IobCobCalculator,
     private val dateUtil: DateUtil,
@@ -81,16 +88,21 @@ class BgGraphStateLoader(
 
         val colors = BgGraphColors.WIDGET
 
-        // Current BG + trend (same logic as WidgetStateLoader)
-        val lastBg = lastBgData.lastBg()
+        // The graph keeps its historical buckets; the prominent BG value must
+        // follow the most recent sensor arrival, independently of the APS cycle.
+        val lastBg = persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
+            ?: lastBgData.lastBg()
         val bgText = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.recalculated) }
             ?: rh.gs(CoreUiStrings.value_unavailable_short)
+        val bgInUnits = lastBg?.let { profileUtil.fromMgdlToUnits(it.recalculated) }
         val bgColor = when {
-            lastBgData.isLow()  -> colors.low
-            lastBgData.isHigh() -> colors.high
-            else                -> colors.inRange
+            bgInUnits != null && bgInUnits < preferences.get(UnitDoubleKey.OverviewLowMark) -> colors.low
+            bgInUnits != null && bgInUnits > preferences.get(UnitDoubleKey.OverviewHighMark) -> colors.high
+            else -> colors.inRange
         }
-        val strikeThrough = !lastBgData.isActualBg()
+        val strikeThrough = lastBg?.timestamp?.let {
+            it <= dateUtil.now() - T.mins(Constants.OLD_BG_MINUTES).msecs()
+        } ?: true
         val trendArrow = trendCalculator.getTrendArrow(iobCobCalculator.ads)
         val arrowResId = lastBg?.let { (trendArrow ?: TrendArrow.FLAT).directionToDrawableRes() }
 
