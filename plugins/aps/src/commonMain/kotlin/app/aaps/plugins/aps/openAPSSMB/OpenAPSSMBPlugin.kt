@@ -510,7 +510,10 @@ open class OpenAPSSMBPlugin(
             microBolusAllowed = microBolusAllowed,
             currentTime = now,
             flatBGsDetected = flatBGsDetected,
-            dynIsfMode = effectiveDynIsfMode
+            dynIsfMode = effectiveDynIsfMode,
+            smbRatio = getSmbRatio(glucoseStatus.glucose, targetBg),
+            smbMaxRangeExtension = preferences.get(DoubleKey.ApsAutoIsfSmbMaxRangeExtension),
+            smbOnEvenTarget = preferences.get(BooleanKey.ApsAutoIsfSmbOnEvenTarget)
         ).also {
             // Keep the profile baseline from this cycle, even across later profile switches.
             it.profileIsfMgdl = profileIsfForCycle.takeIf { value -> value.isFinite() && value > 0.0 }
@@ -599,6 +602,22 @@ open class OpenAPSSMBPlugin(
         return value
     }
 
+    private fun getSmbRatio(bg: Double, targetBg: Double): Double {
+        val fixedRatio = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatio)
+        val ratioMin = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMin)
+        val ratioMax = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMax)
+        val ratioBgRange = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange)
+            .let { if (it < 10.0) it * 18.0 else it }
+        val lowerRatio = minOf(ratioMin, ratioMax)
+        val higherRatio = maxOf(ratioMin, ratioMax)
+
+        if (ratioBgRange <= 0.0) return fixedRatio
+        if (bg <= targetBg) return lowerRatio
+        if (bg >= targetBg + ratioBgRange) return higherRatio
+        return (lowerRatio + (higherRatio - lowerRatio) * (bg - targetBg) / ratioBgRange)
+            .coerceIn(lowerRatio, higherRatio)
+    }
+
     override fun getPreferenceScreenContent() = PreferenceSubScreenDef(
         key = "openapssmb_settings",
         title = ApsStrings.openapssmb,
@@ -623,6 +642,18 @@ open class OpenAPSSMBPlugin(
             IntKey.ApsUamMaxMinutesOfBasalToLimitSmb,
             BooleanKey.ApsUseUam,
             IntKey.ApsCarbsRequestThreshold,
+            PreferenceSubScreenDef(
+                key = "smb_delivery_settings",
+                title = ApsStrings.smb_delivery_settings_title,
+                items = listOf(
+                    DoubleKey.ApsAutoIsfSmbDeliveryRatio,
+                    DoubleKey.ApsAutoIsfSmbDeliveryRatioMin,
+                    DoubleKey.ApsAutoIsfSmbDeliveryRatioMax,
+                    DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange,
+                    DoubleKey.ApsAutoIsfSmbMaxRangeExtension,
+                    BooleanKey.ApsAutoIsfSmbOnEvenTarget
+                )
+            ),
             PreferenceSubScreenDef(
                 key = "absorption_smb_advanced",
                 title = CoreUiStrings.advanced_settings_title,
