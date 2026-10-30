@@ -106,14 +106,29 @@ fun OverviewScreenStacked(
         )
         eatReminderBanner()
         if (classicUi) {
-            // A deliberate portrait-friendly single-column layout, matching the 3.4-style overview:
-            // BG is centered first, then every status/control chip occupies a full-width row.
+            // Classic portrait order: profile/mode chips first, the BG display next,
+            // then the full-width status rows and graphs, like the standard AAPS overview.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                OverviewPrimaryChips(
+                    runningMode = runningMode,
+                    runningModeText = runningModeText,
+                    runningModeRemaining = runningModeRemaining,
+                    runningModeProgress = runningModeProgress,
+                    runningModeSceneManaged = runningModeSceneManaged,
+                    smbEnabled = smbEnabled,
+                    profileName = profileName,
+                    isProfileModified = isProfileModified,
+                    profileProgress = profileProgress,
+                    profileSceneManaged = profileSceneManaged,
+                    onNavigate = onNavigate,
+                    commandsAllowed = commandsAllowed,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 BgInfoSection(
                     bgInfo = bgInfoState.bgInfo,
                     timeAgoText = bgInfoState.timeAgoText,
@@ -144,7 +159,7 @@ fun OverviewScreenStacked(
                     onTbrChipClick = onTbrChipClick,
                     onIobChipClick = onIobChipClick,
                     commandsAllowed = commandsAllowed,
-                    showPrimaryChips = true,
+                    showPrimaryChips = false,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)
