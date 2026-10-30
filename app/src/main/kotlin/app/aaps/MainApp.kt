@@ -12,6 +12,7 @@ import android.os.HandlerThread
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import app.aaps.core.data.configuration.Constants
+import app.aaps.core.data.model.GV
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.TE
 import app.aaps.core.data.model.TT
@@ -21,6 +22,7 @@ import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.db.VacuumResult
+import app.aaps.core.interfaces.db.observeChanges
 import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationAction
@@ -66,6 +68,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -414,6 +417,14 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
             widgetUpdater.update("ScheduleEveryMin")
         }
         handler.postDelayed(refreshWidget, 5000)
+        // The widget's BG display uses the newest persisted CGM sample, not the APS
+        // calculation bucket. Trigger a redraw as soon as a new reading is committed.
+        // This observes database changes only; it does not invoke or alter the loop.
+        scope.launch {
+            persistenceLayer.observeChanges<GV>().collect { changed ->
+                if (changed.isNotEmpty()) widgetUpdater.update("NewGlucoseValue")
+            }
+        }
         setUserStats()
         passwordResetCheck()
         exportPasswordResetCheck()
