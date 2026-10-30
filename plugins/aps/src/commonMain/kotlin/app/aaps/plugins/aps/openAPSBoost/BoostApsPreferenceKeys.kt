@@ -13,7 +13,10 @@ internal object BoostApsPreferenceKeys {
         override val key = raw.key
         override val defaultValue = raw.defaultValue
         override val preferenceType = PreferenceType.SWITCH
-        override val showInNsClientMode = false
+        // Client edits of Boost settings must reach the master via signed Client-Control
+        // (Admin role) and return in the master's cold running configuration.
+        override val showInNsClientMode = true
+        override val sync: SyncSpec = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
         override val showInPumpControlMode = false
         override val summary get() = ApsStrings.boost_floor_safety.takeIf {
             key == BoostApsSettingKeys.ApsBoostV5ComposedFloorActive.key || key == BoostApsSettingKeys.ApsBoostV5VelocityBudgetActive.key }
@@ -22,7 +25,10 @@ internal object BoostApsPreferenceKeys {
         override val min: Int, override val max: Int) : IntPreferenceKey {
         override val key = raw.key
         override val defaultValue = raw.defaultValue
-        override val showInNsClientMode = false
+        // Client edits of Boost settings must reach the master via signed Client-Control
+        // (Admin role) and return in the master's cold running configuration.
+        override val showInNsClientMode = true
+        override val sync: SyncSpec = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
         override val showInPumpControlMode = false
     }
     // Keep hundredths visible (for example a saved 0.48 threshold), but nudge decimals by 0.1.
@@ -33,14 +39,20 @@ internal object BoostApsPreferenceKeys {
         override val key = raw.key
         override val defaultValue = raw.defaultValue
         override val calculatedBySM = false
-        override val showInNsClientMode = false
+        // Client edits of Boost settings must reach the master via signed Client-Control
+        // (Admin role) and return in the master's cold running configuration.
+        override val showInNsClientMode = true
+        override val sync: SyncSpec = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
         override val showInPumpControlMode = false
     }
     private class U(val raw: BoostApsSettingKeys.DoubleValue, override val title: TextRef,
         override val minMgdl: Int, override val maxMgdl: Int) : UnitDoublePreferenceKey {
         override val key = raw.key
         override val defaultValue = raw.defaultValue
-        override val showInNsClientMode = false
+        // Client edits of Boost settings must reach the master via signed Client-Control
+        // (Admin role) and return in the master's cold running configuration.
+        override val showInNsClientMode = true
+        override val sync: SyncSpec = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
         override val showInPumpControlMode = false
     }
     private class S(val raw: BoostApsSettingKeys.StringValue, override val title: TextRef) : StringPreferenceKey {
@@ -48,7 +60,10 @@ internal object BoostApsPreferenceKeys {
         override val defaultValue = raw.defaultValue
         override val isPassword = false
         override val isPin = false
-        override val showInNsClientMode = false
+        // Client edits of Boost settings must reach the master via signed Client-Control
+        // (Admin role) and return in the master's cold running configuration.
+        override val showInNsClientMode = true
+        override val sync: SyncSpec = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
         override val showInPumpControlMode = false
         override val validator = StringValidator { value ->
             if (Regex("(?:[01]?[0-9]|2[0-3]):[0-5][0-9]|24:00").matches(value)) StringValidator.ValidationResult.VALID
