@@ -119,6 +119,17 @@ class ChipsViewModel(
         val isBoostActive = aps?.algorithm == APSResult.Algorithm.BOOST
         val reason = result?.reason.orEmpty()
         val boost = result?.rawData() as? RT
+        val debugLines = result?.scriptDebug?.takeIf { !it.isNullOrEmpty() }
+            ?: boost?.consoleError?.takeIf { !it.isNullOrEmpty() }
+            ?: boost?.consoleLog?.takeIf { !it.isNullOrEmpty() }
+        val debugText = debugLines?.joinToString("\n")?.takeIf { it.isNotBlank() }
+        val boostDetail = debugText?.let { debug ->
+            buildString {
+                append("Отладка скрипта\n\n")
+                append(debug)
+                if (reason.isNotBlank() && !debug.contains(reason)) append("\n\n--- Результат ---\n$reason")
+            }
+        } ?: reason.ifBlank { "Результат Boost пока недоступен." }
         val boostStatus = boost?.boostV5_state?.takeIf { it.isNotBlank() } ?: when {
             reason.contains("recovering", true) -> "RECOVERING"
             reason.contains("committed", true) -> "COMMITTED"
@@ -141,7 +152,7 @@ class ChipsViewModel(
             crTo = data.crTo,
             isBoostActive = isBoostActive,
             boostStatus = if (isBoostActive) boostStatus else "",
-            boostDetail = reason.ifBlank { "Boost cycle is waiting for a result." },
+            boostDetail = boostDetail,
             boostMultiplier = boost?.boostV5_actionMult?.let(decimalFormatter::to1Decimal).orEmpty(),
             boostCycle = boost?.boostV5_age,
             boostDose = boost?.boostV5_finalDose?.let(decimalFormatter::to2Decimal) ?: result?.smb?.let(decimalFormatter::to2Decimal).orEmpty(),

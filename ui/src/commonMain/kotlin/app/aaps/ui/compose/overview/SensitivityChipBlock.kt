@@ -38,7 +38,7 @@ fun SensitivityChipBlock(
     }
     if (showSensitivityDialog) {
         OkCancelDialog(
-            title = if (state.isBoostActive) "Boost cycle" else stringResource(CoreUiStrings.sensitivity),
+            title = if (state.isBoostActive) stringResource(CoreUiStrings.result) else stringResource(CoreUiStrings.sensitivity),
             message = if (state.isBoostActive) state.boostDetail else state.dialogText,
             onConfirm = { showSensitivityDialog = false },
             onDismiss = { showSensitivityDialog = false }
