@@ -575,9 +575,10 @@ class OverviewDataCacheImpl(
         staleBgTransitionJob?.cancel()
         staleBgTransitionJob = null
 
-        // Use bucketed (smoothed) data like legacy, with raw DB fallback
-        val lastBg = iobCobCalculator.ads.bucketedData?.firstOrNull()
-        val lastGv = lastBg ?: persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
+        // Prefer the newest actual sensor record so the circle follows every incoming GV.
+        // Use bucketed data only while the database has no reading yet.
+        val lastGv = persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
+            ?: iobCobCalculator.ads.bucketedData?.firstOrNull()
         if (lastGv == null) {
             _bgInfoFlow.value = null
             return
