@@ -54,6 +54,12 @@ data class RT(
     var boostTier: String? = null,
     var boostV5_active: Boolean? = null,
     var boostV5_state: String? = null,
+    // Current Boost V5 cycle telemetry for overview presentation and device status.
+    var boostV5_score: Double? = null,
+    var boostV5_age: Int? = null,
+    var boostV5_budget: Double? = null,
+    var boostV5_actionMult: Double? = null,
+    var boostV5_finalDose: Double? = null,
     var boostActive: Boolean? = null,
     var fastCarbProtection: Boolean? = null,
     var dynamicISF: Double? = null,

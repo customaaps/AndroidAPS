@@ -10,6 +10,7 @@ import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.aps.APSResult
+import app.aaps.core.interfaces.aps.RT
 import app.aaps.core.interfaces.overview.SensitivityOverview
 import app.aaps.core.interfaces.overview.graph.OverviewDataCache
 import app.aaps.core.interfaces.resources.TextResolver
@@ -117,13 +118,15 @@ class ChipsViewModel(
         val result = aps?.lastAPSResult
         val isBoostActive = aps?.algorithm == APSResult.Algorithm.BOOST
         val reason = result?.reason.orEmpty()
-        val boostStatus = when {
+        val boost = result?.rawData() as? RT
+        val boostStatus = boost?.boostV5_state?.takeIf { it.isNotBlank() } ?: when {
             reason.contains("recovering", true) -> "RECOVERING"
             reason.contains("committed", true) -> "COMMITTED"
             reason.contains("confirmed", true) -> "CONFIRMED"
             result == null -> "CALCULATING"
             else -> "ACTIVE"
         }
+        val boostScoreValue = (boost?.boostV5_score ?: boost?.mlMealLikely ?: 0.0).coerceIn(0.0, 1.0)
         return SensitivityUiState(
             asText = data.asText,
             isfFrom = data.isfFrom,
@@ -138,7 +141,13 @@ class ChipsViewModel(
             crTo = data.crTo,
             isBoostActive = isBoostActive,
             boostStatus = if (isBoostActive) boostStatus else "",
-            boostDetail = reason.ifBlank { "Boost cycle is waiting for a result." }
+            boostDetail = reason.ifBlank { "Boost cycle is waiting for a result." },
+            boostMultiplier = boost?.boostV5_actionMult?.let(decimalFormatter::to1Decimal).orEmpty(),
+            boostCycle = boost?.boostV5_age,
+            boostDose = boost?.boostV5_finalDose?.let(decimalFormatter::to2Decimal) ?: result?.smb?.let(decimalFormatter::to2Decimal).orEmpty(),
+            boostBudget = boost?.boostV5_budget?.let(decimalFormatter::to2Decimal) ?: boost?.insulinReq?.let(decimalFormatter::to2Decimal).orEmpty(),
+            boostScore = if (boost != null) decimalFormatter.to2Decimal(boostScoreValue) else "",
+            boostScoreProgress = boostScoreValue.toFloat()
         )
     }
 

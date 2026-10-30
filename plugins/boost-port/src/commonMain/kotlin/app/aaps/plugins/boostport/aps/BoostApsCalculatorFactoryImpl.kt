@@ -201,7 +201,14 @@ class BoostApsCalculatorFactoryImpl(
                         catch (cancelled: CancellationException) { throw cancelled }
                         catch (_: Exception) { result.reason.append("Boost ISF/TDD diagnostics unavailable; ") }
                         result.boostV5_active = v5.activeMode && calculated.frame.v5 != null
-                        result.boostV5_state = calculated.frame.v5?.mealHypothesis?.name
+                        calculated.frame.v5?.let { decision ->
+                            result.boostV5_state = decision.mealHypothesis.name
+                            result.boostV5_score = decision.score
+                            result.boostV5_age = decision.mealHypothesisAge
+                            result.boostV5_budget = decision.aggressionBudget.budget
+                            result.boostV5_actionMult = decision.actionMultiplier
+                            result.boostV5_finalDose = decision.finalDose
+                        }
                         try { result.reason.append(deviceAgeTag.tag(input.atMs)) }
                         catch (cancelled: CancellationException) { throw cancelled }
                         catch (_: Exception) { /* Optional device-age telemetry must not discard a calculated candidate. */ }

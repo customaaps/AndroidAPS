@@ -22,7 +22,17 @@ fun SensitivityChipBlock(
 
     var showSensitivityDialog by remember { mutableStateOf(false) }
     if (state.isBoostActive) {
-        BoostCycleChip(state.boostStatus, onClick = { showSensitivityDialog = true }, modifier = modifier)
+        BoostCycleChip(
+            status = state.boostStatus,
+            multiplier = state.boostMultiplier,
+            cycle = state.boostCycle,
+            dose = state.boostDose,
+            budget = state.boostBudget,
+            score = state.boostScore,
+            scoreProgress = state.boostScoreProgress,
+            onClick = { showSensitivityDialog = true },
+            modifier = modifier
+        )
     } else {
         SensitivityChip(state, onClick = { if (state.dialogText.isNotEmpty()) showSensitivityDialog = true }, modifier = modifier)
     }
