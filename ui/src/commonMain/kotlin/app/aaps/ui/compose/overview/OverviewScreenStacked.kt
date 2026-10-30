@@ -55,6 +55,7 @@ fun OverviewScreenStacked(
     tbrText: String = "",
     smbEnabled: Boolean,
     isSimpleMode: Boolean,
+    classicUi: Boolean = false,
     graphViewModel: GraphViewModel,
     chipsViewModel: ChipsViewModel,
     manageViewModel: ManageViewModel,
@@ -85,7 +86,8 @@ fun OverviewScreenStacked(
     val cobUiState by chipsViewModel.cobUiState.collectAsStateWithLifecycle()
     val statusState by statusViewModel.uiState.collectAsStateWithLifecycle()
 
-    var statusExpanded by rememberSaveable { mutableStateOf(false) }
+    // Classic view keeps the detailed status panel open, as the former 3.4 overview did.
+    var statusExpanded by rememberSaveable(classicUi) { mutableStateOf(classicUi) }
 
     Column(
         modifier = modifier

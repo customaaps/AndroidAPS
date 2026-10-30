@@ -2,4 +2,6 @@
 <resources>
     <string name="pref_title_overview_temp_basal_as_percent">Show temp basal as %</string>
     <string name="pref_summary_overview_temp_basal_as_percent">Relative to the current profile basal; when unavailable, show the known absolute rate.</string>
+    <string name="pref_title_overview_classic_ui">Classic overview layout</string>
+    <string name="pref_summary_overview_classic_ui">Use the detailed single-column overview inspired by the 3.4 layout.</string>
 </resources>
