@@ -835,7 +835,7 @@ class MainViewModel(
             val message: String
             if (activeTb != null && profile != null) {
                 title = rh.gs(CoreUiStrings.temp_basal)
-                message = activeTb.toStringFull(profile, dateUtil, rh) + "\n" + rh.gs(CoreUiStrings.pump_base_basal_rate, profile.getBasal())
+                message = activeTb.toStringFull(profile, dateUtil, rh) + "\nПрофильная база: " + rh.gs(CoreUiStrings.pump_base_basal_rate, profile.getBasal())
             } else {
                 title = rh.gs(CoreUiStrings.base_basal_rate_label)
                 message = if (profile != null)
