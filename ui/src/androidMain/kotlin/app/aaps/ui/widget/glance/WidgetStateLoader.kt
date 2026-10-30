@@ -2,7 +2,6 @@ package app.aaps.ui.widget.glance
 
 import androidx.compose.ui.graphics.toArgb
 import app.aaps.core.data.configuration.Constants
-import app.aaps.core.data.iob.InMemoryGlucoseValue
 import app.aaps.core.data.time.T
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.RM
@@ -16,7 +15,6 @@ import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.overview.IsfStep
-import app.aaps.core.interfaces.overview.LastBgData
 import app.aaps.core.interfaces.overview.SensitivityOverview
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
@@ -29,7 +27,6 @@ import app.aaps.core.keys.IntComposedKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.extensions.apsAdjustedTargetMgdl
-import app.aaps.core.objects.extensions.fromGv
 import app.aaps.core.objects.extensions.round
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.CoreUiStrings
@@ -48,7 +45,6 @@ import kotlin.math.abs
 class WidgetStateLoader(
     private val profileFunction: ProfileFunction,
     private val profileUtil: ProfileUtil,
-    private val lastBgData: LastBgData,
     private val trendCalculator: TrendCalculator,
     private val rh: TextResolver,
     private val glucoseStatusProvider: GlucoseStatusProvider,
@@ -71,11 +67,12 @@ class WidgetStateLoader(
         // The loop's bucketed BG advances on the calculation cadence. A widget is
         // display-only, so prefer the newest incoming sensor value (as Overview does)
         // rather than holding the older bucket until the next APS cycle.
-        val lastBg = persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
-            ?: lastBgData.lastBg()
-        val bgText = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.recalculated) }
+        // Never fall back to the APS calculation bucket: it may be several minutes
+        // older than the most recent CGM reading and is not a live display source.
+        val lastBg = persistenceLayer.getLastGlucoseValue()
+        val bgText = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.value) }
             ?: rh.gs(CoreUiStrings.value_unavailable_short)
-        val bgInUnits = lastBg?.let { profileUtil.fromMgdlToUnits(it.recalculated) }
+        val bgInUnits = lastBg?.let { profileUtil.fromMgdlToUnits(it.value) }
         val bgColor = when {
             bgInUnits != null && bgInUnits < preferences.get(UnitDoubleKey.OverviewLowMark) ->
                 BgGraphColors.WIDGET.low
