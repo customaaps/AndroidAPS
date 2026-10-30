@@ -14,7 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -108,14 +110,20 @@ private fun RenderPreferenceItems(
                 if (shouldShow) {
                     // Render nested subscreen as simple collapsible section (no extra card)
                     val subSectionKey = "${parentKey}_${item.key}"
-                    val isSubExpanded = sectionState?.isExpanded(subSectionKey) ?: false
+                    // Nested sections are composed inside the parent's AnimatedVisibility.
+                    // Keep their own saveable UI state rather than delegating clicks to
+                    // the top-level accordion; expanding a category is always allowed,
+                    // including on an AAPS Client with read-only preference values.
+                    var isSubExpanded by androidx.compose.runtime.saveable.rememberSaveable(subSectionKey) {
+                        mutableStateOf(false)
+                    }
 
                     // Header without card (no icon for nested subscreens)
                     ClickablePreferenceCategoryHeader(
                         title = item.title,
                         summaryItems = item.effectiveSummaryItems(),
                         expanded = isSubExpanded,
-                        onToggle = { sectionState?.toggle(subSectionKey, SectionLevel.SUB_SECTION, parentKey = parentKey) },
+                        onToggle = { isSubExpanded = !isSubExpanded },
                         insideCard = true
                     )
 
