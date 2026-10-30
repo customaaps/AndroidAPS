@@ -1,5 +1,6 @@
 package app.aaps.ui.compose.overview
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -129,11 +132,35 @@ fun OverviewScreenStacked(
                     commandsAllowed = commandsAllowed,
                     modifier = Modifier.fillMaxWidth()
                 )
-                BgInfoSection(
-                    bgInfo = bgInfoState.bgInfo,
-                    timeAgoText = bgInfoState.timeAgoText,
-                    compactTimeAgoText = compactBgAgeText(bgInfoState.ageSeconds)
-                )
+                val currentBg = bgInfoState.bgInfo
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BgInfoSection(
+                        bgInfo = currentBg,
+                        timeAgoText = bgInfoState.timeAgoText,
+                        compactTimeAgoText = compactBgAgeText(bgInfoState.ageSeconds),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f).padding(start = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "Δ: ${currentBg?.deltaText ?: "—"}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Δ15: ${currentBg?.shortAvgDeltaText ?: "—"}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = "Δ40: ${currentBg?.longAvgDeltaText ?: "—"}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
                 OverviewChipsColumn(
                     runningMode = runningMode,
                     runningModeText = runningModeText,
