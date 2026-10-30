@@ -1,6 +1,9 @@
 package app.aaps.ui.widget.glance
 
 import androidx.compose.ui.graphics.toArgb
+import app.aaps.core.data.configuration.Constants
+import app.aaps.core.data.iob.InMemoryGlucoseValue
+import app.aaps.core.data.time.T
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.RM
 import app.aaps.core.data.model.TT
@@ -23,8 +26,10 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.TrendCalculator
 import app.aaps.core.keys.BooleanComposedKey
 import app.aaps.core.keys.IntComposedKey
+import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.extensions.apsAdjustedTargetMgdl
+import app.aaps.core.objects.extensions.fromGv
 import app.aaps.core.objects.extensions.round
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.CoreUiStrings
@@ -63,15 +68,24 @@ class WidgetStateLoader(
         val useBlack = preferences.get(BooleanComposedKey.WidgetUseBlack, appWidgetId)
         val backgroundColor = resolveWidgetBackground(config, useBlack, alpha)
 
-        val lastBg = lastBgData.lastBg()
+        // The loop's bucketed BG advances on the calculation cadence. A widget is
+        // display-only, so prefer the newest incoming sensor value (as Overview does)
+        // rather than holding the older bucket until the next APS cycle.
+        val lastBg = persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
+            ?: lastBgData.lastBg()
         val bgText = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.recalculated) }
             ?: rh.gs(CoreUiStrings.value_unavailable_short)
+        val bgInUnits = lastBg?.let { profileUtil.fromMgdlToUnits(it.recalculated) }
         val bgColor = when {
-            lastBgData.isLow()  -> BgGraphColors.WIDGET.low
-            lastBgData.isHigh() -> BgGraphColors.WIDGET.high
-            else                -> BgGraphColors.WIDGET.inRange
+            bgInUnits != null && bgInUnits < preferences.get(UnitDoubleKey.OverviewLowMark) ->
+                BgGraphColors.WIDGET.low
+            bgInUnits != null && bgInUnits > preferences.get(UnitDoubleKey.OverviewHighMark) ->
+                BgGraphColors.WIDGET.high
+            else -> BgGraphColors.WIDGET.inRange
         }
-        val strikeThrough = !lastBgData.isActualBg()
+        val strikeThrough = lastBg?.timestamp?.let {
+            it <= dateUtil.now() - T.mins(Constants.OLD_BG_MINUTES).msecs()
+        } ?: true
 
         val trendArrow = trendCalculator.getTrendArrow(iobCobCalculator.ads)
         val arrowResId = lastBg?.let { (trendArrow ?: TrendArrow.FLAT).directionToDrawableRes() }
