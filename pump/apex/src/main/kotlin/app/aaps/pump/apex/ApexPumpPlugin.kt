@@ -112,6 +112,7 @@ class ApexPumpPlugin(
         .icon(IcPluginApex)
         .pluginName(TextRef.AndroidRes(R.string.apex_plugin_name))
         .description(TextRef.AndroidRes(R.string.apex_plugin_description))
+        .showInList { false }
         .composeContent { plugin -> ApexComposeContent(plugin as ApexPumpPlugin) },
     ApexBooleanKey.entries + ApexDoubleKey.entries + ApexStringKey.entries,
     aapsLogger,
