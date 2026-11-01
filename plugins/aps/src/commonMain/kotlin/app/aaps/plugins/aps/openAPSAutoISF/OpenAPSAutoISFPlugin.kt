@@ -119,13 +119,8 @@ open class OpenAPSAutoISFPlugin(
         .icon(IcPluginOpenAPS)
         .pluginName(ApsStrings.openaps_auto_isf)
         .preferencesVisibleInSimpleMode(false)
-        // AAPSCLIENT: visible so a client can select the master's APS. The engineering/dev half is NOT
-        // repeated here - the enforcement below carries it, and a plugin forced off is hidden by
-        // PluginBase.showInList.
+        // Show AutoISF in APS and client builds so it can be selected from the algorithm list.
         .showInList { config.APS || config.AAPSCLIENT }
-        // AutoISF is a development feature, so it cannot be turned on outside an engineering dev build -
-        // not even by an imported settings file. Forced off only; inside such a build it stays selectable.
-        .enforce(EnforcedState.Disabled) { !(config.isEngineeringMode() && config.isDev()) }
         .description(ApsStrings.description_auto_isf),
     ownPreferences = ApsIntentKey.entries,
     aapsLogger, rh, preferences, notificationManager
