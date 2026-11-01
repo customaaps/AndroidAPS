@@ -159,6 +159,8 @@
     <string name="pref_summary_aps_resistance_lowers_target">Снижать целевой уровень глюкозы при выявлении резистентности к инсулину.</string>
     <string name="pref_title_aps_always_use_short_deltas">Всегда использовать краткосрочную среднюю дельту</string>
     <string name="pref_summary_aps_always_use_short_deltas">При расчёте изменения BG использовать краткосрочную среднюю дельту вместо обычной дельты.</string>
+    <string name="pref_title_aps_dynisf_use_profile_sens">Базировать DynamicISF на ISF профиля</string>
+    <string name="pref_summary_aps_dynisf_use_profile_sens">Рассчитывать DynamicISF на основе ISF профиля, а не чувствительности по TDD.</string>
     <string name="pref_title_aps_dynisf_adjust_sensitivity">Корректировка чувствительности DynamicISF</string>
     <string name="pref_summary_aps_dynisf_adjust_sensitivity">Корректировать расчёт чувствительности при использовании DynamicISF.</string>
     <string name="pref_title_aps_autosens_adjust_targets">Корректировать цели через Autosens</string>

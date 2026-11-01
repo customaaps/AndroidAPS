@@ -198,27 +198,30 @@ open class OpenAPSSMBPlugin(
     private suspend fun calculateVariableIsf(profile: EffectiveProfile, timestamp: Long, multiplier: Double): Pair<String, Double?> {
         if (!preferences.get(BooleanKey.ApsUseDynamicSensitivity)) return Pair("OFF", null)
 
-        val result = persistenceLayer.getApsResultCloseTo(timestamp)
-        if (result?.variableSens != null && result.variableSens != 0.0) {
-            //aapsLogger.debug("calculateVariableIsf $caller DB  ${dateUtil.dateAndTimeAndSecondsString(timestamp)} ${result.variableSens}")
-            return Pair("DB", result.variableSens)
+        val useProfileSensitivity = preferences.get(BooleanKey.ApsDynIsfUseProfileSens)
+        if (!useProfileSensitivity) {
+            val result = persistenceLayer.getApsResultCloseTo(timestamp)
+            if (result?.variableSens != null && result.variableSens != 0.0) {
+                //aapsLogger.debug("calculateVariableIsf $caller DB  ${dateUtil.dateAndTimeAndSecondsString(timestamp)} ${result.variableSens}")
+                return Pair("DB", result.variableSens)
+            }
         }
 
         val glucose = glucoseStatusProvider.glucoseStatusData?.glucose ?: return Pair("GLUC", null)
         // Round down to 30 min and use it as a key for caching
         // Add BG to key as it affects calculation
         val key = timestamp - timestamp % T.mins(30).msecs() + glucose.toLong()
-        val cached = isfCacheLock.withLock { dynIsfCache[key] }
+        val cached = if (useProfileSensitivity) null else isfCacheLock.withLock { dynIsfCache[key] }
         if (cached != null && timestamp < dateUtil.now()) {
             //aapsLogger.debug("calculateVariableIsf $caller HIT ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $cached")
             return Pair("HIT", cached)
         }
 
         val dynIsfResult = calculateRawDynIsf(profile, multiplier)
-        if (!dynIsfResult.tddPartsCalculated()) return Pair("TDD miss", null)
+        if (!dynIsfResult.tddPartsCalculated() && !useProfileSensitivity) return Pair("TDD miss", null)
         // no cached result found, let's calculate the value
         //aapsLogger.debug("calculateVariableIsf $caller CAL ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $sensitivity")
-        isfCacheLock.withLock {
+        if (!useProfileSensitivity) isfCacheLock.withLock {
             dynIsfResult.variableSensitivity?.let { dynIsfCache.put(key, it) }
             if (dynIsfCache.size() > 1000) dynIsfCache.clear()
         }
@@ -276,12 +279,27 @@ open class OpenAPSSMBPlugin(
         }
 
 
-        if (dynIsfResult.tddPartsCalculated() && glucoseStatus != null) {
+        val useProfileSensitivity = preferences.get(BooleanKey.ApsDynIsfUseProfileSens)
+        if (dynIsfResult.tddPartsCalculated()) {
             val tddStatus = TddStatus(dynIsfResult.tdd1D!!, dynIsfResult.tdd7D!!, dynIsfResult.tddLast24H!!, dynIsfResult.tddLast4H!!, dynIsfResult.tddLast8to4H!!)
             val tddWeightedFromLast8H = ((1.4 * tddStatus.tddLast4H) + (0.6 * tddStatus.tddLast8to4H)) * 3
             dynIsfResult.tdd = ((tddWeightedFromLast8H * 0.33) + (tddStatus.tdd7D * 0.34) + (tddStatus.tdd1D * 0.33)) * preferences.get(IntKey.ApsDynIsfAdjustmentFactor) / 100.0 * multiplier
-            dynIsfResult.variableSensitivity = Round.roundTo(1800 / (dynIsfResult.tdd!! * (ln((glucoseStatus.glucose / dynIsfResult.insulinDivisor) + 1))), 0.1)
-            aapsLogger.debug(LTag.APS, "multiplier=$multiplier dynIsfResult=${dynIsfResult.log()} glucoseStatus=${glucoseStatus.glucose} insulinDivisor=${dynIsfResult.insulinDivisor}")
+        }
+
+        if (glucoseStatus != null) {
+            if (useProfileSensitivity) {
+                // Keep the 3.4.2.6 DynamicISF profile-based curve, using its default velocity (80%).
+                val normalTarget = 100.0
+                val profileSensitivity = profile.getProfileIsfMgdl()
+                val velocity = 0.8
+                val glucoseLog = ln((glucoseStatus.glucose / dynIsfResult.insulinDivisor) + 1)
+                val targetLog = ln((normalTarget / dynIsfResult.insulinDivisor) + 1)
+                val ratio = 1 - (1 - targetLog / glucoseLog) * velocity
+                dynIsfResult.variableSensitivity = Round.roundTo(profileSensitivity * ratio, 0.1)
+            } else if (dynIsfResult.tdd != null) {
+                dynIsfResult.variableSensitivity = Round.roundTo(1800 / (dynIsfResult.tdd!! * (ln((glucoseStatus.glucose / dynIsfResult.insulinDivisor) + 1))), 0.1)
+            }
+            aapsLogger.debug(LTag.APS, "multiplier=$multiplier useProfileSensitivity=$useProfileSensitivity dynIsfResult=${dynIsfResult.log()} glucoseStatus=${glucoseStatus.glucose} insulinDivisor=${dynIsfResult.insulinDivisor}")
         }
         return dynIsfResult
     }

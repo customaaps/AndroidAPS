@@ -198,6 +198,15 @@ enum class BooleanKey(
         hideParentScreenIfHidden = true,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
+    ApsDynIsfUseProfileSens(
+        "dynisf_use_profile_sens",
+        false,
+        KeysStrings.pref_title_aps_dynisf_use_profile_sens,
+        KeysStrings.pref_summary_aps_dynisf_use_profile_sens,
+        defaultedBySM = true,
+        dependency = ApsUseDynamicSensitivity,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
     ApsDynIsfAdjustSensitivity(
         "dynisf_adjust_sensitivity",
         false,

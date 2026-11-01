@@ -68,6 +68,8 @@
     <string name="pref_summary_aps_resistance_lowers_target">When resistance is detected, lower the target glucose.</string>
     <string name="pref_title_aps_always_use_short_deltas">Always use short average delta</string>
     <string name="pref_summary_aps_always_use_short_deltas">Always use short average delta instead of simple delta for BG change calculations.</string>
+    <string name="pref_title_aps_dynisf_use_profile_sens">Use profile ISF as DynamicISF base</string>
+    <string name="pref_summary_aps_dynisf_use_profile_sens">Calculate DynamicISF from the profile ISF instead of TDD-based sensitivity.</string>
     <string name="pref_title_aps_dynisf_adjust_sensitivity">DynamicISF adjust sensitivity</string>
     <string name="pref_summary_aps_dynisf_adjust_sensitivity">Adjust sensitivity calculations when using DynamicISF.</string>
     <string name="pref_title_aps_autosens_adjust_targets">Autosens adjust targets</string>
