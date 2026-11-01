@@ -122,7 +122,7 @@ class OpenAPSBoostPlugin(
         .icon(IcPluginOpenAPS)
         .pluginName(ApsStrings.openapsboost)
         .preferencesVisibleInSimpleMode(false)
-        .showInList { config.APS || config.AAPSCLIENT }
+        .showInList { false }
         .description(ApsStrings.description_boost),
     ownPreferences = BoostApsPreferenceKeys.owned(calculatorFactory.ownedKeys),
     aapsLogger, rh, preferences, notificationManager
