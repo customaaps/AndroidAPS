@@ -643,6 +643,7 @@ open class OpenAPSSMBPlugin(
             DoubleKey.ApsMaxBasal,
             DoubleKey.ApsSmbMaxIob,
             BooleanKey.ApsUseDynamicSensitivity,
+            BooleanKey.ApsDynIsfUseProfileSens,
             BooleanKey.ApsUseAutosens,
             IntKey.ApsDynIsfAdjustmentFactor,
             UnitDoubleKey.ApsLgsThreshold,
