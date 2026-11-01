@@ -8,7 +8,7 @@ object Versions {
     const val appVersion = "4.0.0"
     // Human-facing fork identity, matching the Boost source branch. Technical
     // appVersion remains independent for version checks and development gates.
-    const val buildLabel = "Boost_Vladimir"
+    const val buildLabel = "Vladimir"
     val buildName = "${appVersion.substringBefore('-')}_$buildLabel"
     const val versionCode = 1500
 
