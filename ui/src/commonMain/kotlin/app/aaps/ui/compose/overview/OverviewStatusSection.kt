@@ -94,7 +94,7 @@ fun OverviewStatusSection(
     modifier: Modifier = Modifier
 ) {
     val items = listOfNotNull(cannulaStatus, insulinStatus, sensorStatus, batteryStatus)
-    if (items.isEmpty() && !sensitivity.hasProfileValues) return
+    if (items.isEmpty() && (equipmentSingleRow || !sensitivity.hasProfileValues)) return
     val compactItems = items.filter { it.compactAge || (it.compactLevel && it.level != null) }
 
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
@@ -164,7 +164,7 @@ fun OverviewStatusSection(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (sensitivity.hasProfileValues) {
+                    if (!equipmentSingleRow && sensitivity.hasProfileValues) {
                         DynamicValuesBlock(state = sensitivity, modifier = Modifier.fillMaxWidth())
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
