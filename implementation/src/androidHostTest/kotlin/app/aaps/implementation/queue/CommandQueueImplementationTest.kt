@@ -8,6 +8,7 @@ import app.aaps.core.data.model.EPS
 import app.aaps.core.data.model.data.Block
 import app.aaps.core.interfaces.alerts.LocalAlertUtils
 import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -34,6 +35,7 @@ import app.aaps.core.interfaces.smsCommunicator.SmsCommunicator
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.objects.constraints.ConstraintObject
@@ -382,6 +384,88 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         completeQueuedProfileSet()
 
         verify(persistenceLayer, times(1)).insertOrUpdateEffectiveProfileSwitch(any())
+    }
+
+    @Test
+    fun `new active profile sends SMS to allowed recipients when option enabled`() = runTest {
+        whenever(preferences.get(BooleanKey.SmsNotifyProfileChange)).thenReturn(true)
+        whenever(smsCommunicator.isEnabled()).thenReturn(true)
+        whenever(config.isEnabled(ExternalOptions.DO_NOT_SEND_SMS_ON_PROFILE_CHANGE)).thenReturn(false)
+
+        givenActiveEpsFrom(139)
+        testPumpPlugin.isProfileSet = false
+        rxBus.send(EventProfileChangeRequested())
+        completeQueuedProfileSet()
+
+        val ordered = org.mockito.kotlin.inOrder(persistenceLayer, smsCommunicator)
+        ordered.verify(persistenceLayer).insertOrUpdateEffectiveProfileSwitch(any())
+        ordered.verify(smsCommunicator).sendNotificationToAllNumbers("Basal profile in pump updated")
+    }
+
+    @Test
+    fun `profile SMS option disabled does not send unsolicited message`() = runTest {
+        whenever(preferences.get(BooleanKey.SmsNotifyProfileChange)).thenReturn(false)
+        whenever(smsCommunicator.isEnabled()).thenReturn(true)
+
+        givenActiveEpsFrom(139)
+        testPumpPlugin.isProfileSet = false
+        rxBus.send(EventProfileChangeRequested())
+        completeQueuedProfileSet()
+
+        verify(persistenceLayer).insertOrUpdateEffectiveProfileSwitch(any())
+        verify(smsCommunicator, never()).sendNotificationToAllNumbers(any())
+    }
+
+    @Test
+    fun `profile SMS is suppressed by external no SMS option`() = runTest {
+        whenever(preferences.get(BooleanKey.SmsNotifyProfileChange)).thenReturn(true)
+        whenever(smsCommunicator.isEnabled()).thenReturn(true)
+        whenever(config.isEnabled(ExternalOptions.DO_NOT_SEND_SMS_ON_PROFILE_CHANGE)).thenReturn(true)
+
+        givenActiveEpsFrom(139)
+        testPumpPlugin.isProfileSet = false
+        rxBus.send(EventProfileChangeRequested())
+        completeQueuedProfileSet()
+
+        verify(smsCommunicator, never()).sendNotificationToAllNumbers(any())
+    }
+
+    @Test
+    fun `internal silent profile change never sends SMS`() = runTest {
+        whenever(preferences.get(BooleanKey.SmsNotifyProfileChange)).thenReturn(true)
+        whenever(smsCommunicator.isEnabled()).thenReturn(true)
+        setNewPsInPumpThatGives(null, EventProfileChangeRequested(silent = true))
+
+        verify(persistenceLayer).insertOrUpdateEffectiveProfileSwitch(any())
+        verify(smsCommunicator, never()).sendNotificationToAllNumbers(any())
+    }
+
+    @Test
+    fun `resending an already effective profile to a replacement pump does not send SMS`() = runTest {
+        whenever(preferences.get(BooleanKey.SmsNotifyProfileChange)).thenReturn(true)
+        whenever(smsCommunicator.isEnabled()).thenReturn(true)
+        givenActiveEpsFrom(140)
+        testPumpPlugin.isProfileSet = false
+
+        rxBus.send(EventProfileChangeRequested())
+        completeQueuedProfileSet()
+
+        verify(smsCommunicator, never()).sendNotificationToAllNumbers(any())
+    }
+
+    @Test
+    fun `profile SMS transport failure does not invalidate persisted profile`() = runTest {
+        whenever(preferences.get(BooleanKey.SmsNotifyProfileChange)).thenReturn(true)
+        whenever(smsCommunicator.isEnabled()).thenReturn(true)
+        whenever(smsCommunicator.sendNotificationToAllNumbers(any())).thenThrow(IllegalStateException("SMS service down"))
+        givenActiveEpsFrom(139)
+        testPumpPlugin.isProfileSet = false
+
+        rxBus.send(EventProfileChangeRequested())
+        completeQueuedProfileSet()
+
+        verify(persistenceLayer).insertOrUpdateEffectiveProfileSwitch(any())
+        verify(smsCommunicator).sendNotificationToAllNumbers("Basal profile in pump updated")
     }
 
     /**
