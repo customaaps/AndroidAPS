@@ -1,7 +1,5 @@
 package app.aaps.implementation.queue.commands
 
-import app.aaps.core.interfaces.configuration.Config
-import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -11,22 +9,18 @@ import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.queue.Command
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.TextResolver
-import app.aaps.core.interfaces.smsCommunicator.SmsCommunicator
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.ui.CoreUiStrings
 
 class CommandSetProfile(
     private val aapsLogger: AAPSLogger,
     private val rh: TextResolver,
-    private val smsCommunicator: SmsCommunicator,
     private val activePlugin: ActivePlugin,
     private val dateUtil: DateUtil,
     private val commandQueue: CommandQueue,
-    private val config: Config,
     private val persistenceLayer: PersistenceLayer,
     override val pumpEnactResultProvider: () -> PumpEnactResult,
     private val profile: EffectiveProfile,
-    private val hasNsId: Boolean,
 ) : Command() {
 
     override val commandType: Command.CommandType = Command.CommandType.BASAL_PROFILE
@@ -38,12 +32,9 @@ class CommandSetProfile(
         }
         val r = activePlugin.activePump.setNewBasalProfile(profile)
         aapsLogger.debug(LTag.PUMPQUEUE, "Result success: ${r.success} enacted: ${r.enacted} profile: $profile")
-        // Send SMS notification if ProfileSwitch is coming from NS
-        val profileSwitch = persistenceLayer.getEffectiveProfileSwitchActiveAt(dateUtil.now())
-        if (profileSwitch != null && r.enacted && hasNsId && !config.AAPSCLIENT) {
-            if (smsCommunicator.isEnabled() && !config.isEnabled(ExternalOptions.DO_NOT_SEND_SMS_ON_PROFILE_CHANGE))
-                smsCommunicator.sendNotificationToAllNumbers(rh.gs(CoreUiStrings.profile_set_ok))
-        }
+        // SMS profile-change notification is issued by CommandQueueImplementation only after
+        // the requested profile has been verified and the new EPS has been persisted. Sending
+        // here risks reporting an obsolete profile if the request changes during the pump write.
         return r
     }
 
