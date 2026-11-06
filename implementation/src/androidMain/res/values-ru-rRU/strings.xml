@@ -74,6 +74,7 @@
     <string name="google_drive_reauth_required">Очистите настройки и повторно авторизуйте Google Drive</string>
     <string name="smb_being_delivered">Сейчас подаётся SMB. Повторите попытку после завершения подачи.</string>
     <string name="profile_set_ok_rounded">Базальный профиль помпы обновлён. Помпа округляет базальную подачу до своего шага: суточная подача составляет %1$s вместо %2$s.</string>
+    <string name="sms_profile_changed">Профиль AAPS изменён: %1$s</string>
     <string name="basal_reported_far_from_profile">Помпа сообщает о базальной подаче, значительно отличающейся от профиля. AAPS сохраняет базальную подачу из профиля. Проверьте базальные скорости в помпе.</string>
     <string name="permission_battery_title">Оптимизация расхода заряда</string>
     <string name="permission_battery_description">Для надёжной работы в фоновом режиме приложение необходимо исключить из оптимизации расхода заряда.</string>
