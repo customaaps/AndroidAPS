@@ -94,6 +94,32 @@ class CompactOverviewStatusTest {
         assertNoClippedText()
     }
 
+    @Test fun fourEquipmentIndicatorsStayOnOneLineAndExpandStillWorks() {
+        var expands = 0
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 1.25f)) {
+                MaterialTheme(colorScheme = darkColorScheme()) {
+                    Surface {
+                        Box(Modifier.width(320.dp).padding(8.dp)) {
+                            CompactEquipmentSingleRow(items, canExpand = true, onExpand = { expands++ })
+                        }
+                    }
+                }
+            }
+        }
+        val cannula = compose.onNodeWithText("2d1h").assertIsDisplayed().fetchSemanticsNode()
+        val insulin = compose.onNodeWithText("2d1h 50 U").assertIsDisplayed().fetchSemanticsNode()
+        val sensor = compose.onNodeWithText("6d9h").assertIsDisplayed().fetchSemanticsNode()
+        val battery = compose.onNodeWithText("0d0h 50%").assertIsDisplayed().fetchSemanticsNode()
+        val row = listOf(cannula, insulin, sensor, battery)
+        val y = cannula.boundsInRoot.center.y
+        row.forEach { assertThat(kotlin.math.abs(it.boundsInRoot.center.y - y)).isLessThan(6f) }
+        compose.onNodeWithContentDescription("Expand").performClick()
+        assertThat(expands).isEqualTo(1)
+        assertNoClippedText()
+    }
+
     @Test fun unchangedValuesShowOnceWithoutAnArrow() {
         render(values = SensitivityUiState(profileIsf = "5.6", crFrom = "10.0"))
         compose.onNodeWithText("ISF 5.6").assertIsDisplayed()
