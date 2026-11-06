@@ -271,20 +271,22 @@ class CommandQueueImplementation(
                     iCfg = it.iCfg
                 )
                 persistenceLayer.insertOrUpdateEffectiveProfileSwitch(eps)
-                // Alert only when a genuinely new requested profile was successfully written
-                // and persisted. A pump re-push, a stale request, a failed write or an
-                // internal silent Scene action must not send an unsolicited SMS.
-                if (result?.enacted == true && !alreadyEffective && !silentWrite &&
-                    report != BasalReport.Rejected &&
+                // Notify only when a genuinely NEW effective profile was persisted.
+                // The pump may not need a basal write (enacted=false) if only IC/ISF changed,
+                // so report the active AAPS profile, NOT "pump basal updated". A pump re-push,
+                // stale request, failed application or internal silent Scene is not a switch.
+                if (!alreadyEffective && !silentWrite && report != BasalReport.Rejected &&
                     preferences.get(BooleanKey.SmsNotifyProfileChange) &&
                     !config.isEnabled(ExternalOptions.DO_NOT_SEND_SMS_ON_PROFILE_CHANGE)
                 ) {
                     try {
                         val sms = smsCommunicator()
-                        if (sms.isEnabled()) sms.sendNotificationToAllNumbers(rh.gs(CoreUiStrings.profile_set_ok))
+                        if (sms.isEnabled()) sms.sendNotificationToAllNumbers(
+                            rh.gs(ImplementationStrings.sms_profile_changed, eps.originalCustomizedName)
+                        )
                     } catch (error: Exception) {
                         // A carrier/permission failure must never undo the already-persisted
-                        // pump profile or stop the serialized profile-change collector.
+                        // profile or stop the serialized profile-change collector.
                         aapsLogger.error(LTag.SMS, "Profile-change SMS notification failed: ${error.message}")
                     }
                 }
