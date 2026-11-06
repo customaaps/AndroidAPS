@@ -397,9 +397,42 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         rxBus.send(EventProfileChangeRequested())
         completeQueuedProfileSet()
 
+        val persisted = argumentCaptor<EPS>()
+        val sentMessage = argumentCaptor<String>()
         val ordered = org.mockito.kotlin.inOrder(persistenceLayer, smsCommunicator)
-        ordered.verify(persistenceLayer).insertOrUpdateEffectiveProfileSwitch(any())
-        ordered.verify(smsCommunicator).sendNotificationToAllNumbers("Basal profile in pump updated")
+        ordered.verify(persistenceLayer).insertOrUpdateEffectiveProfileSwitch(persisted.capture())
+        ordered.verify(smsCommunicator).sendNotificationToAllNumbers(sentMessage.capture())
+        assertThat(sentMessage.firstValue).isEqualTo("AAPS profile changed: ${persisted.firstValue.originalCustomizedName}")
+    }
+
+    @Test
+    fun `profile change with unchanged basal still notifies when EPS is new`() = runTest {
+        whenever(preferences.get(BooleanKey.SmsNotifyProfileChange)).thenReturn(true)
+        whenever(smsCommunicator.isEnabled()).thenReturn(true)
+        givenActiveEpsFrom(139)
+        testPumpPlugin.isProfileSet = false
+
+        rxBus.send(EventProfileChangeRequested())
+        completeQueuedProfileSet(enacted = false)
+
+        val persisted = argumentCaptor<EPS>()
+        verify(persistenceLayer).insertOrUpdateEffectiveProfileSwitch(persisted.capture())
+        verify(smsCommunicator).sendNotificationToAllNumbers("AAPS profile changed: ${persisted.firstValue.originalCustomizedName}")
+    }
+
+    @Test
+    fun `failed profile write never sends SMS`() = runTest {
+        whenever(preferences.get(BooleanKey.SmsNotifyProfileChange)).thenReturn(true)
+        whenever(smsCommunicator.isEnabled()).thenReturn(true)
+        givenActiveEpsFrom(139)
+        testPumpPlugin.isProfileSet = false
+
+        rxBus.send(EventProfileChangeRequested())
+        commandQueue.pickup()
+        commandQueue.performing()?.completion?.complete(enactResult(isSuccess = false, isEnacted = false))
+
+        verify(persistenceLayer, never()).insertOrUpdateEffectiveProfileSwitch(any())
+        verify(smsCommunicator, never()).sendNotificationToAllNumbers(any())
     }
 
     @Test
