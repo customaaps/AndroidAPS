@@ -446,6 +446,7 @@ smbmaxminutes|IntKey|true
 smscommunicator_allowednumbers|StringKey|true
 smscommunicator_otp_password|StringKey|true
 smscommunicator_otp_secret|StringNonKey|true
+smscommunicator_notify_profile_change|BooleanKey|true
 smscommunicator_otp_setup|SmsIntentKey|false
 smscommunicator_remotebolusmindistance|IntKey|true
 smscommunicator_remotecommandsallowed|BooleanKey|true
