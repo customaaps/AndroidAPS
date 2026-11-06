@@ -1,0 +1,687 @@
+[
+  {
+    "resource": "core/interfaces/src/androidMain/res/values/time_frame_hours_minutes",
+    "text": "%1$dh %2$d\\'",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/interfaces/src/androidMain/res/values/permission_bluetooth_title",
+    "text": "Bluetooth",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/interfaces/src/androidMain/res/values/profile_isf_units_mgdl",
+    "text": "mg/dL/U",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/interfaces/src/androidMain/res/values/profile_isf_units_mmol",
+    "text": "mmol/L/U",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/interfaces/src/androidMain/res/values/mins",
+    "text": "%1$d min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/interfaces/src/androidMain/res/values/wizard_ecarbs",
+    "text": "eCarbs %1$d g / %2$d h (+%3$d min)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/keys/src/androidMain/res/values/smscommunicator_allowednumbers_summary",
+    "text": "+XXXXXXXXXX;+YYYYYYYYYY",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/bg_mgdl",
+    "text": "%1$d mg/dL",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/bg_mmol",
+    "text": "%1$.1f mmol/L",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/openaps",
+    "text": "OpenAPS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/openaps_short",
+    "text": "OAPS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/format_mins",
+    "text": "%1$d min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/ic_short",
+    "text": "IC",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/pump_insulin_cu",
+    "text": "%1$.2f\\u00a0CU",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/pump_insulin_cu1",
+    "text": "%1$.1f\\u00a0CU",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/hba1c",
+    "text": "HbA1c:",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/aaps",
+    "text": "AAPS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/ns",
+    "text": "NS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/smb_shortname",
+    "text": "SMB",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/tdd_short",
+    "text": "TDD",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/sms",
+    "text": "SMS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/wizard_bg_label",
+    "text": "BG",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/eat_reminder_extend",
+    "text": "+%1$d min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/ok",
+    "text": "OK",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/export_ok",
+    "text": "OK",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/format_hour_minute",
+    "text": "%1$d h %2$d min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/basal_short",
+    "text": "BAS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/predictions_shortname",
+    "text": "PRED",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/basal_shortname",
+    "text": "BAS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/deviation_shortname",
+    "text": "DEV",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/activity_shortname",
+    "text": "ACT",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/bgi_shortname",
+    "text": "-BGI",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/abs_insulin_shortname",
+    "text": "ABS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/devslope_shortname",
+    "text": "DEVSLOPE",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/heartRate_shortname",
+    "text": "HR",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/sensitivity_shortname",
+    "text": "SENS%",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/variable_sensitivity_shortname",
+    "text": "VSENS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_format_mgdl",
+    "text": "%1$s mg/dL",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_format_mgdl_range",
+    "text": "%1$s mg/dL (%2$s - %3$s)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_format_min",
+    "text": "%1$d min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_format_min_range",
+    "text": "%1$d min (%2$d - %3$d)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_format_sec",
+    "text": "%1$d sec",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_format_sec_range",
+    "text": "%1$d sec (%2$d - %3$d)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_kg",
+    "text": "kg",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_mgdl",
+    "text": "mg/dL",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_min",
+    "text": "min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_mmol",
+    "text": "mmol/L",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/units_sec",
+    "text": "sec",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "core/ui/src/androidMain/res/values/cr_short",
+    "text": "CR",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "implementation/src/androidMain/res/values/pump_base_basal_rate_cu_dynamic",
+    "text": "%1$s\\u00a0CU/h",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/aps/src/androidMain/res/values/openapssmb",
+    "text": "OpenAPS SMB",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/aps/src/androidMain/res/values/openaps_auto_isf",
+    "text": "Auto ISF",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/automation/src/androidMain/res/values/automation_unit_bpm",
+    "text": "bpm",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/automation/src/androidMain/res/values/wifissidcompared",
+    "text": "WiFi SSID %1$s %2$s",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/constraints/src/androidMain/res/values/insulin_fiasp",
+    "text": "Fiasp®",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/source/src/androidMain/res/values/glimp",
+    "text": "Glimp",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/source/src/androidMain/res/values/mm640g",
+    "text": "MM640g",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/source/src/androidMain/res/values/poctech",
+    "text": "Poctech",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/source/src/androidMain/res/values/syai_tag_app",
+    "text": "Syai/Ottai",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/source/src/androidMain/res/values/patched_si_app",
+    "text": "SI App",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/source/src/androidMain/res/values/patched_sino_app",
+    "text": "Sino App",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/source/src/androidMain/res/values/instara_app",
+    "text": "Instara",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/source/src/androidMain/res/values/permission_dexcom_title",
+    "text": "Dexcom CGM",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/authorized_clients_method_pin",
+    "text": "PIN",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/client_setup_confirm_nightscout",
+    "text": "Nightscout: %1$s",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/ns_client_v3_title",
+    "text": "NSClientV3",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/tidepool",
+    "text": "Tidepool",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/garmin",
+    "text": "Garmin",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/aps",
+    "text": "APS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/smscommunicator_code_verify_hint",
+    "text": "OTP + PIN",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/smscommunicator_otp_verification_ok",
+    "text": "OK",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/sms_iob",
+    "text": "IOB:",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "plugins/sync/src/androidMain/res/values/permission_sms_title",
+    "text": "SMS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/carelevo/src/main/res/values/carelevo",
+    "text": "Carelevo",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/carelevo/src/main/res/values/common_btn_ok",
+    "text": "OK",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/carelevo/src/main/res/values/common_label_unit_value_duration_hour_and_minute",
+    "text": "%1$d hrs %2$d min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/carelevo/src/main/res/values/common_label_unit_value_minute",
+    "text": "%d min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/carelevo/src/main/res/values/common_label_unit_value_duration_hour",
+    "text": "%d hrs",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/carelevo/src/main/res/values/common_label_unit_value_dose_per_speed_with_space",
+    "text": "%.2f U/hr",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/dana/common/src/main/res/values/danarspump",
+    "text": "Dana-i/RS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/dana/common/src/main/res/values/danarpump",
+    "text": "DanaR",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/dana/common/src/main/res/values/danarv2pump",
+    "text": "DanaRv2",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/diaconn_g8_pump",
+    "text": "Diaconn G8",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/bolus_speed_1",
+    "text": "1 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/bolus_speed_2",
+    "text": "2 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/bolus_speed_3",
+    "text": "3 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/bolus_speed_4",
+    "text": "4 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/bolus_speed_5",
+    "text": "5 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/bolus_speed_6",
+    "text": "6 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/bolus_speed_7",
+    "text": "7 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/diaconn/src/main/res/values/bolus_speed_8",
+    "text": "8 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/eopatch/src/main/res/values/eopatch",
+    "text": "EOPatch2",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/equil/src/main/res/values/equil_name",
+    "text": "Equil",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/equil/src/main/res/values/equil_bolus_speed_3",
+    "text": "3 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/equil/src/main/res/values/equil_bolus_speed_6",
+    "text": "6 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/equil/src/main/res/values/equil_bolus_speed_12",
+    "text": "12 U/min",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/insight/src/main/res/values/insight_local",
+    "text": "Accu-Chek Insight",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/medtronic/src/main/res/values/medtronic_pump_type_554_eu",
+    "text": "554 (EU Fw. <= 2.6A)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/medtronic/src/main/res/values/medtronic_pump_type_754_eu",
+    "text": "754 (EU Fw. <= 2.6A)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/medtronic/src/main/res/values/medtronic_pump_type_554_ca",
+    "text": "554 (CA Fw. <= 2.7A)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/medtronic/src/main/res/values/medtronic_pump_type_754_ca",
+    "text": "754 (CA Fw. <= 2.7A)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/omnipod/common/src/main/res/values/omnipod_common_bolus_type_smb",
+    "text": "SMB",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/omnipod/eros/src/main/res/values/omnipod_eros_preferences_category_riley_link",
+    "text": "RileyLink",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/rileylink/src/main/res/values/rileylink_title",
+    "text": "RileyLink",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "pump/rileylink/src/main/res/values/rileylink_firmware_version_value",
+    "text": "BLE113: %1$s\\nCC110: %2$s",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/dexcom_tir",
+    "text": "Dexcom TIR",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/agp",
+    "text": "AGP",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/agp_ea1c",
+    "text": "eA1c",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/agp_gmi",
+    "text": "GMI",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/agp_standard_deviation",
+    "text": "SD",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/agp_cv",
+    "text": "CV",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/cgp_tor",
+    "text": "ToR",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/cgp_cv",
+    "text": "\\%CV",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/cgp_pgr",
+    "text": "PGR",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/scene_cat_aaps",
+    "text": "AAPS",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/wizard_calc_with_isf",
+    "text": "%1$s (ISF: %2$s)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/wizard_calc_with_ic",
+    "text": "%1$s (IC: %2$s)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/wizard_calc_carbs_with_ic",
+    "text": "%1$s %2$s (IC: %3$s)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/tbr_type_flag_emulated_suspended",
+    "text": "ES",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "ui/src/androidMain/res/values/tbr_type_flag_superbolus",
+    "text": "SB",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/activity_IOB",
+    "text": "IOB",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/complication_br_iob",
+    "text": "BR & IoB",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/loop_status_profile_timeshift_value",
+    "text": "%1$+dh",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/wizard_settings_format",
+    "text": "IC: %1$s | ISF: %2$s",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/wizard_result_bg",
+    "text": "BG",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/wizard_result_bg_tt",
+    "text": "BG (TT: %1$s)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/wizard_result_iob",
+    "text": "IOB",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/wizard_result_cob",
+    "text": "COB (%1$.1f g)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/wizard_carbs_with_time",
+    "text": "%1$d g (%2$s min)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/wizard_result_ecarbs",
+    "text": "%1$d g / %2$d h (+%3$d min)",
+    "reason": "Abbreviation, abbreviated unit, product/protocol name or fixed technical format; preserved by user request."
+  },
+  {
+    "resource": "wear/src/main/res/values/complication_tap_action_values",
+    "text": "default\n        menu\n        wizard\n        bolus\n        ecarb\n        status\n        running_mode\n        none",
+    "reason": "Stored preference values / wire identifiers. Labels are localized through the companion entries array; changing these values would change behavior."
+  },
+  {
+    "resource": "wear/src/main/res/values/watchface_simplify_ui_values",
+    "text": "off\n        charging\n        ambient\n        ambient_charging",
+    "reason": "Stored preference values / wire identifiers. Labels are localized through the companion entries array; changing these values would change behavior."
+  },
+  {
+    "resource": "wear/src/main/res/values/tile_action_values",
+    "text": "wizard\n        treatment\n        bolus\n        carbs\n        ecarbs\n        temp_target\n        profile_switch\n        none",
+    "reason": "Stored preference values / wire identifiers. Labels are localized through the companion entries array; changing these values would change behavior."
+  },
+  {
+    "resource": "wear/src/main/res/values/tile_tempt_values",
+    "text": "activity\n        eating_soon\n        hypo\n        manual\n        cancel\n        none",
+    "reason": "Stored preference values / wire identifiers. Labels are localized through the companion entries array; changing these values would change behavior."
+  },
+  {
+    "resource": "wear/src/main/res/values/digitalstyle_styles_values",
+    "text": "none\n        minimal\n        shape\n        full",
+    "reason": "Stored preference values / wire identifiers. Labels are localized through the companion entries array; changing these values would change behavior."
+  },
+  {
+    "resource": "wear/src/main/res/values/digitalstyle_color_values",
+    "text": "red\n        pink\n        purple\n        deeppurple\n        indigo\n        blue\n        lightblue\n        cyan\n        teal\n        green\n        lightgreen\n        lime\n        yellow\n        amber\n        orange\n        deeporange\n        brown\n        gray\n        bluegray\n        white\n        multicolor",
+    "reason": "Stored preference values / wire identifiers. Labels are localized through the companion entries array; changing these values would change behavior."
+  },
+  {
+    "resource": "ui/src/androidMain/res/layout/widget_glucose_circle_preview.xml#text",
+    "text": "1 min",
+    "reason": "Static widget-picker preview sample, consisting only of a number and the abbreviated unit min; preserved by user request."
+  }
+]

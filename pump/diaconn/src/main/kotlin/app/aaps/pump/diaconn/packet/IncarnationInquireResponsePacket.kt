@@ -1,25 +1,25 @@
 package app.aaps.pump.diaconn.packet
 
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.sharedPreferences.SP
-import dagger.android.HasAndroidInjector
 import app.aaps.pump.diaconn.DiaconnG8Pump
-import javax.inject.Inject
+import dev.zacsweers.metro.HasMemberInjections
+import dev.zacsweers.metro.Inject
 
 /**
  * IncarnationInquireResponsePacket
  */
 @Suppress("SpellCheckingInspection")
+// Metro reads this class now that interop is on for the module. It is subclassable, so it has to
+// say its injected fields are meant to be filled - Metro will not infer that for an open type.
+@HasMemberInjections
 open class IncarnationInquireResponsePacket(
-    injector: HasAndroidInjector
+    injector: MetroMemberInjector
 ) : DiaconnG8Packet(injector) {
 
     @Inject lateinit var diaconnG8Pump: DiaconnG8Pump
-    @Inject lateinit var sp: SP
     @Inject lateinit var rh: ResourceHelper
-
-    var result = 0
 
     init {
         msgType = 0xBA.toByte()
@@ -35,7 +35,7 @@ open class IncarnationInquireResponsePacket(
         } else failed = false
 
         val bufferData = prefixDecode(data)
-        result = getByteToInt(bufferData)
+        val result = getByteToInt(bufferData)
         if (!isSuccInquireResponseResult(result)) {
             failed = true
             return

@@ -1,0 +1,27 @@
+package app.aaps.wear.preference
+
+import android.content.Context
+import android.util.AttributeSet
+import android.widget.Toast
+import app.aaps.wear.BuildConfig
+import app.aaps.wear.R
+
+/**
+ * Preference for displaying the app version
+ */
+@Suppress("unused")
+class VersionPreference(context: Context, attrs: AttributeSet?) : WearListPreference(context, attrs) {
+
+    override fun getSummaryText(context: Context): CharSequence {
+        return BuildConfig.BUILDVERSION
+    }
+
+    override fun onPreferenceClick(context: Context) {
+        Toast.makeText(context, context.getString(R.string.localization_build_version, BuildConfig.BUILDVERSION), Toast.LENGTH_LONG).show()
+    }
+
+    init {
+        entries = arrayOf<CharSequence>(BuildConfig.BUILDVERSION)
+        entryValues = arrayOf<CharSequence>(BuildConfig.BUILDVERSION)
+    }
+}

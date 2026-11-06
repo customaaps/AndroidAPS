@@ -1,7 +1,8 @@
 package app.aaps.pump.eopatch
 
 import io.reactivex.rxjava3.disposables.Disposable
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -83,9 +84,11 @@ object CommonUtils {
         val diff = abs(a - b)
         return if (a == b) {
             true
-        } else if (a == 0f || b == 0f || absA + absB < java.lang.Float.MIN_NORMAL) {
-            diff < epsilon * java.lang.Float.MIN_NORMAL
+        } else if (a == 0f || b == 0f || absA + absB < java.lang.Float.MIN_NORMAL || absA + absB < 1.0f) {
+            // For values at or near zero, or small values (sum < 1.0), use absolute difference
+            diff < epsilon
         } else {
+            // For other values, use relative difference
             diff / min(absA + absB, Float.MAX_VALUE) < epsilon
         }
     }

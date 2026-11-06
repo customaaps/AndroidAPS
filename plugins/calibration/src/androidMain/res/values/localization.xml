@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cal_chart_platform_unavailable">Calibration chart is not implemented on this platform yet</string>
+</resources>

@@ -1,7 +1,7 @@
 package app.aaps.pump.eopatch.vo
 
 import app.aaps.pump.eopatch.code.PatchLifecycle
-import com.google.android.gms.common.internal.Preconditions
+import com.google.common.base.Preconditions
 
 class PatchLifecycleEvent {
 
@@ -38,6 +38,18 @@ class PatchLifecycleEvent {
 
     override fun toString(): String {
         return "PatchLifecycleEvent(lifeCycle=$lifeCycle, timestamp=$timestamp)"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as PatchLifecycleEvent
+        // Compare only lifeCycle, not timestamp, as timestamps can differ for equivalent states
+        return lifeCycle == other.lifeCycle
+    }
+
+    override fun hashCode(): Int {
+        return lifeCycle.hashCode()
     }
 
     constructor(lifeCycle: PatchLifecycle) {

@@ -1,11 +1,11 @@
 package app.aaps.pump.eopatch.vo
 
-import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.eopatch.AppConstant
 import app.aaps.pump.eopatch.GsonHelper
-import app.aaps.pump.eopatch.code.SettingKeys
 import app.aaps.pump.eopatch.core.code.BolusType
 import app.aaps.pump.eopatch.core.util.FloatAdjusters
+import app.aaps.pump.eopatch.keys.EopatchStringNonKey
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 
@@ -67,8 +67,8 @@ class BolusCurrent : IPreference<BolusCurrent> {
         }
 
         fun update(injected: Int, remain: Int) {
-            this.injected = FloatAdjusters.FLOOR2_BOLUS.apply(injected * AppConstant.INSULIN_UNIT_P)
-            this.remain = FloatAdjusters.FLOOR2_BOLUS.apply(remain * AppConstant.INSULIN_UNIT_P)
+            this.injected = FloatAdjusters.FLOOR2_BOLUS(injected * AppConstant.INSULIN_UNIT_P)
+            this.remain = FloatAdjusters.FLOOR2_BOLUS(remain * AppConstant.INSULIN_UNIT_P)
         }
 
         fun updateTimeStamp(start: Long, end: Long) {
@@ -163,9 +163,9 @@ class BolusCurrent : IPreference<BolusCurrent> {
         return subject.hide()
     }
 
-    override fun flush(sp: SP) {
+    override fun flush(preferences: Preferences) {
         val jsonStr = GsonHelper.sharedGson().toJson(this)
-        sp.putString(SettingKeys.BOLUS_CURRENT, jsonStr)
+        preferences.put(EopatchStringNonKey.BolusCurrent, jsonStr)
         subject.onNext(this)
     }
 

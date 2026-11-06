@@ -4,18 +4,22 @@ import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.PumpSync
-import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
-@Singleton
-class DiaconnG8Pump @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class DiaconnG8Pump(
     private val aapsLogger: AAPSLogger,
     private val dateUtil: DateUtil,
     private val decimalFormatter: DecimalFormatter
@@ -31,6 +35,7 @@ class DiaconnG8Pump @Inject constructor(
     var pumpIncarnationNum: Int = 65536
     var isPumpVersionGe2_63: Boolean = false // is pumpVersion higher then 2.63
     var isPumpVersionGe3_53: Boolean = false // is pumpVersion higher then 3.42
+    var isPumpVersionGe3_58: Boolean = false // BLE permanent connection support
     var insulinWarningGrade: Int = 0
     var insulinWarningProcess: Int = 0
     var insulinWarningRemain: Int = 0
@@ -41,7 +46,13 @@ class DiaconnG8Pump @Inject constructor(
     var injectionBlockRemainAmount: Double = 0.0
     var injectionBlockProcess: Int = 0
     var injectionBlockGrade: Int = 0
-    var lastConnection: Long = 0
+    private val _lastConnectionFlow = MutableStateFlow(0L)
+    val lastConnectionFlow: StateFlow<Long> = _lastConnectionFlow.asStateFlow()
+    var lastConnection: Long
+        get() = lastConnectionFlow.value
+        set(value) {
+            _lastConnectionFlow.value = value
+        }
     var lastSettingsRead: Long = 0
     var mealLimitTime: Int = 0
 
@@ -58,13 +69,28 @@ class DiaconnG8Pump @Inject constructor(
     var pumpSuspended = false
     var dailyTotalUnits = 0.0
     var maxDailyTotalUnits = 0
-    var bolusStep = 0.01
-    var basalStep = 0.01
+    // Fixed on the G8 and the same as its pump type. Not read from the pump, only shown in the overview.
+    val bolusStep = 0.01
+    val basalStep = 0.01
     var iob = 0.0
 
     var bolusBlocked = false
-    var lastBolusTime: Long = 0
-    var lastBolusAmount = 0.0
+
+    private val _lastBolusTimeFlow = MutableStateFlow<Long?>(null)
+    val lastBolusTimeFlow: StateFlow<Long?> = _lastBolusTimeFlow.asStateFlow()
+    var lastBolusTime: Long?
+        get() = lastBolusTimeFlow.value
+        set(value) {
+            _lastBolusTimeFlow.value = value
+        }
+
+    private val _lastBolusAmountFlow = MutableStateFlow<Double?>(null)
+    val lastBolusAmountFlow: StateFlow<Double?> = _lastBolusAmountFlow.asStateFlow()
+    var lastBolusAmount: Double?
+        get() = lastBolusAmountFlow.value
+        set(value) {
+            _lastBolusAmountFlow.value = value
+        }
 
     /*
      * TEMP BASALS
@@ -86,15 +112,6 @@ class DiaconnG8Pump @Inject constructor(
     val tempBasalRemainingMin: Int
         get() = max(T.msecs(tempBasalStart + tempBasalDuration - dateUtil.now()).mins().toInt(), 0)
 
-    fun temporaryBasalToString(): String {
-        if (!isTempBasalInProgress) return ""
-
-        val passedMin = ((min(dateUtil.now(), tempBasalStart + tempBasalDuration) - tempBasalStart) / 60.0 / 1000).roundToInt()
-        return tempBasalAbsoluteRate.toString() + "U/h @" +
-            dateUtil.timeString(tempBasalStart) +
-            " " + passedMin + "/" + T.msecs(tempBasalDuration).mins() + "'"
-    }
-
     fun fromTemporaryBasal(tbr: PumpSync.PumpState.TemporaryBasal?) {
         if (tbr == null) {
             tempBasalStart = 0
@@ -104,6 +121,37 @@ class DiaconnG8Pump @Inject constructor(
             tempBasalStart = tbr.timestamp
             tempBasalDuration = tbr.duration
             tempBasalAbsoluteRate = tbr.rate
+        }
+    }
+
+    /**
+     * Sync TBR state from pump response fields (tbStatus, tbTime, tbInjectRateRatio, tbElapsedTime)
+     * This is more reliable than pumpSync.expectedPumpState() which may have timing issues
+     * Note: tbTime is in 15-minute units (e.g., tbTime=2 means 30 minutes)
+     *       tbElapsedTime is in minutes
+     */
+    fun syncTempBasalFromPump() {
+        if (tbStatus == 1) { // TBR is running
+            // Calculate start time from elapsed time (tbElapsedTime is in minutes)
+            tempBasalStart = dateUtil.now() - T.mins(tbElapsedTime.toLong()).msecs()
+            // Duration in milliseconds (tbTime is in 15-minute units)
+            tempBasalDuration = T.mins((tbTime * 15).toLong()).msecs()
+            // Calculate absolute rate from tbInjectRateRatio
+            tempBasalAbsoluteRate = if (tbInjectRateRatio >= 50000) {
+                // Percentage mode: 50000 = 0%, 50100 = 100%, 50250 = 250%
+                val percent = tbInjectRateRatio - 50000
+                baseAmount * percent / 100.0
+            } else {
+                // Absolute mode: 1000 = 0.00 U/h, 1025 = 0.25 U/h, 1600 = 6.00 U/h
+                (tbInjectRateRatio - 1000) / 100.0
+            }
+            aapsLogger.debug(LTag.PUMP, "syncTempBasalFromPump: running, start=$tempBasalStart, duration=${T.msecs(tempBasalDuration).mins()}min (tbTime=$tbTime), rate=$tempBasalAbsoluteRate U/h")
+        } else {
+            // TBR is not running - clear state
+            tempBasalStart = 0
+            tempBasalDuration = 0
+            tempBasalAbsoluteRate = 0.0
+            aapsLogger.debug(LTag.PUMP, "syncTempBasalFromPump: not running (tbStatus=$tbStatus), state cleared")
         }
     }
 
@@ -128,7 +176,7 @@ class DiaconnG8Pump @Inject constructor(
         get() = T.msecs(max(0, dateUtil.now() - extendedBolusStart)).mins().toInt()
     val extendedBolusRemainingMinutes: Int
         get() = max(T.msecs(extendedBolusStart + extendedBolusDuration - dateUtil.now()).mins().toInt(), 0)
-    private val extendedBolusDurationInMinutes: Int
+    val extendedBolusDurationInMinutes: Int
         get() = T.msecs(extendedBolusDuration).mins().toInt()
 
     var extendedBolusAbsoluteRate: Double
@@ -136,15 +184,6 @@ class DiaconnG8Pump @Inject constructor(
         set(rate) {
             extendedBolusAmount = rate * extendedBolusDuration / T.hours(1).msecs()
         }
-
-    fun extendedBolusToString(): String {
-        if (!isExtendedInProgress) return ""
-        //return "E "+ decimalFormatter.to2Decimal(extendedBolusDeliveredSoFar) +"/" + decimalFormatter.to2Decimal(extendedBolusAbsoluteRate) + "U/h @" +
-        //     " " + extendedBolusPassedMinutes + "/" + extendedBolusMinutes + "'"
-        return "E " + decimalFormatter.to2Decimal(extendedBolusAbsoluteRate) + "U/h @" +
-            dateUtil.timeString(extendedBolusStart) +
-            " " + extendedBolusPassedMinutes + "/" + extendedBolusDurationInMinutes + "'"
-    }
 
     fun fromExtendedBolus(eb: PumpSync.PumpState.ExtendedBolus?) {
         if (eb == null) {
@@ -155,6 +194,28 @@ class DiaconnG8Pump @Inject constructor(
             extendedBolusStart = eb.timestamp
             extendedBolusDuration = eb.duration
             extendedBolusAmount = eb.amount
+        }
+    }
+
+    /**
+     * Sync Extended Bolus state from pump response fields (squareStatus, squareTime, squareInjTime, squareAmount)
+     * This is more reliable than pumpSync.expectedPumpState() which may have timing issues
+     */
+    fun syncExtendedBolusFromPump() {
+        if (squareStatus == 1) { // EB is running
+            // Calculate start time from elapsed time
+            extendedBolusStart = dateUtil.now() - T.mins(squareInjTime.toLong()).msecs()
+            // Duration in milliseconds
+            extendedBolusDuration = T.mins(squareTime.toLong()).msecs()
+            // Amount
+            extendedBolusAmount = squareAmount
+            aapsLogger.debug(LTag.PUMP, "syncExtendedBolusFromPump: running, start=$extendedBolusStart, duration=${T.msecs(extendedBolusDuration).mins()}min, amount=$extendedBolusAmount U")
+        } else {
+            // EB is not running - clear state
+            extendedBolusStart = 0
+            extendedBolusDuration = 0
+            extendedBolusAmount = 0.0
+            aapsLogger.debug(LTag.PUMP, "syncExtendedBolusFromPump: not running, state cleared")
         }
     }
 
@@ -177,8 +238,7 @@ class DiaconnG8Pump @Inject constructor(
     var resultErrorCode: Int = 0 // last start bolus erroCode
 
     // Bolus settings
-    var bolusingTreatment: EventOverviewBolusProgress.Treatment? = null // actually delivered treatment
-    var bolusAmountToBeDelivered = 0.0 // amount to be delivered
+    var bolusingDetailedBolusInfo: DetailedBolusInfo? = null // actually delivered treatment
     var bolusProgressLastTimeStamp: Long = 0 // timestamp of last bolus progress message
     var bolusStopped = false // bolus finished
     var bolusStopForced = false // bolus forced to stop by user
@@ -209,14 +269,29 @@ class DiaconnG8Pump @Inject constructor(
         aapsLogger.debug(LTag.PUMP, "Diaconn G8 Pump reset")
         lastConnection = 0
         lastSettingsRead = 0
+        lastBolusTime = null
+        lastBolusAmount = null
     }
 
     // G8 pump
     var result: Int = 0 // 조회결과
 
     // 1. pump setting info
-    var systemRemainInsulin = 0.0 // 인슐린 잔량
-    var systemRemainBattery = 0 // 배터리 잔량(0~100%)
+    private val _systemRemainInsulinFlow = MutableStateFlow(0.0)
+    val systemRemainInsulinFlow: StateFlow<Double> = _systemRemainInsulinFlow.asStateFlow()
+    var systemRemainInsulin: Double // 인슐린 잔량
+        get() = systemRemainInsulinFlow.value
+        set(value) {
+            _systemRemainInsulinFlow.value = value
+        }
+
+    private val _systemRemainBatteryFlow = MutableStateFlow<Int?>(null)
+    val systemRemainBatteryFlow: StateFlow<Int?> = _systemRemainBatteryFlow.asStateFlow()
+    var systemRemainBattery: Int? // 배터리 잔량(0~100%)
+        get() = systemRemainBatteryFlow.value
+        set(value) {
+            _systemRemainBatteryFlow.value = value
+        }
     var systemBasePattern = 0 // 기저주입 패턴(0=없음, 1=기본, 2=생활1, 3=생활2, 4=생활3, 5=닥터1, 6=닥터2)
     var systemTbStatus = 0 // 임시기저 상태(1=임시기저 중, 2=임시기저 해제)
     var systemInjectionMealStatus = 0 // 식사주입 상태(1=주입중, 2=주입상태아님)

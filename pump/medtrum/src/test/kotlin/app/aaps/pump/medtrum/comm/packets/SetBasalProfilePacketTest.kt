@@ -1,23 +1,25 @@
 package app.aaps.pump.medtrum.comm.packets
 
-import com.google.common.truth.Truth.assertThat
-import dagger.android.AndroidInjector
-import dagger.android.HasAndroidInjector
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.pump.medtrum.MedtrumTestBase
 import app.aaps.pump.medtrum.comm.enums.BasalType
+import app.aaps.pump.medtrum.util.MedtrumTimeUtil
+import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 
 class SetBasalProfilePacketTest : MedtrumTestBase() {
 
+    val medtrumTimeUtil = MedtrumTimeUtil()
+
     /** Test packet specific behavior */
 
-    private val packetInjector = HasAndroidInjector {
-        AndroidInjector {
-            if (it is SetBasalProfilePacket) {
+    private val packetInjector = MetroMemberInjector {
+        if (it is SetBasalProfilePacket) {
                 it.aapsLogger = aapsLogger
                 it.medtrumPump = medtrumPump
-            }
+                it.medtrumTimeUtil = medtrumTimeUtil
         }
+        true
     }
 
     @Test fun getRequestGivenPacketWhenCalledThenReturnOpCode() {

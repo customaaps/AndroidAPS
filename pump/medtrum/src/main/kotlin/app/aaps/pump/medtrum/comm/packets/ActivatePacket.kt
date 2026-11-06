@@ -1,8 +1,8 @@
 package app.aaps.pump.medtrum.comm.packets
 
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.stats.TddCalculator
-import dagger.android.HasAndroidInjector
 import app.aaps.pump.medtrum.MedtrumPump
 import app.aaps.pump.medtrum.comm.enums.BasalType
 import app.aaps.pump.medtrum.comm.enums.CommandType.ACTIVATE
@@ -11,14 +11,16 @@ import app.aaps.pump.medtrum.extension.toByteArray
 import app.aaps.pump.medtrum.extension.toInt
 import app.aaps.pump.medtrum.extension.toLong
 import app.aaps.pump.medtrum.util.MedtrumTimeUtil
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
+import kotlinx.coroutines.runBlocking
 import kotlin.math.round
 
-class ActivatePacket(injector: HasAndroidInjector, private val basalProfile: ByteArray) : MedtrumPacket(injector) {
+class ActivatePacket(injector: MetroMemberInjector, private val basalProfile: ByteArray) : MedtrumPacket(injector) {
 
     @Inject lateinit var medtrumPump: MedtrumPump
     @Inject lateinit var tddCalculator: TddCalculator
     @Inject lateinit var pumpSync: PumpSync
+    @Inject lateinit var medtrumTimeUtil: MedtrumTimeUtil
 
     companion object {
 
@@ -72,7 +74,7 @@ class ActivatePacket(injector: HasAndroidInjector, private val basalProfile: Byt
 
         val hourlyMaxInsulin: Int = round(medtrumPump.desiredHourlyMaxInsulin / 0.05).toInt()
         val dailyMaxInsulin: Int = round(medtrumPump.desiredDailyMaxInsulin / 0.05).toInt()
-        val currentTDD: Double = tddCalculator.calculateToday()?.totalAmount?.div(0.05) ?: 0.0
+        val currentTDD: Double = runBlocking { tddCalculator.calculateToday() }?.totalAmount?.div(0.05) ?: 0.0
 
         return byteArrayOf(opCode) + autoSuspendEnable + autoSuspendTime + patchExpiration + alarmSetting + lowSuspend + predictiveLowSuspend + predictiveLowSuspendRange + hourlyMaxInsulin.toByteArray(
             2
@@ -82,8 +84,6 @@ class ActivatePacket(injector: HasAndroidInjector, private val basalProfile: Byt
     override fun handleResponse(data: ByteArray): Boolean {
         val success = super.handleResponse(data)
         if (success) {
-            val medtrumTimeUtil = MedtrumTimeUtil()
-
             val patchId = data.copyOfRange(RESP_PATCH_ID_START, RESP_PATCH_ID_END).toLong()
             val time = medtrumTimeUtil.convertPumpTimeToSystemTimeMillis(data.copyOfRange(RESP_TIME_START, RESP_TIME_END).toLong())
             val basalType = enumValues<BasalType>()[data.copyOfRange(RESP_BASAL_TYPE_START, RESP_BASAL_TYPE_END).toInt()]

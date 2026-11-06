@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="period_calendar">Period Calendar</string>
+    <string name="period_calendar_short">Cycle</string>
+    <string name="description_period_calendar">Track menstrual cycle days and phases with visual feedback on the overview screen</string>
+
+    <string name="cycle_day_label">Cycle Day</string>
+    <string name="cycle_phase_label">Phase</string>
+    <string name="cycle_reset_button">Reset Cycle</string>
+    <string name="cycle_reset_confirm">Reset cycle day to 1?</string>
+    <string name="cycle_clear_history">Clear History</string>
+    <string name="cycle_clear_history_confirm">Clear all cycle history? This cannot be undone.</string>
+    <string name="cycle_set_day">Set Day</string>
+    <string name="cycle_set_day_hint">Enter current cycle day (1-99)</string>
+    <string name="cycle_set_day_empty">Please enter a day number</string>
+    <string name="cycle_set_day_invalid">Please enter a valid number</string>
+    <string name="cycle_set_day_out_of_range">Day must be between 1 and 99</string>
+
+    <string name="phase_config_title">Phase Configuration</string>
+    <string name="add_phase">Add Phase</string>
+    <string name="edit_phase">Edit Phase</string>
+    <string name="delete_phase">Delete Phase</string>
+    <string name="delete_phase_confirm">Delete this phase?</string>
+    <string name="phase_label">Label</string>
+    <string name="phase_label_hint">e.g. ME, FO, OV</string>
+    <string name="phase_day_from">Day From</string>
+    <string name="phase_day_to">Day To</string>
+    <string name="phase_color">Color</string>
+
+    <string name="cycle_not_started">--</string>
+
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Graph -->
+    <string name="graph_tab">Statistics</string>
+    <string name="graph_tdd_total">TDD Total (U)</string>
+    <string name="graph_tdd_basal">TDD Basal (U)</string>
+    <string name="graph_tdd_bolus">TDD Bolus (U)</string>
+    <string name="graph_tdd_carbs">Carbs (g)</string>
+    <string name="graph_isf">ISF (mg/dL)</string>
+    <string name="graph_ic">IC (g/U)</string>
+    <string name="graph_no_data">No data available. Track at least 2 cycles for meaningful statistics.</string>
+    <string name="graph_mode_selector">Graph Mode</string>
+
+    <!-- Notifications -->
+    <string name="notification_settings">Notifications</string>
+    <string name="notification_cycle_start_title">New Cycle Reminder</string>
+    <string name="notification_cycle_start_summary">Notify when a new cycle begins</string>
+    <string name="notification_phase_change_title">Phase Change Reminder</string>
+    <string name="notification_phase_change_summary">Notify when the cycle phase changes</string>
+    <string name="notification_new_cycle">New cycle started! Day 1</string>
+    <string name="notification_phase_changed">Phase changed to: %s</string>
+
+    <!-- History -->
+    <string name="history_tab">History</string>
+    <string name="cycle_history_empty">No cycle history yet</string>
+    <string name="cycle_interval_days">%1$d days</string>
+    <string name="cycle_interval_ongoing">Day %1$d — current cycle</string>
+    <string name="cycle_avg_length">Average cycle length: %1$s days</string>
+</resources>

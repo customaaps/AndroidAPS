@@ -1,9 +1,8 @@
 package app.aaps.pump.insight.utils
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
-import android.widget.Toast
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventShowSnackbar
 import app.aaps.pump.insight.R
 import app.aaps.pump.insight.exceptions.ConnectionFailedException
 import app.aaps.pump.insight.exceptions.ConnectionLostException
@@ -27,8 +26,8 @@ object ExceptionTranslator {
         return if (res == null) exception.javaClass.simpleName else context.getString(res)
     }
 
-    fun makeToast(context: Context, exception: Exception) {
-        Handler(Looper.getMainLooper()).post { Toast.makeText(context, getString(context, exception), Toast.LENGTH_LONG).show() }
+    fun notify(context: Context, rxBus: RxBus, exception: Exception) {
+        rxBus.send(EventShowSnackbar(getString(context, exception), EventShowSnackbar.Type.Error))
     }
 
     init {

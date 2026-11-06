@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Source -->
+    <string name="ns_client_bg">ГК с клиента Nightscout</string>
+    <string name="description_source_ns_client">Получать данные гликемии с сайта Nightscout</string>
+    <string name="source_xdrip">ГК с xDrip+ </string>
+    <string name="description_source_xdrip">Получать значения ГК от xDrip+ и совместимых приложений (Juggluco и т.д.).</string>
+    <string name="dexcom_app_patched">Самост собран прилож Dexcom</string>
+    <string name="description_source_dexcom">Получать данные ГК от \'Самостоятельно собранного приложения Dexcom\'.</string>
+    <string name="glimp">Glimp</string>
+    <string name="description_source_glimp">Получать данные гликемии от Glimp.</string>
+    <string name="mm640g">MM640g</string>
+    <string name="description_source_mm640g">Получать данные гликемии от 600SeriesAndroidUploader.</string>
+    <string name="poctech">Poctech</string>
+    <string name="description_source_poctech">Получать данные гликемии от приложения Poctech</string>
+    <string name="glunovo">Приложение Glunovo</string>
+    <string name="description_source_glunovo">Получать данные гликемии от приложения Glunovo</string>
+    <string name="intelligo">Приложение Intelligo</string>
+    <string name="description_source_intelligo">Получать данные гликемии от приложения Intelligo</string>
+    <string name="tomato">Томато (MiaoMiao)</string>
+    <string name="description_source_tomato">Получать значения ГК от приложения Tomato (устройство MiaoMiao)</string>
+    <string name="random_bg">Случайные значения ГК</string>
+    <string name="description_source_random_bg">Генерировать случайные данные ГК (только демо-режим)</string>
+    <!-- Patched Syai Tag App -->
+    <string name="description_source_patched_syai_tag_app">Получать данные гликемии от приложения Syai/Ottai.</string>
+    <!-- Patched SI App -->
+    <string name="patched_si_app">SI App</string>
+    <!-- Patched Sino App -->
+    <string name="patched_sino_app">Sino App</string>
+    <string name="description_source_patched_sino_app">Получать данные от патч-приложения Sino App.</string>
+    <!-- Instara App -->
+    <!-- Instara preferences -->
+    <!-- Notification Reader -->
+    <!-- Permission rationales -->
+    <string name="permission_notification_listener_title">Доступ к уведомлениям</string>
+
+    <!-- Russian coverage for current interface -->
+    <string name="syai_tag_app">Syai/Ottai</string>
+    <string name="description_source_patched_si_app">Получение данных глюкозы из модифицированного приложения Sibionic SI или приложения Sibionics.</string>
+    <string name="instara_app">Instara</string>
+    <string name="description_source_instara_app">Получение значений BG из приложения Instara.</string>
+    <string name="pref_title_instara_history_request">Запрос истории Instara</string>
+    <string name="pref_summary_instara_history_request">Запрашивать недостающие исторические данные в фоновом режиме</string>
+    <string name="notification_reader">Чтение уведомлений</string>
+    <string name="description_source_notification_reader">Чтение значений глюкозы из уведомлений официальных приложений CGM (Dexcom, Medtronic, Eversense и других).</string>
+    <string name="permission_dexcom_title">Dexcom CGM</string>
+    <string name="permission_dexcom_description">Для получения данных CGM из приложения Dexcom необходимо разрешение</string>
+    <string name="permission_notification_listener_description">Необходимо для чтения значений глюкозы из уведомлений приложения CGM</string>
+    <string name="aidex">Приложение MicroTech CGM</string>
+    <string name="description_source_aidex">Получение значений CGM из LinX, LinX vista, Equil G. Smart 2, Diaexpert 2 и других приложений.</string>
+    <string name="aidex_sensor_expired">Срок работы сенсора истёк. Установите новый сенсор.</string>
+    <string name="aidex_sensor_error">Ошибка сенсора. Проверьте его состояние.</string>
+    <string name="aidex_sensor_stabilizing">Сенсор стабилизируется, подождите…</string>
+    <string name="aidex_sensor_replace">Необходимо заменить сенсор. Установите новый сенсор как можно скорее.</string>
+    <string name="aidex_signal_lost">Сигнал сенсора потерян. Проверьте подключение.</string>
+    <string name="a11y_bg_duplicate">повторное показание</string>
+</resources>

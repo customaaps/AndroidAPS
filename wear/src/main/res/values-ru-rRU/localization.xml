@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_watchface_title">Циферблат</string>
+    <string name="localization_wallpaper">Фон</string>
+    <string name="localization_battery">Батарея</string>
+    <string name="localization_battery_value">Батарея %1$s</string>
+    <string name="localization_glucose_value">Глюкоза %1$s</string>
+    <string name="localization_status_value">Состояние: %1$s</string>
+    <string name="localization_basal_target">Базальная скорость, цель</string>
+    <string name="localization_iob_basal">IOB, базальная скорость</string>
+    <string name="localization_basal_cob_iob">Базальная скорость, COB, IOB</string>
+    <string name="localization_build_version">Версия сборки: %1$s</string>
+</resources>

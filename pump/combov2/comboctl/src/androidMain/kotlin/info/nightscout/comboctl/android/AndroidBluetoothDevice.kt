@@ -32,11 +32,14 @@ class AndroidBluetoothDevice(
     private val systemBluetoothAdapter: SystemBluetoothAdapter,
     override val address: BluetoothAddress
 ) : BluetoothDevice(Dispatchers.IO) {
-    private var systemBluetoothSocket: SystemBluetoothSocket? = null
-    private var inputStream: InputStream? = null
-    private var outputStream: OutputStream? = null
-    private var canDoIO: Boolean = false
-    private var abortConnectAttempt: Boolean = false
+
+    // Volatile because disconnect() may run on another thread while connect() blocks,
+    // to stop that connect (see PumpIO.connectBTDeviceStoppableByCancel).
+    @Volatile private var systemBluetoothSocket: SystemBluetoothSocket? = null
+    @Volatile private var inputStream: InputStream? = null
+    @Volatile private var outputStream: OutputStream? = null
+    @Volatile private var canDoIO: Boolean = false
+    @Volatile private var abortConnectAttempt: Boolean = false
 
     // Use toUpperCase() since Android expects the A-F hex digits in the
     // Bluetooth address string to be uppercase (lowercase ones are considered
@@ -80,7 +83,7 @@ class AndroidBluetoothDevice(
                 } else {
                     logger(LogLevel.DEBUG) {
                         "Previous attempt to establish an RFCOMM client connection to the Combo failed with" +
-                        "exception \"$previousException\"; trying again (this is attempt #${attemptNumber + 1} of 5)"
+                            "exception \"$previousException\"; trying again (this is attempt #${attemptNumber + 1} of 5)"
                     }
                 }
 
@@ -97,6 +100,10 @@ class AndroidBluetoothDevice(
                     Thread.sleep(500)
                 } catch (ignored: InterruptedException) {
                 }
+
+                // disconnect() may have been called during the sleep.
+                if (abortConnectAttempt)
+                    return@retryBlocking
 
                 checkForConnectPermission(androidContext) {
                     systemBluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(Constants.sdpSerialPortUUID)
@@ -146,6 +153,9 @@ class AndroidBluetoothDevice(
 
     override fun disconnect() {
         if (systemBluetoothSocket == null) {
+            // connect() may be between two attempts, when there is no socket. Stop it from
+            // starting the next attempt.
+            abortConnectAttempt = true
             logger(LogLevel.DEBUG) { "Device already disconnected - ignoring redundant call" }
             return
         }

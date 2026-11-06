@@ -3,10 +3,10 @@ package app.aaps.pump.eopatch.ble
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.eopatch.GsonHelper
 import app.aaps.pump.eopatch.code.PatchLifecycle
-import app.aaps.pump.eopatch.code.SettingKeys
+import app.aaps.pump.eopatch.keys.EopatchStringNonKey
 import app.aaps.pump.eopatch.vo.Alarms
 import app.aaps.pump.eopatch.vo.BolusCurrent
 import app.aaps.pump.eopatch.vo.NormalBasalManager
@@ -14,17 +14,21 @@ import app.aaps.pump.eopatch.vo.PatchConfig
 import app.aaps.pump.eopatch.vo.PatchLifecycleEvent
 import app.aaps.pump.eopatch.vo.PatchState
 import app.aaps.pump.eopatch.vo.TempBasalManager
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import io.reactivex.rxjava3.core.Observable
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * patch2 패키지에서 사용하는 프리퍼런스의 작업을 대신 처리하는 클래스
  */
-@Singleton
-class PreferenceManagerImpl @Inject constructor() : PreferenceManager {
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
+@Inject
+class PreferenceManagerImpl() : PreferenceManager {
 
-    @Inject lateinit var sp: SP
+    @Inject lateinit var preferences: Preferences
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var patchConfig: PatchConfig
@@ -34,20 +38,17 @@ class PreferenceManagerImpl @Inject constructor() : PreferenceManager {
 
     override var patchState = PatchState()
     override var bolusCurrent = BolusCurrent()
-    private lateinit var observePatchLifeCycle: Observable<PatchLifecycle>
-    private var initialized = false
-
-    @Inject
-    fun onInit() {
-        observePatchLifeCycle = patchConfig.observe()
+    private val observePatchLifeCycle: Observable<PatchLifecycle> by lazy {
+        patchConfig.observe()
             .map { patchConfig -> patchConfig.lifecycleEvent.lifeCycle }
             .distinctUntilChanged()
             .replay(1).refCount()
     }
+    private var initialized = false
 
     override fun init() {
         try {
-            val jsonStr = sp.getString(SettingKeys.PATCH_STATE, "")
+            val jsonStr = preferences.get(EopatchStringNonKey.PatchState)
             val savedState = GsonHelper.sharedGson().fromJson(jsonStr, PatchState::class.java)
             patchState = savedState
         } catch (ex: Exception) {
@@ -56,7 +57,7 @@ class PreferenceManagerImpl @Inject constructor() : PreferenceManager {
         }
 
         try {
-            val jsonStr = sp.getString(SettingKeys.BOLUS_CURRENT, "")
+            val jsonStr = preferences.get(EopatchStringNonKey.BolusCurrent)
             val savedBolusCurrent = GsonHelper.sharedGson().fromJson(jsonStr, BolusCurrent::class.java)
             bolusCurrent = savedBolusCurrent
         } catch (ex: Exception) {
@@ -65,7 +66,7 @@ class PreferenceManagerImpl @Inject constructor() : PreferenceManager {
         }
 
         try {
-            val jsonStr = sp.getString(SettingKeys.PATCH_CONFIG, "")
+            val jsonStr = preferences.get(EopatchStringNonKey.PatchConfig)
             val savedConfig = GsonHelper.sharedGson().fromJson(jsonStr, PatchConfig::class.java)
             patchConfig.update(savedConfig)
         } catch (ex: Exception) {
@@ -73,7 +74,7 @@ class PreferenceManagerImpl @Inject constructor() : PreferenceManager {
         }
 
         try {
-            val jsonStr = sp.getString(SettingKeys.NORMAL_BASAL, "")
+            val jsonStr = preferences.get(EopatchStringNonKey.NormalBasal)
             val normalBasalManager = GsonHelper.sharedGson().fromJson(jsonStr, NormalBasalManager::class.java)
             normalBasalMgr.update(normalBasalManager)
         } catch (ex: Exception) {
@@ -81,15 +82,15 @@ class PreferenceManagerImpl @Inject constructor() : PreferenceManager {
         }
 
         try {
-            val jsonStr = sp.getString(SettingKeys.TEMP_BASAL, "")
-            val tempBasalManager = GsonHelper.sharedGson().fromJson(jsonStr, TempBasalManager::class.java)
-            tempBasalManager.update(tempBasalManager)
+            val jsonStr = preferences.get(EopatchStringNonKey.TempBasal)
+            val loadedTempBasalManager = GsonHelper.sharedGson().fromJson(jsonStr, TempBasalManager::class.java)
+            tempBasalManager.update(loadedTempBasalManager)
         } catch (ex: Exception) {
             aapsLogger.error(LTag.PUMP, ex.message ?: "TempBasal load error")
         }
 
         try {
-            val jsonStr = sp.getString(SettingKeys.ALARMS, "")
+            val jsonStr = preferences.get(EopatchStringNonKey.Alarms)
             val alarms = GsonHelper.sharedGson().fromJson(jsonStr, Alarms::class.java)
             mAlarms.update(alarms)
         } catch (ex: Exception) {
@@ -107,12 +108,12 @@ class PreferenceManagerImpl @Inject constructor() : PreferenceManager {
 
     override fun isInitDone() = initialized
 
-    override fun flushPatchConfig() = patchConfig.flush(sp)
-    override fun flushPatchState() = patchState.flush(sp)
-    override fun flushBolusCurrent() = bolusCurrent.flush(sp)
-    override fun flushNormalBasalManager() = normalBasalMgr.flush(sp)
-    override fun flushTempBasalManager() = tempBasalManager.flush(sp)
-    override fun flushAlarms() = mAlarms.flush(sp)
+    override fun flushPatchConfig() = patchConfig.flush(preferences)
+    override fun flushPatchState() = patchState.flush(preferences)
+    override fun flushBolusCurrent() = bolusCurrent.flush(preferences)
+    override fun flushNormalBasalManager() = normalBasalMgr.flush(preferences)
+    override fun flushTempBasalManager() = tempBasalManager.flush(preferences)
+    override fun flushAlarms() = mAlarms.flush(preferences)
 
     @Synchronized
     override fun updatePatchLifeCycle(event: PatchLifecycleEvent) {

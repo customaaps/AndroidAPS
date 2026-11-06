@@ -1,12 +1,9 @@
 package app.aaps.pump.medtronic.data
 
+import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.GlucoseUnit
-import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.StringKey
 import app.aaps.core.utils.DateTimeUtil
-import com.google.gson.Gson
-import com.google.gson.internal.LinkedTreeMap
-import com.google.gson.reflect.TypeToken
 import app.aaps.pump.medtronic.MedtronicTestBase
 import app.aaps.pump.medtronic.comm.history.pump.MedtronicPumpHistoryDecoder
 import app.aaps.pump.medtronic.comm.history.pump.PumpHistoryEntry
@@ -15,33 +12,46 @@ import app.aaps.pump.medtronic.data.dto.TempBasalPair
 import app.aaps.pump.medtronic.defs.MedtronicDeviceType
 import app.aaps.pump.medtronic.driver.MedtronicPumpStatus
 import app.aaps.pump.medtronic.util.MedtronicUtil
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
-import org.mockito.Mockito.verify
-import org.mockito.Mockito.`when`
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import java.lang.reflect.Type
 
 @Suppress("UNCHECKED_CAST")
 class MedtronicHistoryDataUTest : MedtronicTestBase() {
 
     @Mock lateinit var medtronicPumpStatus: MedtronicPumpStatus
-    @Mock lateinit var uiInteraction: UiInteraction
 
     @BeforeEach
     fun setUp() {
-        medtronicUtil = MedtronicUtil(aapsLogger, rxBus, rileyLinkUtil, medtronicPumpStatus, uiInteraction)
-        `when`(medtronicUtil.medtronicPumpModel).thenReturn(MedtronicDeviceType.Medtronic_723_Revel)
+        medtronicUtil = MedtronicUtil(aapsLogger, rxBus, rileyLinkUtil, medtronicPumpStatus, notificationManager)
+        whenever(medtronicUtil.medtronicPumpModel).thenReturn(MedtronicDeviceType.Medtronic_723_Revel)
         decoder = MedtronicPumpHistoryDecoder(aapsLogger, medtronicUtil)
+        // Default mock returns for suspend PumpSync methods
+        runBlocking {
+            whenever(
+                pumpSync.insertFingerBgIfNewWithTimestamp(
+                    org.mockito.kotlin.any(),
+                    org.mockito.kotlin.any(),
+                    org.mockito.kotlin.anyOrNull(),
+                    org.mockito.kotlin.anyOrNull(),
+                    org.mockito.kotlin.anyOrNull(),
+                    org.mockito.kotlin.anyOrNull(),
+                    org.mockito.kotlin.anyOrNull()
+                )
+            ).thenReturn(true)
+        }
     }
 
     @Test
     fun createTBRProcessList() {
 
-        val unitToTest = MedtronicHistoryData(
-            packetInjector, aapsLogger, sp, rh, rxBus, activePlugin,
-            medtronicUtil, decoder, medtronicPumpStatus, pumpSync, pumpSyncStorage, uiInteraction, profileUtil
-        )
+        val unitToTest = MedtronicHistoryData(aapsLogger, preferences, medtronicUtil, decoder, medtronicPumpStatus, pumpSync, pumpSyncStorage, notificationManager, profileUtil)
 
         val gson = Gson()
 
@@ -51,7 +61,7 @@ class MedtronicHistoryDataUTest : MedtronicTestBase() {
         val yourClassList: MutableList<PumpHistoryEntry> = gson.fromJson(fileText, listType)
 
         for (pumpHistoryEntry in yourClassList) {
-            val stringObject = pumpHistoryEntry.decodedData["Object"] as LinkedTreeMap<String, Any>
+            val stringObject = pumpHistoryEntry.decodedData["Object"] as Map<String, Any>
 
             val rate: Double = stringObject["insulinRate"] as Double
             val durationMinutes: Double = stringObject["durationMinutes"] as Double
@@ -78,13 +88,7 @@ class MedtronicHistoryDataUTest : MedtronicTestBase() {
     @Test
     fun createTBRProcessList_SpecialCase() {
 
-        val unitToTest = MedtronicHistoryData(
-            packetInjector, aapsLogger, sp, rh, rxBus, activePlugin,
-            medtronicUtil, decoder,
-            medtronicPumpStatus,
-            pumpSync,
-            pumpSyncStorage, uiInteraction, profileUtil
-        )
+        val unitToTest = MedtronicHistoryData(aapsLogger, preferences, medtronicUtil, decoder, medtronicPumpStatus, pumpSync, pumpSyncStorage, notificationManager, profileUtil)
 
         val gson = Gson()
 
@@ -94,7 +98,7 @@ class MedtronicHistoryDataUTest : MedtronicTestBase() {
         val yourClassList: MutableList<PumpHistoryEntry> = gson.fromJson(fileText, listType)
 
         for (pumpHistoryEntry in yourClassList) {
-            val stringObject = pumpHistoryEntry.decodedData["Object"] as LinkedTreeMap<String, Any>
+            val stringObject = pumpHistoryEntry.decodedData["Object"] as Map<String, Any>
 
             val rate: Double = stringObject["insulinRate"] as Double
             val durationMinutes: Double = stringObject["durationMinutes"] as Double
@@ -121,17 +125,11 @@ class MedtronicHistoryDataUTest : MedtronicTestBase() {
     @Test
     fun processBgReceived_WithMgdl() {
 
-        val unitToTest = MedtronicHistoryData(
-            packetInjector, aapsLogger, sp, rh, rxBus, activePlugin,
-            medtronicUtil, decoder,
-            medtronicPumpStatus,
-            pumpSync,
-            pumpSyncStorage, uiInteraction, profileUtil
-        )
+        val unitToTest = MedtronicHistoryData(aapsLogger, preferences, medtronicUtil, decoder, medtronicPumpStatus, pumpSync, pumpSyncStorage, notificationManager, profileUtil)
 
         val glucoseMgdl = 175
 
-        `when`(preferences.get(StringKey.GeneralUnits)).thenReturn(GlucoseUnit.MGDL.asText)
+        whenever(preferences.get(StringKey.GeneralUnits)).thenReturn(GlucoseUnit.MGDL.asText)
 
         val bgRecord = PumpHistoryEntry()
         bgRecord.setEntryType(medtronicUtil.medtronicPumpModel, PumpHistoryEntryType.BGReceived)
@@ -140,31 +138,27 @@ class MedtronicHistoryDataUTest : MedtronicTestBase() {
 
         unitToTest.processBgReceived(listOf(bgRecord))
 
-        verify(pumpSync).insertFingerBgIfNewWithTimestamp(
-            DateTimeUtil.toMillisFromATD(bgRecord.atechDateTime),
-            glucoseMgdl.toDouble(),
-            GlucoseUnit.MGDL, null,
-            bgRecord.pumpId,
-            medtronicPumpStatus.pumpType,
-            medtronicPumpStatus.serialNumber
-        )
+        runBlocking {
+            verify(pumpSync).insertFingerBgIfNewWithTimestamp(
+                DateTimeUtil.toMillisFromATD(bgRecord.atechDateTime),
+                glucoseMgdl.toDouble(),
+                GlucoseUnit.MGDL, null,
+                bgRecord.pumpId,
+                medtronicPumpStatus.pumpType,
+                medtronicPumpStatus.serialNumber
+            )
+        }
 
     }
 
     @Test
     fun processBgReceived_WithMmol() {
 
-        val unitToTest = MedtronicHistoryData(
-            packetInjector, aapsLogger, sp, rh, rxBus, activePlugin,
-            medtronicUtil, decoder,
-            medtronicPumpStatus,
-            pumpSync,
-            pumpSyncStorage, uiInteraction, profileUtil
-        )
+        val unitToTest = MedtronicHistoryData(aapsLogger, preferences, medtronicUtil, decoder, medtronicPumpStatus, pumpSync, pumpSyncStorage, notificationManager, profileUtil)
         val glucoseMgdl = 180
-        val glucoseMmol = 10.0
+        val glucoseMmol = glucoseMgdl * Constants.MGDL_TO_MMOLL
 
-        `when`(preferences.get(StringKey.GeneralUnits)).thenReturn(GlucoseUnit.MMOL.asText)
+        whenever(preferences.get(StringKey.GeneralUnits)).thenReturn(GlucoseUnit.MMOL.asText)
 
         val bgRecord = PumpHistoryEntry()
         bgRecord.setEntryType(medtronicUtil.medtronicPumpModel, PumpHistoryEntryType.BGReceived)
@@ -173,14 +167,16 @@ class MedtronicHistoryDataUTest : MedtronicTestBase() {
 
         unitToTest.processBgReceived(listOf(bgRecord))
 
-        verify(pumpSync).insertFingerBgIfNewWithTimestamp(
-            DateTimeUtil.toMillisFromATD(bgRecord.atechDateTime),
-            glucoseMmol,
-            GlucoseUnit.MMOL, null,
-            bgRecord.pumpId,
-            medtronicPumpStatus.pumpType,
-            medtronicPumpStatus.serialNumber
-        )
+        runBlocking {
+            verify(pumpSync).insertFingerBgIfNewWithTimestamp(
+                DateTimeUtil.toMillisFromATD(bgRecord.atechDateTime),
+                glucoseMmol,
+                GlucoseUnit.MMOL, null,
+                bgRecord.pumpId,
+                medtronicPumpStatus.pumpType,
+                medtronicPumpStatus.serialNumber
+            )
+        }
 
     }
 

@@ -4,18 +4,19 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 @Suppress("ConstPropertyName")
 object Versions {
 
-    const val appVersion = "3.3.1.3"
+    // On change edit aaps-ci.yml
+    const val appVersion = "4.0.0"
+    // Human-facing fork identity, matching the Boost source branch. Technical
+    // appVersion remains independent for version checks and development gates.
+    const val buildLabel = "Vladimir"
+    val buildName = "${appVersion.substringBefore('-')}_$buildLabel"
     const val versionCode = 1500
 
-    const val customPatchVersion = "beta"
-
-    const val ndkVersion = "21.1.6352462"
-
-    const val compileSdk = 35
-    const val minSdk = 30
-    const val targetSdk = 30
-    const val wearMinSdk = 28
-    const val wearTargetSdk = 29
+    const val compileSdk = 37
+    const val minSdk = 31
+    const val targetSdk = 35
+    const val wearMinSdk = 30
+    const val wearTargetSdk = 30
 
     val javaVersion = JavaVersion.VERSION_21
     val jvmTarget = JvmTarget.JVM_21

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="period_calendar">Менструальный цикл</string>
+    <string name="period_calendar_short">Цикл</string>
+    <string name="description_period_calendar">Отслеживание дней и фаз менструального цикла с визуальной обратной связью на экране обзора</string>
+
+    <string name="cycle_day_label">День цикла</string>
+    <string name="cycle_phase_label">Фаза</string>
+    <string name="cycle_reset_button">Сбросить цикл</string>
+    <string name="cycle_reset_confirm">Сбросить день цикла на 1?</string>
+    <string name="cycle_clear_history">Очистить историю</string>
+    <string name="cycle_clear_history_confirm">Очистить всю историю цикла? Это действие невозможно отменить.</string>
+    <string name="cycle_set_day">Установить день</string>
+    <string name="cycle_set_day_hint">Введите текущий день цикла (1-99)</string>
+    <string name="cycle_set_day_empty">Пожалуйста, введите номер дня</string>
+    <string name="cycle_set_day_invalid">Пожалуйста, введите корректный номер</string>
+    <string name="cycle_set_day_out_of_range">День должен быть между 1 и 99</string>
+
+    <string name="phase_config_title">Конфигурация фаз</string>
+    <string name="add_phase">Добавить фазу</string>
+    <string name="edit_phase">Редактировать фазу</string>
+    <string name="delete_phase">Удалить фазу</string>
+    <string name="delete_phase_confirm">Удалить эту фазу?</string>
+    <string name="phase_label">Название</string>
+    <string name="phase_label_hint">напр. МЕ, ФЭ, ОВ</string>
+    <string name="phase_day_from">День с</string>
+    <string name="phase_day_to">День по</string>
+    <string name="phase_color">Цвет</string>
+
+    <string name="cycle_not_started">--</string>
+
+    <string name="ok">OK</string>
+    <string name="cancel">Отмена</string>
+
+    <!-- Graph -->
+    <string name="graph_tab">Статистика</string>
+    <string name="graph_tdd_total">TDD всего (ед.)</string>
+    <string name="graph_tdd_basal">TDD базал (ед.)</string>
+    <string name="graph_tdd_bolus">TDD болюс (ед.)</string>
+    <string name="graph_tdd_carbs">Углеводы (г)</string>
+    <string name="graph_isf">ISF (мг/дл)</string>
+    <string name="graph_ic">IC (г/ед.)</string>
+    <string name="graph_no_data">Данные недоступны. Отслеживайте минимум 2 цикла для значимой статистики.</string>
+    <string name="graph_mode_selector">Режим графика</string>
+
+    <!-- Notifications -->
+    <string name="notification_settings">Уведомления</string>
+    <string name="notification_cycle_start_title">Напоминание о новом цикле</string>
+    <string name="notification_cycle_start_summary">Уведомлять при начале нового цикла</string>
+    <string name="notification_phase_change_title">Напоминание об изменении фазы</string>
+    <string name="notification_phase_change_summary">Уведомлять при изменении фазы цикла</string>
+    <string name="notification_new_cycle">Начался новый цикл! День 1</string>
+    <string name="notification_phase_changed">Фаза изменилась на: %s</string>
+
+    <!-- History -->
+    <string name="history_tab">История</string>
+    <string name="cycle_history_empty">Истории циклов пока нет</string>
+    <string name="cycle_interval_days">%1$d дн.</string>
+    <string name="cycle_interval_ongoing">День %1$d — текущий цикл</string>
+    <string name="cycle_avg_length">Средняя длина цикла: %1$s дн.</string>
+</resources>

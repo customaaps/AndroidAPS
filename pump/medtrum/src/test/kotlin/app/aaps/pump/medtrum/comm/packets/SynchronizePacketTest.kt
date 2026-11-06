@@ -1,29 +1,31 @@
 package app.aaps.pump.medtrum.comm.packets
 
-import com.google.common.truth.Truth.assertThat
-import dagger.android.AndroidInjector
-import dagger.android.HasAndroidInjector
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.pump.medtrum.MedtrumTestBase
 import app.aaps.pump.medtrum.comm.enums.BasalType
 import app.aaps.pump.medtrum.comm.enums.MedtrumPumpState
 import app.aaps.pump.medtrum.extension.toByteArray
+import app.aaps.pump.medtrum.util.MedtrumTimeUtil
+import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 
 class SynchronizePacketTest : MedtrumTestBase() {
 
+    val medtrumTimeUtil = MedtrumTimeUtil()
+
     /** Test packet specific behavior */
 
-    private val packetInjector = HasAndroidInjector {
-        AndroidInjector {
-            if (it is SynchronizePacket) {
+    private val packetInjector = MetroMemberInjector {
+        if (it is SynchronizePacket) {
                 it.aapsLogger = aapsLogger
                 it.medtrumPump = medtrumPump
             }
             if (it is NotificationPacket) {
                 it.aapsLogger = aapsLogger
                 it.medtrumPump = medtrumPump
-            }
+                it.medtrumTimeUtil = medtrumTimeUtil
         }
+        true
     }
 
     @Test fun getRequestGivenPacketWhenCalledThenReturnOpCode() {

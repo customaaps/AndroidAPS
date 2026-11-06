@@ -10,28 +10,30 @@ import app.aaps.wear.R
 import app.aaps.wear.interaction.actions.BackgroundActionActivity
 import app.aaps.wear.tile.Action
 import app.aaps.wear.tile.TileSource
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class UserActionSource @Inject constructor(private val context: Context, private val sp: SP, private val aapsLogger: AAPSLogger) : TileSource {
+@SingleIn(AppScope::class)
+@Inject
+class UserActionSource(private val context: Context, private val sp: SP, private val aapsLogger: AAPSLogger) : TileSource {
 
     override fun getSelectedActions(): List<Action> {
         val userList = mutableListOf<Action>()
         val userMap = getUserActionData(sp)
 
-        for (useraction in userMap.entries) {
+        for (userAction in userMap.entries) {
             if (userList.size < 4) {
                 userList.add(
                     Action(
-                        buttonText = useraction.title,
+                        buttonText = userAction.title,
                         iconRes = R.drawable.ic_user_options,
                         activityClass = BackgroundActionActivity::class.java.name,
-                        action = EventData.ActionUserActionPreCheck(useraction.id, useraction.title),
+                        action = EventData.ActionUserActionPreCheck(userAction.id, userAction.title),
                         message = context.resources.getString(R.string.action_user_action_confirmation)
                     )
                 )
-                aapsLogger.info(LTag.WEAR, """getSelectedActions: active ${useraction.title} guid=${useraction.id}""")
+                aapsLogger.info(LTag.WEAR, """getSelectedActions: active ${userAction.title} guid=${userAction.id}""")
             }
         }
         return userList

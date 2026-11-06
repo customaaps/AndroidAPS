@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="period_calendar">Perioden-Kalender</string>
+    <string name="period_calendar_short">Zyklus</string>
+    <string name="description_period_calendar">Verfolgung von Zyklustagen und -phasen mit visueller Anzeige im Überblick</string>
+
+    <string name="cycle_day_label">Zyklustag</string>
+    <string name="cycle_phase_label">Phase</string>
+    <string name="cycle_reset_button">Zyklus zurücksetzen</string>
+    <string name="cycle_reset_confirm">Zyklustag auf 1 zurücksetzen?</string>
+    <string name="cycle_clear_history">Verlauf löschen</string>
+    <string name="cycle_clear_history_confirm">Gesamten Zyklusverlauf löschen? Dies kann nicht rückgängig gemacht werden.</string>
+    <string name="cycle_set_day">Tag einstellen</string>
+    <string name="cycle_set_day_hint">Aktuellen Zyklustag eingeben (1-99)</string>
+    <string name="cycle_set_day_empty">Bitte eine Tagesnummer eingeben</string>
+    <string name="cycle_set_day_invalid">Bitte eine gültige Zahl eingeben</string>
+    <string name="cycle_set_day_out_of_range">Der Tag muss zwischen 1 und 99 liegen</string>
+
+    <string name="phase_config_title">Phasen-Konfiguration</string>
+    <string name="add_phase">Phase hinzufügen</string>
+    <string name="edit_phase">Phase bearbeiten</string>
+    <string name="delete_phase">Phase löschen</string>
+    <string name="delete_phase_confirm">Diese Phase löschen?</string>
+    <string name="phase_label">Bezeichnung</string>
+    <string name="phase_label_hint">z.B. ME, FO, OV</string>
+    <string name="phase_day_from">Tag von</string>
+    <string name="phase_day_to">Tag bis</string>
+    <string name="phase_color">Farbe</string>
+
+    <string name="cycle_not_started">--</string>
+
+    <string name="ok">OK</string>
+    <string name="cancel">Abbrechen</string>
+
+    <!-- Graph -->
+    <string name="graph_tab">Statistik</string>
+    <string name="graph_tdd_total">TDD Gesamt (E)</string>
+    <string name="graph_tdd_basal">TDD Basal (E)</string>
+    <string name="graph_tdd_bolus">TDD Bolus (E)</string>
+    <string name="graph_tdd_carbs">KH (g)</string>
+    <string name="graph_isf">ISF (mg/dL)</string>
+    <string name="graph_ic">IC (g/E)</string>
+    <string name="graph_no_data">Keine Daten verfügbar. Verfolgen Sie mindestens 2 Zyklen für aussagekräftige Statistiken.</string>
+    <string name="graph_mode_selector">Diagramm-Modus</string>
+
+    <!-- Notifications -->
+    <string name="notification_settings">Benachrichtigungen</string>
+    <string name="notification_cycle_start_title">Neuer Zyklus Erinnerung</string>
+    <string name="notification_cycle_start_summary">Bei Beginn eines neuen Zyklus benachrichtigen</string>
+    <string name="notification_phase_change_title">Phasenwechsel Erinnerung</string>
+    <string name="notification_phase_change_summary">Bei Wechsel der Zyklusphase benachrichtigen</string>
+    <string name="notification_new_cycle">Neuer Zyklus begonnen! Tag 1</string>
+    <string name="notification_phase_changed">Phase gewechselt zu: %s</string>
+
+    <!-- History -->
+    <string name="history_tab">Verlauf</string>
+    <string name="cycle_history_empty">Noch keine Zyklushistorie</string>
+    <string name="cycle_interval_days">%1$d Tage</string>
+    <string name="cycle_interval_ongoing">Tag %1$d — aktueller Zyklus</string>
+    <string name="cycle_avg_length">Durchschnittliche Zykluslänge: %1$s Tage</string>
+</resources>

@@ -5,129 +5,149 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import android.text.format.DateFormat
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
-import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.time.T
-import app.aaps.core.interfaces.constraints.Constraint
-import app.aaps.core.interfaces.constraints.ConstraintsChecker
-import app.aaps.core.interfaces.constraints.PluginConstraints
+import app.aaps.core.interfaces.constraints.PumpPluginConstraints
+import app.aaps.core.interfaces.di.PumpDriver
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.Notification
-import app.aaps.core.interfaces.objects.Instantiator
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.OwnDatabasePlugin
+import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
-import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.pump.BlePreCheck
+import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.DetailedBolusInfoStorage
 import app.aaps.core.interfaces.pump.Diaconn
 import app.aaps.core.interfaces.pump.Pump
 import app.aaps.core.interfaces.pump.PumpEnactResult
+import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpPluginBase
+import app.aaps.core.interfaces.pump.PumpProfile
+import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.TemporaryBasalStorage
 import app.aaps.core.interfaces.pump.actions.CustomAction
 import app.aaps.core.interfaces.pump.actions.CustomActionType
-import app.aaps.core.interfaces.pump.defs.determineCorrectBasalSize
 import app.aaps.core.interfaces.pump.defs.fillFor
+import app.aaps.core.interfaces.pump.mapState
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventConfigBuilderChange
-import app.aaps.core.interfaces.rx.events.EventDismissNotification
-import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
-import app.aaps.core.interfaces.sharedPreferences.SP
-import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.interfaces.rx.events.EventShowSnackbar
 import app.aaps.core.interfaces.utils.DateUtil
-import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.Round
-import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.core.objects.constraints.ConstraintObject
-import app.aaps.core.ui.toast.ToastUtils
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.keys.interfaces.TextRef
+import app.aaps.core.ui.compose.icons.IcPluginDiaconn
+import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
+import app.aaps.pump.diaconn.compose.DiaconnComposeContent
 import app.aaps.pump.diaconn.database.DiaconnHistoryDatabase
 import app.aaps.pump.diaconn.events.EventDiaconnG8DeviceChange
+import app.aaps.pump.diaconn.keys.DiaconnBooleanKey
+import app.aaps.pump.diaconn.keys.DiaconnIntKey
+import app.aaps.pump.diaconn.keys.DiaconnIntNonKey
+import app.aaps.pump.diaconn.keys.DiaconnIntentKey
+import app.aaps.pump.diaconn.keys.DiaconnStringNonKey
 import app.aaps.pump.diaconn.service.DiaconnG8Service
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import org.json.JSONException
-import org.json.JSONObject
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.IntKey
+import dev.zacsweers.metro.SingleIn
+import dev.zacsweers.metro.binding
 import kotlin.math.abs
 import kotlin.math.max
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
-@Singleton
-class DiaconnG8Plugin @Inject constructor(
+@ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
+@PumpDriver
+@IntKey(1100)
+@SingleIn(AppScope::class)
+@Inject
+class DiaconnG8Plugin(
     aapsLogger: AAPSLogger,
+    override val rh: ResourceHelper,
+    preferences: Preferences,
+    commandQueue: CommandQueue,
     private val rxBus: RxBus,
     private val context: Context,
-    rh: ResourceHelper,
-    private val constraintChecker: ConstraintsChecker,
-    private val profileFunction: ProfileFunction,
-    private val sp: SP,
-    commandQueue: CommandQueue,
     private val diaconnG8Pump: DiaconnG8Pump,
     private val pumpSync: PumpSync,
     private val detailedBolusInfoStorage: DetailedBolusInfoStorage,
     private val temporaryBasalStorage: TemporaryBasalStorage,
-    private val fabricPrivacy: FabricPrivacy,
     private val dateUtil: DateUtil,
-    private val aapsSchedulers: AapsSchedulers,
-    private val uiInteraction: UiInteraction,
     private val diaconnHistoryDatabase: DiaconnHistoryDatabase,
-    private val decimalFormatter: DecimalFormatter,
-    private val instantiator: Instantiator
+    private val pumpEnactResultProvider: () -> PumpEnactResult,
+    private val bolusProgressData: BolusProgressData,
+    private val blePreCheck: BlePreCheck,
+    notificationManager: NotificationManager
 ) : PumpPluginBase(
-    PluginDescription()
+    pluginDescription = PluginDescription()
         .mainType(PluginType.PUMP)
-        .fragmentClass(DiaconnG8Fragment::class.java.name)
-        .pluginIcon(app.aaps.core.ui.R.drawable.ic_diaconn_g8)
-        .pluginName(R.string.diaconn_g8_pump)
-        .shortName(R.string.diaconn_g8_pump_shortname)
-        .preferencesId(R.xml.pref_diaconn)
-        .description(R.string.description_pump_diaconn_g8),
-    aapsLogger, rh, commandQueue
-), Pump, Diaconn, PluginConstraints, OwnDatabasePlugin {
+        .composeContent { _ ->
+            DiaconnComposeContent(
+                pluginName = rh.gs(R.string.diaconn_g8_pump),
+                context = context,
+                blePreCheck = blePreCheck
+            )
+        }
+        .icon(IcPluginDiaconn)
+        .pluginName(TextRef.AndroidRes(R.string.diaconn_g8_pump))
+        .description(TextRef.AndroidRes(R.string.description_pump_diaconn_g8)),
+    ownPreferences = DiaconnIntentKey.entries + DiaconnIntKey.entries + DiaconnBooleanKey.entries + DiaconnStringNonKey.entries +
+        DiaconnIntNonKey.entries,
+    aapsLogger, rh, preferences, commandQueue, notificationManager
+), Pump, Diaconn, PumpPluginConstraints, OwnDatabasePlugin {
 
-    private val disposable = CompositeDisposable()
+    private var scope: CoroutineScope? = null
     private var diaconnG8Service: DiaconnG8Service? = null
     private var mDeviceAddress = ""
     var mDeviceName = ""
     override val pumpDescription = PumpDescription().fillFor(PumpType.DIACONN_G8)
 
-    override fun onStart() {
+    override suspend fun onStart() {
         super.onStart()
         val intent = Intent(context, DiaconnG8Service::class.java)
         context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE)
-        disposable.add(rxBus
-                           .toObservable(EventAppExit::class.java)
-                           .observeOn(aapsSchedulers.io)
-                           .subscribe({ context.unbindService(mConnection) }) { fabricPrivacy.logException(it) }
-        )
-        disposable.add(rxBus
-                           .toObservable(EventConfigBuilderChange::class.java)
-                           .observeOn(aapsSchedulers.io)
-                           .subscribe { diaconnG8Pump.reset() }
-        )
-        disposable.add(rxBus
-                           .toObservable(EventDiaconnG8DeviceChange::class.java)
-                           .observeOn(aapsSchedulers.io)
-                           .subscribe({ changePump() }) { fabricPrivacy.logException(it) }
-        )
-        changePump() // load device name
+        // Own scope on IO, like the io scheduler used before, cancelled in onStop like the
+        // CompositeDisposable was cleared. UNDISPATCHED because RxBus has no replay, so a scheduled
+        // collector could miss an event sent before it starts.
+        val newScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        scope = newScope
+        rxBus.toFlow(EventAppExit::class)
+            .collectResilient(newScope, aapsLogger, LTag.PUMP, start = CoroutineStart.UNDISPATCHED) { context.unbindService(mConnection) }
+        rxBus.toFlow(EventConfigBuilderChange::class)
+            .collectResilient(newScope, aapsLogger, LTag.PUMP, start = CoroutineStart.UNDISPATCHED) { diaconnG8Pump.reset() }
+        rxBus.toFlow(EventDiaconnG8DeviceChange::class)
+            .collectResilient(newScope, aapsLogger, LTag.PUMP, start = CoroutineStart.UNDISPATCHED) {
+                pumpSync.connectNewPump()
+                changePump()
+            }
+        changePump() // load device name on app start
     }
 
-    override fun onStop() {
+    override suspend fun onStop() {
+        scope?.cancel()
+        scope = null
         context.unbindService(mConnection)
-        disposable.clear()
+        // onServiceDisconnected is not called after unbindService, so drop the reference here.
+        // Otherwise the destroyed service stays alive after a pump switch or config change.
+        diaconnG8Service = null
         super.onStop()
     }
 
@@ -145,17 +165,34 @@ class DiaconnG8Plugin @Inject constructor(
     }
 
     fun changePump() {
-        mDeviceAddress = sp.getString(R.string.key_diaconn_g8_address, "")
-        mDeviceName = sp.getString(R.string.key_diaconn_g8_name, "")
+        val newAddress = preferences.get(DiaconnStringNonKey.Address)
+        val newName = preferences.get(DiaconnStringNonKey.Name)
+
+        // Check if device actually changed by comparing addresses
+        val isDeviceChanged = mDeviceAddress.isNotEmpty() && mDeviceAddress != newAddress
+
+        // Firmware 3.58+: force disconnect since disconnect() is skipped for permanent connection
+        if (isDeviceChanged && diaconnG8Pump.isPumpVersionGe3_58) {
+            diaconnG8Service?.disconnect("Pump changed")
+        }
+
+        mDeviceAddress = newAddress
+        mDeviceName = newName
         diaconnG8Pump.reset()
-        commandQueue.readStatus(rh.gs(app.aaps.core.ui.R.string.device_changed), null)
+
+        // Use different message for app start vs actual device change
+        val reason = if (isDeviceChanged)
+            rh.gs(app.aaps.core.ui.R.string.device_changed)
+        else
+            rh.gs(R.string.gettingpumpsettings)
+        pluginScope.launch { commandQueue.readStatus(reason) }
     }
 
     override fun connect(reason: String) {
         aapsLogger.debug(LTag.PUMP, "Diaconn G8 connect from: $reason")
         if (diaconnG8Service != null && mDeviceAddress != "" && mDeviceName != "") {
             val success = diaconnG8Service?.connect(reason, mDeviceAddress) == true
-            if (!success) ToastUtils.errorToast(context, app.aaps.core.ui.R.string.ble_not_supported)
+            if (!success) rxBus.send(EventShowSnackbar(rh.gs(app.aaps.core.ui.R.string.ble_not_supported), EventShowSnackbar.Type.Error))
         }
     }
 
@@ -165,6 +202,11 @@ class DiaconnG8Plugin @Inject constructor(
 
     override fun disconnect(reason: String) {
         aapsLogger.debug(LTag.PUMP, "Diaconn G8 disconnect from: $reason")
+        // Firmware 3.58+: permanent BLE connection, skip actual disconnect
+        if (diaconnG8Pump.isPumpVersionGe3_58) {
+            aapsLogger.debug(LTag.PUMP, "Skipping disconnect for firmware 3.58+ (permanent connection)")
+            return
+        }
         diaconnG8Service?.disconnect(reason)
     }
 
@@ -172,74 +214,59 @@ class DiaconnG8Plugin @Inject constructor(
         diaconnG8Service?.stopConnecting()
     }
 
-    override fun getPumpStatus(reason: String) {
+    override suspend fun getPumpStatus(reason: String) {
         diaconnG8Service?.readPumpStatus()
-        pumpDescription.basalStep = diaconnG8Pump.basalStep
-        pumpDescription.bolusStep = diaconnG8Pump.bolusStep
-        pumpDescription.basalMaximumRate = diaconnG8Pump.maxBasalPerHours
+        // Only once the pump reported it: before that it is 0, and a max basal of 0 makes every profile invalid.
+        if (diaconnG8Pump.maxBasalPerHours > 0) pumpDescription.basalMaximumRate = diaconnG8Pump.maxBasalPerHours
     }
 
     // Diaconn Pump Interface
     override fun loadHistory(): PumpEnactResult {
-        return diaconnG8Service?.loadHistory() ?: instantiator.providePumpEnactResult().success(false)
+        return diaconnG8Service?.loadHistory() ?: pumpEnactResultProvider().success(false)
     }
 
     override fun setUserOptions(): PumpEnactResult {
-        return diaconnG8Service?.setUserSettings() ?: instantiator.providePumpEnactResult().success(false)
+        return diaconnG8Service?.setUserSettings() ?: pumpEnactResultProvider().success(false)
     }
 
     // Constraints interface
-    override fun applyBasalConstraints(absoluteRate: Constraint<Double>, profile: Profile): Constraint<Double> {
-        absoluteRate.setIfSmaller(diaconnG8Pump.maxBasal, rh.gs(app.aaps.core.ui.R.string.limitingbasalratio, diaconnG8Pump.maxBasal, rh.gs(app.aaps.core.ui.R.string.pumplimit)), this)
-        return absoluteRate
-    }
+    // cU-domain pump limit (PumpPluginConstraints): folded into the IU scan by ConstraintsChecker.
+    override fun applyBasalConstraints(absoluteRate: PumpRate): PumpRate =
+        PumpRate(absoluteRate.cU.coerceAtMost(diaconnG8Pump.maxBasal))
 
-    override fun applyBasalPercentConstraints(percentRate: Constraint<Int>, profile: Profile): Constraint<Int> {
-        percentRate.setIfGreater(0, rh.gs(app.aaps.core.ui.R.string.limitingpercentrate, 0, rh.gs(app.aaps.core.ui.R.string.itmustbepositivevalue)), this)
-        percentRate.setIfSmaller(
-            pumpDescription.maxTempPercent,
-            rh.gs(app.aaps.core.ui.R.string.limitingpercentrate, pumpDescription.maxTempPercent, rh.gs(app.aaps.core.ui.R.string.pumplimit)),
-            this
-        )
-        return percentRate
-    }
+    // cU-domain pump limit (PumpPluginConstraints): folded into the IU scan by ConstraintsChecker.
+    override fun applyBolusConstraints(insulin: PumpInsulin): PumpInsulin =
+        PumpInsulin(insulin.cU.coerceAtMost(diaconnG8Pump.maxBolus))
 
-    override fun applyBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
-        insulin.setIfSmaller(diaconnG8Pump.maxBolus, rh.gs(app.aaps.core.ui.R.string.limitingbolus, diaconnG8Pump.maxBolus, rh.gs(app.aaps.core.ui.R.string.pumplimit)), this)
-        return insulin
-    }
-
-    override fun applyExtendedBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
-        return applyBolusConstraints(insulin)
-    }
+    override fun applyExtendedBolusConstraints(insulin: PumpInsulin): PumpInsulin = applyBolusConstraints(insulin)
 
     // Pump interface
+    override fun isConfigured(): Boolean =
+        mDeviceAddress.isNotEmpty() && mDeviceName.isNotEmpty()
+
     override fun isInitialized(): Boolean =
-        diaconnG8Pump.lastConnection > 0 && diaconnG8Pump.maxBasal > 0
+        isConfigured() && diaconnG8Pump.lastConnection > 0 && diaconnG8Pump.maxBasal > 0
 
     override fun isSuspended(): Boolean =
         diaconnG8Pump.basePauseStatus == 1
 
-    override fun isBusy(): Boolean =
-        diaconnG8Service?.isConnected == true || diaconnG8Service?.isConnecting == true
+    override fun isBusy(): Boolean = false
 
-    override fun setNewBasalProfile(profile: Profile): PumpEnactResult {
-        val result = instantiator.providePumpEnactResult()
+    override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult {
+        val result = pumpEnactResultProvider()
         if (!isInitialized()) {
-            uiInteraction.addNotification(Notification.PROFILE_NOT_SET_NOT_INITIALIZED, rh.gs(app.aaps.core.ui.R.string.pump_not_initialized_profile_not_set), Notification.URGENT)
+            // Not initialized yet — deferred, not a genuine error; re-pushed on reconnect. success=true keeps it
+            // out of the central failure alarm; enacted stays false so nothing is shown. Profile-set notifications
+            // (OK / clear-failed) are owned centrally by CommandQueueImplementation.onProfileChanged.
+            result.success = true
             result.comment = rh.gs(app.aaps.core.ui.R.string.pump_not_initialized_profile_not_set)
             return result
-        } else {
-            rxBus.send(EventDismissNotification(Notification.PROFILE_NOT_SET_NOT_INITIALIZED))
         }
         return if (diaconnG8Service?.updateBasalsInPump(profile) != true) {
-            uiInteraction.addNotification(Notification.FAILED_UPDATE_PROFILE, rh.gs(app.aaps.core.ui.R.string.failed_update_basal_profile), Notification.URGENT)
+            // FAILED_UPDATE_PROFILE posted centrally (onProfileChanged) from success=false; comment carries the reason.
             result.comment = rh.gs(app.aaps.core.ui.R.string.failed_update_basal_profile)
             result
         } else {
-            rxBus.send(EventDismissNotification(Notification.PROFILE_NOT_SET_NOT_INITIALIZED))
-            rxBus.send(EventDismissNotification(Notification.FAILED_UPDATE_PROFILE))
-            uiInteraction.addNotificationValidFor(Notification.PROFILE_SET_OK, rh.gs(app.aaps.core.ui.R.string.profile_set_ok), Notification.INFO, 60)
             result.success = true
             result.enacted = true
             result.comment = "OK"
@@ -247,7 +274,7 @@ class DiaconnG8Plugin @Inject constructor(
         }
     }
 
-    override fun isThisProfileSet(profile: Profile): Boolean {
+    override fun isThisProfileSet(profile: PumpProfile): Boolean {
         if (!isInitialized()) return true
         if (diaconnG8Pump.pumpProfiles == null) return true
         val basalValues = 24
@@ -263,33 +290,35 @@ class DiaconnG8Plugin @Inject constructor(
         return true
     }
 
-    override fun lastDataTime(): Long = diaconnG8Pump.lastConnection
+    /**
+     * The 24 hourly rates the pump itself reports: it is read again after each set (#2454). If that read failed, they
+     * are still the old ones; then [isThisProfileSet] fails too, and the profile is set again. null before the pump
+     * was read: the profile counts as it was sent.
+     */
+    override fun deliveredBasal(): List<Profile.ProfileValue>? =
+        if (!isInitialized()) null
+        else diaconnG8Pump.pumpProfiles?.get(diaconnG8Pump.activeProfile)?.take(24)?.mapIndexed { hour, rate -> Profile.ProfileValue(T.hours(hour.toLong()).secs().toInt(), rate) }
 
-    override val baseBasalRate: Double
-        get() = diaconnG8Pump.baseAmount
-    override val reservoirLevel: Double
-        get() = diaconnG8Pump.systemRemainInsulin
-    override val batteryLevel: Int
-        get() = diaconnG8Pump.systemRemainBattery
+    override val lastDataTime: StateFlow<Long> = diaconnG8Pump.lastConnectionFlow
+    override val lastBolusTime: StateFlow<Long?> = diaconnG8Pump.lastBolusTimeFlow
+    override val lastBolusAmount: StateFlow<PumpInsulin?> = diaconnG8Pump.lastBolusAmountFlow.mapState { it?.let(::PumpInsulin) }
+    override val reservoirLevel: StateFlow<PumpInsulin> = diaconnG8Pump.systemRemainInsulinFlow.mapState(::PumpInsulin)
+    override val batteryLevel: StateFlow<Int?> = diaconnG8Pump.systemRemainBatteryFlow
 
-    @Synchronized
-    override fun deliverTreatment(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
+    override val baseBasalRate: PumpRate get() = PumpRate(diaconnG8Pump.baseAmount)
+
+    override suspend fun deliverTreatment(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         // Insulin value must be greater than 0
         require(detailedBolusInfo.carbs == 0.0) { detailedBolusInfo.toString() }
         require(detailedBolusInfo.insulin > 0) { detailedBolusInfo.toString() }
 
-        detailedBolusInfo.insulin = constraintChecker.applyBolusConstraints(ConstraintObject(detailedBolusInfo.insulin, aapsLogger)).value()
-        val carbs = detailedBolusInfo.carbs
-        detailedBolusInfo.carbs = 0.0
-        var carbTimeStamp = detailedBolusInfo.carbsTimestamp ?: detailedBolusInfo.timestamp
-        if (carbTimeStamp == detailedBolusInfo.timestamp) carbTimeStamp -= T.mins(1).msecs() // better set 1 min back to prevents clash with insulin
+        // Already constrained in IU (queue) and in cU (PumpWithConcentration boundary); no re-apply here.
         detailedBolusInfoStorage.add(detailedBolusInfo) // will be picked up on reading history
-        val t = EventOverviewBolusProgress.Treatment(0.0, 0, detailedBolusInfo.bolusType == BS.Type.SMB, detailedBolusInfo.id)
         var connectionOK = false
-        if (detailedBolusInfo.insulin > 0 || carbs > 0) connectionOK = diaconnG8Service?.bolus(detailedBolusInfo.insulin, carbs.toInt(), carbTimeStamp, t) == true
-        val result = instantiator.providePumpEnactResult()
+        if (detailedBolusInfo.insulin > 0) connectionOK = diaconnG8Service?.bolus(detailedBolusInfo) == true
+        val result = pumpEnactResultProvider()
         result.success = connectionOK
-        result.bolusDelivered = t.insulin
+        result.bolusDelivered = bolusProgressData.state.value?.delivered?.cU ?: 0.0
 
         if (result.success) result.enacted = true
         if (!result.success) {
@@ -304,13 +333,11 @@ class DiaconnG8Plugin @Inject constructor(
     }
 
     // This is called from APS
-    @Synchronized
-    override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, profile: Profile, enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType): PumpEnactResult {
-        val result = instantiator.providePumpEnactResult()
-        val absoluteAfterConstrain = constraintChecker.applyBasalConstraints(ConstraintObject(absoluteRate, aapsLogger), profile).value()
-        val doTempOff = baseBasalRate - absoluteAfterConstrain == 0.0
-        val doLowTemp = absoluteAfterConstrain < baseBasalRate
-        val doHighTemp = absoluteAfterConstrain > baseBasalRate
+    override suspend fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType): PumpEnactResult {
+        val result = pumpEnactResultProvider()
+        val doTempOff = baseBasalRate.cU - absoluteRate == 0.0
+        val doLowTemp = absoluteRate < baseBasalRate.cU
+        val doHighTemp = absoluteRate > baseBasalRate.cU
         if (doTempOff) {
             // If temp in progress
             if (diaconnG8Pump.isTempBasalInProgress) {
@@ -319,7 +346,7 @@ class DiaconnG8Plugin @Inject constructor(
             }
             result.success = true
             result.enacted = false
-            result.absolute = baseBasalRate
+            result.absolute = baseBasalRate.cU
             result.isPercent = false
             result.isTempCancel = true
             aapsLogger.debug(LTag.PUMP, "setTempBasalAbsolute: doTempOff OK")
@@ -333,10 +360,10 @@ class DiaconnG8Plugin @Inject constructor(
             if (diaconnG8Pump.isTempBasalInProgress) {
                 aapsLogger.debug(LTag.PUMP, "setTempBasalAbsolute: currently running")
                 // Correct basal already set ?
-                if (diaconnG8Pump.tempBasalAbsoluteRate == absoluteAfterConstrain && diaconnG8Pump.tempBasalRemainingMin > 4) {
+                if (diaconnG8Pump.tempBasalAbsoluteRate == absoluteRate && diaconnG8Pump.tempBasalRemainingMin > 4) {
                     if (!enforceNew) {
                         result.success = true
-                        result.absolute = absoluteAfterConstrain
+                        result.absolute = absoluteRate
                         result.enacted = false
                         result.duration = diaconnG8Pump.tempBasalRemainingMin
                         result.isPercent = false
@@ -348,15 +375,15 @@ class DiaconnG8Plugin @Inject constructor(
             }
             temporaryBasalStorage.add(PumpSync.PumpState.TemporaryBasal(dateUtil.now(), T.mins(durationInMinutes.toLong()).msecs(), absoluteRate, true, tbrType, 0L, 0L))
             // Convert duration from minutes to hours
-            aapsLogger.debug(LTag.PUMP, "setTempBasalAbsolute: Setting temp basal $absoluteAfterConstrain U for $durationInMinutes mins (doLowTemp || doHighTemp)")
+            aapsLogger.debug(LTag.PUMP, "setTempBasalAbsolute: Setting temp basal $absoluteRate U for $durationInMinutes mins (doLowTemp || doHighTemp)")
             val connectionOK: Boolean = if (durationInMinutes == 15 || durationInMinutes == 30) {
-                diaconnG8Service?.tempBasalShortDuration(absoluteAfterConstrain, durationInMinutes) == true
+                diaconnG8Service?.tempBasalShortDuration(absoluteRate, durationInMinutes) == true
             } else {
                 val durationInHours = max(durationInMinutes / 60.0, 1.0)
-                diaconnG8Service?.tempBasal(absoluteAfterConstrain, durationInHours) == true
+                diaconnG8Service?.tempBasal(absoluteRate, durationInHours) == true
             }
 
-            if (connectionOK && diaconnG8Pump.isTempBasalInProgress && diaconnG8Pump.tempBasalAbsoluteRate == absoluteAfterConstrain) {
+            if (connectionOK && diaconnG8Pump.isTempBasalInProgress && diaconnG8Pump.tempBasalAbsoluteRate == absoluteRate) {
                 result.enacted = true
                 result.success = true
                 result.comment = rh.gs(app.aaps.core.ui.R.string.ok)
@@ -376,28 +403,14 @@ class DiaconnG8Plugin @Inject constructor(
         return result
     }
 
-    @Synchronized
-    override fun setTempBasalPercent(percent: Int, durationInMinutes: Int, profile: Profile, enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType): PumpEnactResult {
-        return if (percent == 0) {
-            setTempBasalAbsolute(0.0, durationInMinutes, profile, enforceNew, tbrType)
-        } else {
-            var absoluteValue = profile.getBasal() * (percent / 100.0)
-            absoluteValue = pumpDescription.pumpType.determineCorrectBasalSize(absoluteValue)
-            aapsLogger.warn(
-                LTag.PUMP,
-                "setTempBasalPercent [DiaconnG8Plugin] - You are trying to use setTempBasalPercent with percent other then 0% ($percent). This will start setTempBasalAbsolute, with calculated value ($absoluteValue). Result might not be 100% correct."
-            )
-            setTempBasalAbsolute(absoluteValue, durationInMinutes, profile, enforceNew, tbrType)
-        }
+    override suspend fun setTempBasalPercent(percent: Int, durationInMinutes: Int, enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType): PumpEnactResult =
+        error("Pump doesn't support percent basal rate")
 
-    }
-
-    @Synchronized
-    override fun setExtendedBolus(insulin: Double, durationInMinutes: Int): PumpEnactResult {
-        var insulinAfterConstraint = constraintChecker.applyExtendedBolusConstraints(ConstraintObject(insulin, aapsLogger)).value()
-        // needs to be rounded
-        insulinAfterConstraint = Round.roundTo(insulinAfterConstraint, pumpDescription.extendedBolusStep)
-        val result = instantiator.providePumpEnactResult()
+    override suspend fun setExtendedBolus(insulin: Double, durationInMinutes: Int): PumpEnactResult {
+        // Already constrained in IU (queue) and in cU (PumpWithConcentration boundary); no re-apply here.
+        // round to the pump's native extended-bolus step (cU)
+        val insulinAfterConstraint = Round.roundTo(insulin, pumpDescription.extendedBolusStep)
+        val result = pumpEnactResultProvider()
 
         if (diaconnG8Pump.isExtendedInProgress && abs(diaconnG8Pump.extendedBolusAmount - insulinAfterConstraint) < pumpDescription.extendedBolusStep) {
             result.enacted = false
@@ -432,9 +445,8 @@ class DiaconnG8Plugin @Inject constructor(
         return result
     }
 
-    @Synchronized
-    override fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult {
-        val result = instantiator.providePumpEnactResult()
+    override suspend fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult {
+        val result = pumpEnactResultProvider()
         if (diaconnG8Pump.isTempBasalInProgress) {
             diaconnG8Service?.tempBasalStop()
             result.success = !diaconnG8Pump.isTempBasalInProgress
@@ -451,8 +463,8 @@ class DiaconnG8Plugin @Inject constructor(
         return result
     }
 
-    @Synchronized override fun cancelExtendedBolus(): PumpEnactResult {
-        val result = instantiator.providePumpEnactResult()
+    override suspend fun cancelExtendedBolus(): PumpEnactResult {
+        val result = pumpEnactResultProvider()
         if (diaconnG8Pump.isExtendedInProgress) {
             diaconnG8Service?.extendedBolusStop()
             result.success = !diaconnG8Pump.isExtendedInProgress
@@ -471,97 +483,21 @@ class DiaconnG8Plugin @Inject constructor(
         return result
     }
 
-    override fun getJSONStatus(profile: Profile, profileName: String, version: String): JSONObject {
-        val now = System.currentTimeMillis()
-        if (diaconnG8Pump.lastConnection + 60 * 60 * 1000L < System.currentTimeMillis()) {
-            return JSONObject()
-        }
-        val pumpJson = JSONObject()
-        val battery = JSONObject()
-        val status = JSONObject()
-        val extended = JSONObject()
-        try {
-            battery.put("percent", diaconnG8Pump.systemRemainBattery)
-            status.put("status", if (diaconnG8Pump.pumpSuspended) "suspended" else "normal")
-            status.put("timestamp", dateUtil.toISOString(diaconnG8Pump.lastConnection))
-            extended.put("Version", version)
-            if (diaconnG8Pump.lastBolusTime != 0L) {
-                extended.put("LastBolus", dateUtil.dateAndTimeString(diaconnG8Pump.lastBolusTime))
-                extended.put("LastBolusAmount", diaconnG8Pump.lastBolusAmount)
-            }
-            val tb = pumpSync.expectedPumpState().temporaryBasal
-            if (tb != null) {
-                extended.put("TempBasalAbsoluteRate", tb.convertedToAbsolute(now, profile))
-                extended.put("TempBasalStart", dateUtil.dateAndTimeString(tb.timestamp))
-                extended.put("TempBasalRemaining", tb.plannedRemainingMinutes)
-            }
-            val eb = pumpSync.expectedPumpState().extendedBolus
-            if (eb != null) {
-                extended.put("ExtendedBolusAbsoluteRate", eb.rate)
-                extended.put("ExtendedBolusStart", dateUtil.dateAndTimeString(eb.timestamp))
-                extended.put("ExtendedBolusRemaining", eb.plannedRemainingMinutes)
-            }
-            extended.put("BaseBasalRate", baseBasalRate)
-            try {
-                extended.put("ActiveProfile", profileFunction.getProfileName())
-            } catch (e: Exception) {
-                aapsLogger.error("Unhandled exception", e)
-            }
-            pumpJson.put("battery", battery)
-            pumpJson.put("status", status)
-            pumpJson.put("extended", extended)
-            pumpJson.put("reservoir", diaconnG8Pump.systemRemainInsulin.toInt())
-            pumpJson.put("clock", dateUtil.toISOString(now))
-        } catch (e: JSONException) {
-            aapsLogger.error("Unhandled exception", e)
-        }
-        return pumpJson
-    }
-
-    override fun manufacturer(): ManufacturerType {
-        return ManufacturerType.G2e
-    }
-
-    override fun model(): PumpType {
-        return PumpType.DIACONN_G8
-    }
-
-    override fun serialNumber(): String {
-        return diaconnG8Pump.serialNo.toString()
-    }
-
-    override fun shortStatus(veryShort: Boolean): String {
-        var ret = ""
-        if (diaconnG8Pump.lastConnection != 0L) {
-            val agoMillis = System.currentTimeMillis() - diaconnG8Pump.lastConnection
-            val agoMin = (agoMillis / 60.0 / 1000.0).toInt()
-            ret += "LastConn: $agoMin minago\n"
-        }
-        if (diaconnG8Pump.lastBolusTime != 0L)
-            ret += "LastBolus: ${decimalFormatter.to2Decimal(diaconnG8Pump.lastBolusAmount)}U @${DateFormat.format("HH:mm", diaconnG8Pump.lastBolusTime)}"
-
-        if (diaconnG8Pump.isTempBasalInProgress)
-            ret += "Temp: ${diaconnG8Pump.temporaryBasalToString()}"
-
-        if (diaconnG8Pump.isExtendedInProgress)
-            ret += "Extended: ${diaconnG8Pump.extendedBolusToString()}\n"
-
-        if (!veryShort) {
-            ret += "TDD: ${decimalFormatter.to0Decimal(diaconnG8Pump.dailyTotalUnits)} / ${diaconnG8Pump.maxDailyTotalUnits} U"
-        }
-        ret += "Reserv: ${decimalFormatter.to0Decimal(diaconnG8Pump.systemRemainInsulin)} U"
-        ret += "Batt: ${diaconnG8Pump.systemRemainBattery}"
-        return ret
-    }
-
+    override fun manufacturer(): ManufacturerType = ManufacturerType.G2e
+    override fun model(): PumpType = PumpType.DIACONN_G8
+    // `serialNo` is 0 until the pump has been connected to and asked, so "0" is not a serial, it is
+    // "not read yet". Reporting it as text made callers compare a real stored serial against "0" and
+    // conclude the pump had been swapped. Only this driver knows what its own unset value looks like,
+    // so it is translated here into the blank that means unknown everywhere else.
+    override fun serialNumber(): String = if (diaconnG8Pump.serialNo == 0) "" else diaconnG8Pump.serialNo.toString()
     override val isFakingTempsByExtendedBoluses: Boolean = false
-    override fun loadTDDs(): PumpEnactResult = loadHistory()
+    override suspend fun loadTDDs(): PumpEnactResult = loadHistory()
     override fun getCustomActions(): List<CustomAction>? = null
     override fun executeCustomAction(customActionType: CustomActionType) {}
     override fun canHandleDST(): Boolean = false
 
     override fun isBatteryChangeLoggingEnabled(): Boolean {
-        return sp.getBoolean(R.string.key_diaconn_g8_logbatterychange, false)
+        return preferences.get(DiaconnBooleanKey.LogBatteryChange)
     }
 
     @Synchronized
@@ -586,25 +522,24 @@ class DiaconnG8Plugin @Inject constructor(
             34   -> result.comment = rh.gs(R.string.diaconn_g8_errorcode_34)
             35   -> result.comment = rh.gs(R.string.diaconn_g8_errorcode_35)
             36   -> result.comment = rh.gs(R.string.diaconn_g8_errorcode_36)
-            else -> result.comment = "not defined Error code: $errorCode"
-        }
-    }
-
-    override fun preprocessPreferences(preferenceFragment: PreferenceFragmentCompat) {
-
-        val bolusSpeedPreference: Preference? = preferenceFragment.findPreference(rh.gs(R.string.key_diaconn_g8_bolusspeed))
-        bolusSpeedPreference?.setOnPreferenceChangeListener { _, newValue ->
-            val intBolusSpeed = newValue.toString().toInt()
-
-            diaconnG8Pump.bolusSpeed = intBolusSpeed
-            diaconnG8Pump.speed = intBolusSpeed
-            diaconnG8Pump.setUserOptionType = DiaconnG8Pump.BOLUS_SPEED
-            sp.putBoolean(R.string.key_diaconn_g8_is_bolus_speed_sync, false)
-
-            true
+            else -> result.comment(TextRef.AndroidRes(app.aaps.pump.diaconn.R.string.localization_undefined_error_code, listOf(errorCode)))
         }
     }
 
     override fun clearAllTables() = diaconnHistoryDatabase.clearAllTables()
+
+    override fun getPreferenceScreenContent() = PreferenceSubScreenDef(
+        key = "diaconn_settings",
+        titleResId = R.string.diaconn_g8_pump,
+        items = listOf(
+            DiaconnIntKey.BolusSpeed,
+            DiaconnBooleanKey.LogInsulinChange,
+            DiaconnBooleanKey.LogCannulaChange,
+            DiaconnBooleanKey.LogTubeChange,
+            DiaconnBooleanKey.LogBatteryChange,
+            DiaconnBooleanKey.SendLogsToCloud
+        ),
+        icon = pluginDescription.icon
+    )
 
 }

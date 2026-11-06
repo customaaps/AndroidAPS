@@ -1,17 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AAPS</string>
-    <string name="label_actions_activity">AAPS</string>
     <string name="label_watchface_circle">AAPS(Cirkel)</string>
     <string name="label_watchface_digital_style">AAPS (DigitalStil)</string>
     <string name="label_watchface_custom">AAPS(Brugerdefineret)</string>
-    <string name="label_actions_tile">AAPS (Handlinger)</string>
-    <string name="label_temp_target_tile">AAPS(Midl. Mål)</string>
-    <string name="label_quick_wizard_tile">AAPS(Hurtig Guide)</string>
-    <string name="label_warning_sync">Ingen data!</string>
-    <string name="label_warning_old">Gammel data!</string>
-    <string name="label_warning_since">Siden %1$s</string>
-    <string name="label_warning_sync_aaps">Synkroniser med AAPS!</string>
     <string name="msg_warning_sync">Ingen data modtaget siden %1$s! Tjek om AAPS på telefonen sender data til uret</string>
     <string name="msg_warning_old">AAPS data er %1$s gammel! Tjek din sensor, xDrip+, NS, AAPS config eller lign.!</string>
     <string name="pref_vibrate_on_bolus">Vibrér ved bolus</string>
@@ -47,11 +38,6 @@
     <string name="pref_3_hours">3 timer</string>
     <string name="pref_4_hours">4 timer</string>
     <string name="pref_5_hours">5 timer</string>
-    <string name="pref_input_design">Input Design</string>
-    <string name="pref_default">Standard</string>
-    <string name="pref_quick_righty">Hurtigt højre</string>
-    <string name="pref_quick_lefty">Hurtig venstre</string>
-    <string name="pref_modern_sparse">Moderne spreder</string>
     <string name="pref_big_numbers">Store Tal</string>
     <string name="pref_ring_history">Ring Historik</string>
     <string name="pref_light_ring_history">Lys Ring Historik</string>
@@ -80,8 +66,6 @@
     <string name="menu_none">Ingen</string>
     <string name="menu_default">Standard</string>
     <string name="menu_menu">Menu</string>
-    <string name="quick_wizard_short">XL</string>
-    <string name="action_duration">Varighed</string>
     <string name="action_tempt_confirmation">Midlertidig Mål Anmodet</string>
     <string name="action_quick_wizard_confirmation">Hurtig Guide Anmodet</string>
     <string name="action_treatment_confirmation">Behandling Anmodet</string>
@@ -90,21 +74,14 @@
     <string name="action_fill_confirmation">Fyldning Anmodet</string>
     <string name="action_ecarb_confirmation">Kulhydrater Anmodet</string>
     <string name="action_profile_switch_confirmation">Profilskift anmodet</string>
-    <string name="action_target" comment="In temp target menu, single target value">Mål</string>
-    <string name="action_low" comment="In temp target menu, lower value from range">Lav</string>
-    <string name="action_high" comment="In temp target menu, higher value from range">Høj</string>
     <string name="action_carbs">Kulhydrater</string>
     <string name="action_ecarbs">Forlængede kulhydrater</string>
-    <string name="action_percentage">Procentdel</string>
-    <string name="action_start_min">Start [min]</string>
-    <string name="action_duration_h">Varighed [h]</string>
     <string name="action_insulin">Insulin</string>
     <string name="action_preset_1">Forvalg 1</string>
     <string name="action_preset_2">Forvalg 2</string>
     <string name="action_preset_3">Forvalg 3</string>
     <string name="action_free_amount" comment="In prime/fill menu, allows one to enter any amount to be used for priming/filling">Fri mængde</string>
     <string name="action_confirm">BEKRÆFT</string>
-    <string name="action_timeshift">tidsforskydning</string>
     <string name="bolus_progress">Bolus Fremskridt</string>
     <string name="press_to_cancel">tryk for at annullere</string>
     <string name="cancel_bolus">ANNULLER BOLUS</string>
@@ -135,21 +112,15 @@
     <string name="color_name_gray">grå</string>
     <string name="color_name_bluegray">blå grå</string>
     <string name="color_name_white">hvid</string>
-    <string name="color_name_black">sort</string>
     <string name="color_name_multicolor">multifarvet</string>
     <string name="pref_simplify_ui">Forenklet Brugerflade</string>
-    <string name="pref_simplify_ui_sum">Vis kun tid og BG</string>
     <string name="pref_vibrate_hourly">Vibrér hver time</string>
     <string name="pref_show_weeknumber">Vis ugenummer</string>
     <string name="custom_pref_show_seconds">Vis sekunder</string>
-    <string name="digitalstyle_pref_your_style">Din stil:</string>
     <string name="digitalstyle_style_none">ingen stil</string>
     <string name="digitalstyle_style_minimal">minimalistisk stil</string>
     <string name="digitalstyle_style_shape">form stil</string>
     <string name="digitalstyle_style_full">fuld stil</string>
-    <string name="digitalstyle_pref_your_color">Din farve:</string>
-    <string name="digitalstyle_pref_your_color_saturation">Din farvemætning:</string>
-    <string name="digitalstyle_pref_your_color_opacity">Din farvegennemsigtighed:</string>
     <string name="bolus_progress_channel_name">AAPS Bolus Fremskridt</string>
     <string name="bolus_progress_silent_channel_name">AAPS Bolus Fremskridt Lydløs</string>
     <string name="bolus_progress_channel_description">Bolus fremskridt og annullering</string>
@@ -167,8 +138,6 @@
     <string name="tile_no_config">Ingen konfiguration tilgængelig</string>
     <string name="wear_control_not_enabled">Wear kontrol deaktiveret</string>
     <string name="wear_control_no_data">Ingen data tilgængelig</string>
-    <string name="increment">forøgelse</string>
-    <string name="decrement">formindskelse</string>
     <string name="abbreviation_average">gns.</string>
     <string name="no_iob_u">--IE</string>
     <string name="no_cob_g">--g</string>
@@ -183,8 +152,5 @@
     <string name="hour_short">t</string>
     <string name="hour_minute">%1$s:%2$s</string>
     <string name="hour_minute_second">%1$s %2$s %3$s</string>
-    <string name="old">gammel</string>
-    <string name="old_warning">!gammel!</string>
-    <string name="error">!fejl!</string>
     <string name="pref_heartRateSampling">Puls</string>
 </resources>

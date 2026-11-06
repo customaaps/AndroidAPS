@@ -1,17 +1,17 @@
 package app.aaps.pump.eopatch.vo
 
-import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.eopatch.AppConstant
 import app.aaps.pump.eopatch.CommonUtils
 import app.aaps.pump.eopatch.FloatFormatters
 import app.aaps.pump.eopatch.GsonHelper
 import app.aaps.pump.eopatch.code.PatchLifecycle
-import app.aaps.pump.eopatch.code.SettingKeys
-import app.aaps.pump.eopatch.core.define.IPatchConstant.WARRANTY_OPERATING_LIFE_MILLI
-import com.google.android.gms.common.internal.Preconditions
+import app.aaps.pump.eopatch.core.define.IPatchConstant.Companion.WARRANTY_OPERATING_LIFE_MILLI
+import app.aaps.pump.eopatch.keys.EopatchStringNonKey
+import com.google.common.base.Preconditions
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
-import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.minutes
 
 // @Singleton
 class PatchConfig : IPreference<PatchConfig> {
@@ -230,7 +230,7 @@ class PatchConfig : IPreference<PatchConfig> {
 
     fun updateNormalBasalPaused(pauseDurationHour: Float) {
         Preconditions.checkArgument(pauseDurationHour == 0.5f || pauseDurationHour == 1.0f || pauseDurationHour == 1.5f || pauseDurationHour == 2.0f)
-        this.basalPauseFinishTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis((pauseDurationHour * 60).toLong())
+        this.basalPauseFinishTimestamp = System.currentTimeMillis() + (pauseDurationHour * 60).toLong().minutes.inWholeMilliseconds
     }
 
     fun updateNormalBasalPausedSilently() {
@@ -301,9 +301,9 @@ class PatchConfig : IPreference<PatchConfig> {
         return subject.hide()
     }
 
-    override fun flush(sp: SP) {
+    override fun flush(preferences: Preferences) {
         val jsonStr = GsonHelper.sharedGson().toJson(this)
-        sp.putString(SettingKeys.PATCH_CONFIG, jsonStr)
+        preferences.put(EopatchStringNonKey.PatchConfig, jsonStr)
         subject.onNext(this)
     }
 

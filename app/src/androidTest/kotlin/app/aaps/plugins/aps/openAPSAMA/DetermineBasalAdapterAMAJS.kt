@@ -1,30 +1,31 @@
 package app.aaps.plugins.aps.openAPSAMA
 
 import androidx.annotation.VisibleForTesting
-import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.data.model.GlucoseUnit
+import app.aaps.core.data.model.getPassedDurationToTimeInMinutes
 import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.DetermineBasalAdapter
 import app.aaps.core.interfaces.aps.GlucoseStatus
+import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.MealData
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.ProcessedTbrEbData
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
-import app.aaps.core.keys.Preferences
-import app.aaps.core.objects.extensions.convertToJSONArray
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.extensions.convertedToAbsolute
-import app.aaps.core.objects.extensions.getPassedDurationToTimeInMinutes
 import app.aaps.core.objects.extensions.plannedRemainingMinutes
 import app.aaps.plugins.aps.logger.LoggerCallback
 import app.aaps.plugins.aps.utils.ScriptReader
-import dagger.android.HasAndroidInjector
+import app.aaps.shared.tests.extensions.convertToJSONArray
+import dev.zacsweers.metro.Inject
+import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -39,14 +40,12 @@ import org.mozilla.javascript.Undefined
 import java.io.IOException
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
-import javax.inject.Inject
 import kotlin.math.min
 
-class DetermineBasalAdapterAMAJS(private val scriptReader: ScriptReader, private val injector: HasAndroidInjector) : DetermineBasalAdapter {
+class DetermineBasalAdapterAMAJS(private val scriptReader: ScriptReader, private val injector: MetroMemberInjector) : DetermineBasalAdapter {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var constraintChecker: ConstraintsChecker
-    @Inject lateinit var sp: SP
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var processedTbrEbData: ProcessedTbrEbData
@@ -137,7 +136,7 @@ class DetermineBasalAdapterAMAJS(private val scriptReader: ScriptReader, private
             } else {
                 aapsLogger.error(LTag.APS, "Problem loading JS Functions")
             }
-        } catch (e: IOException) {
+        } catch (_: IOException) {
             aapsLogger.error(LTag.APS, "IOException")
         } catch (e: RhinoException) {
             aapsLogger.error(LTag.APS, "RhinoException: (" + e.lineNumber() + "," + e.columnNumber() + ") " + e.toString())
@@ -185,7 +184,7 @@ class DetermineBasalAdapterAMAJS(private val scriptReader: ScriptReader, private
     ) {
         this.profile = JSONObject()
         this.profile.put("max_iob", maxIob)
-        this.profile.put("dia", min(profile.dia, 3.0))
+        this.profile.put("dia", min(profile.iCfg?.dia ?: 3.0, 3.0))
         this.profile.put("type", "current")
         this.profile.put("max_daily_basal", profile.getMaxDailyBasal())
         this.profile.put("max_basal", maxBasal)
@@ -210,7 +209,7 @@ class DetermineBasalAdapterAMAJS(private val scriptReader: ScriptReader, private
             this.profile.put("out_units", "mmol/L")
         }
         val now = System.currentTimeMillis()
-        val tb = processedTbrEbData.getTempBasalIncludingConvertedExtended(now)
+        val tb = runBlocking { processedTbrEbData.getTempBasalIncludingConvertedExtended(now) }
         currentTemp = JSONObject()
         currentTemp.put("temp", "absolute")
         currentTemp.put("duration", tb?.plannedRemainingMinutes ?: 0)
@@ -256,6 +255,8 @@ class DetermineBasalAdapterAMAJS(private val scriptReader: ScriptReader, private
     }
 
     init {
-        injector.androidInjector().inject(this)
+        // Loud on the wrong injector: the app wide one returns false for a class it does not know, which
+        // would leave these lateinit fields unset and fail later somewhere unrelated.
+        check(injector.injectMembers(this)) { "No member injector for ${this::class.java.name}" }
     }
 }

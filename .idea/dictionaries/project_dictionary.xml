@@ -1,6 +1,8 @@
 <component name="ProjectDictionaryState">
   <dictionary name="project-dictionary">
     <words>
+      <w>Icfg</w>
+      <w>Instara</w>
       <w>aaps</w>
       <w>aapsclient</w>
       <w>abcdef</w>
@@ -32,7 +34,9 @@
       <w>carbratio</w>
       <w>carbs</w>
       <w>carbsreq</w>
+      <w>carelevo</w>
       <w>careportal</w>
+      <w>cctl</w>
       <w>cellnovo</w>
       <w>chek</w>
       <w>clearalarm</w>
@@ -65,6 +69,7 @@
       <w>eveningoutpost</w>
       <w>eversense</w>
       <w>extendedbolus</w>
+      <w>fanqies</w>
       <w>fiasp</w>
       <w>fileprovider</w>
       <w>firebase</w>
@@ -115,6 +120,7 @@
       <w>openhumans</w>
       <w>oref</w>
       <w>otpauth</w>
+      <w>ottai</w>
       <w>passcode</w>
       <w>pbage</w>
       <w>pcfg</w>
@@ -138,12 +144,16 @@
       <w>satl</w>
       <w>sbat</w>
       <w>scripter</w>
+      <w>searchables</w>
       <w>setupwizard</w>
       <w>sgvs</w>
       <w>shortgramm</w>
+      <w>sibionic</w>
+      <w>sino</w>
       <w>sitechange</w>
       <w>skippable</w>
       <w>smscommunicator</w>
+      <w>snackbar</w>
       <w>sntp</w>
       <w>sooil</w>
       <w>soundid</w>
@@ -152,6 +162,7 @@
       <w>statuslight</w>
       <w>statuslights</w>
       <w>superbolus</w>
+      <w>syai</w>
       <w>targethigh</w>
       <w>targetlow</w>
       <w>tbrs</w>
@@ -163,6 +174,7 @@
       <w>tidepool</w>
       <w>timeshift</w>
       <w>tirs</w>
+      <w>tomatofn</w>
       <w>totp</w>
       <w>tunedays</w>
       <w>uart</w>

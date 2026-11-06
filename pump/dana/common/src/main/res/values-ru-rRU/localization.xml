@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_execution_service_unavailable">Служба выполнения команд для установки базального профиля недоступна</string>
+    <string name="localization_internal_error">Внутренняя ошибка</string>
+    <string name="localization_history_timeout">Истекло время ожидания истории</string>
+    <string name="localization_pump_not_initialized">Помпа не инициализирована</string>
+    <string name="localization_history_temp_start">Временный базал запущен</string>
+    <string name="localization_history_temp_stop">Временный базал остановлен</string>
+    <string name="localization_history_extended_start">Растянутый болюс запущен</string>
+    <string name="localization_history_extended_stop">Растянутый болюс остановлен</string>
+    <string name="localization_history_bolus">Болюс</string>
+    <string name="localization_history_dual_bolus">Двойной болюс</string>
+    <string name="localization_history_dual_extended_start">Растянутая часть двойного болюса запущена</string>
+    <string name="localization_history_dual_extended_stop">Растянутая часть двойного болюса остановлена</string>
+    <string name="localization_history_suspend_on">Введение приостановлено</string>
+    <string name="localization_history_suspend_off">Введение возобновлено</string>
+    <string name="localization_history_refill">Заполнение резервуара</string>
+    <string name="localization_history_prime">Заполнение</string>
+    <string name="localization_history_profile_change">Профиль изменён</string>
+    <string name="localization_history_carbs">Углеводы</string>
+    <string name="localization_history_prime_cannula">Заполнение канюли</string>
+    <string name="localization_history_time_change">Время изменено</string>
+    <string name="localization_history_step_bolus_command">Команда пошагового болюса</string>
+    <string name="localization_history_basal_rate_change">Базальная скорость изменена</string>
+    <string name="localization_history_unknown">Неизвестное событие</string>
+</resources>

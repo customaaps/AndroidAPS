@@ -3,47 +3,51 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
 }
 
-// Convetion plugin should be used here to use libs.versions.toml
-// I was not successfull to implement it
 dependencies {
     testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.3")
-    testImplementation("org.json:json:20230618")
-    testImplementation("org.mockito:mockito-junit-jupiter:5.15.2")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
-    testImplementation("joda-time:joda-time:2.13.0")
-    testImplementation("com.google.truth:truth:1.1.5")
-    testImplementation("org.skyscreamer:jsonassert:1.5.3")
+    testImplementationFromCatalog("org-junit-jupiter")
+    testImplementationFromCatalog("org-junit-jupiter-api")
+    testRuntimeOnlyFromCatalog("org-junit-platform-launcher")
+    testImplementationFromCatalog("org-mockito-junit-jupiter")
+    testImplementationFromCatalog("org-mockito-kotlin")
+    testImplementationFromCatalog("joda-time")
+    testImplementationFromCatalog("com-google-truth")
+    testImplementationFromCatalog("org-skyscreamer-jsonassert")
+    testImplementationFromCatalog("kotlinx-coroutines-test")
 
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("androidx.test.ext:junit-ktx:1.2.1")
-    androidTestImplementation("androidx.test:rules:1.6.1")
-    androidTestImplementation("com.google.truth:truth:1.1.5")
-    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.2.0")
+    androidTestImplementationFromCatalog("androidx-test-ext")
+    androidTestImplementationFromCatalog("androidx-test-rules")
+    androidTestImplementationFromCatalog("com-google-truth")
 }
 
+// See the same block in `test-module-dependencies` for why CI drops the passing tests' stdout.
+val showTestStandardOut = !providers.environmentVariable("CI").isPresent
+
 tasks.withType<Test> {
-    // use to display stdout in travis
     testLogging {
         // set options for log level LIFECYCLE
-        events = setOf(
-            TestLogEvent.FAILED,
-            TestLogEvent.STARTED,
-            TestLogEvent.SKIPPED,
-            TestLogEvent.STANDARD_OUT
-        )
+        events = if (showTestStandardOut)
+            setOf(TestLogEvent.FAILED, TestLogEvent.SKIPPED, TestLogEvent.STANDARD_OUT)
+        else
+            setOf(TestLogEvent.FAILED, TestLogEvent.SKIPPED)
         exceptionFormat = TestExceptionFormat.FULL
         useJUnitPlatform()
     }
 }
 
 tasks.withType<Test>().configureEach {
+    failOnNoDiscoveredTests = false
+    // CI runs the unit suite alongside three emulators on one self-hosted runner. Bound each forked test
+    // JVM's HEAP so the suite can't oversubscribe MEMORY: without maxHeapSize every fork defaults to ~25%
+    // of machine RAM, and that pressure (stacked on the 8g Gradle + 2g Kotlin daemons) knocked emulators
+    // offline mid-instrumentation. Do NOT also cut maxParallelForks: CPU is already isolated by taskset core
+    // pinning in CI, and fewer forks pack more tests per JVM, which surfaces cross-test coroutine-leak /
+    // timing flakes (UncaughtExceptionsBeforeTest) that stay dormant at the default fork count. Cap heap,
+    // keep the fork count.
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
-    forkEvery = 20
+    maxHeapSize = "1536m"
 }
 
 android {

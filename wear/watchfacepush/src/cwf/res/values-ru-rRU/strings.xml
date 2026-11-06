@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="simplify_ui_always_on">Упрощённое постоянное отображение</string>
+    <string name="simplify_ui_always_on_reader">Показывать простые часы и показания на постоянно включённом экране вместо собственного оформления</string>
+</resources>

@@ -3,26 +3,27 @@ package app.aaps.pump.equil.manager.command
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
-import app.aaps.core.interfaces.sharedPreferences.SP
-import app.aaps.pump.equil.EquilConst.Prefs.EQUIL_BASAL_SET
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.utils.notifyAll
 import app.aaps.pump.equil.database.EquilHistoryRecord
 import app.aaps.pump.equil.driver.definition.BasalSchedule
+import app.aaps.pump.equil.keys.EquilBooleanKey
 import app.aaps.pump.equil.manager.EquilManager
 import app.aaps.pump.equil.manager.Utils
-import java.util.ArrayList
+import java.math.BigDecimal
 
 class CmdBasalSet(
     var basalSchedule: BasalSchedule,
     var profile: Profile,
     aapsLogger: AAPSLogger,
-    sp: SP,
+    preferences: Preferences,
     equilManager: EquilManager
-) : BaseSetting(System.currentTimeMillis(), aapsLogger, sp, equilManager) {
+) : BaseSetting(System.currentTimeMillis(), aapsLogger, preferences, equilManager) {
 
     override fun getFirstData(): ByteArray {
         val indexByte = Utils.intToBytes(pumpReqIndex)
         val data2 = byteArrayOf(0x01, 0x02)
-        val list: MutableList<Byte?> = ArrayList<Byte?>()
+        val list: MutableList<Byte?> = ArrayList()
         var i = 0
         for (basalScheduleEntry in basalSchedule.getEntries()) {
             val rate = basalScheduleEntry.rate
@@ -55,13 +56,23 @@ class CmdBasalSet(
 
     override fun decodeConfirmData(data: ByteArray) {
         synchronized(this) {
-            sp.putBoolean(EQUIL_BASAL_SET, true)
-            cmdStatus = true
-            (this as Object).notifyAll()
+            preferences.put(EquilBooleanKey.BasalSet, true)
+            cmdSuccess = true
+            notifyAll()
         }
     }
 
-    override fun getEventType(): EquilHistoryRecord.EventType? {
+    override fun getEventType(): EquilHistoryRecord.EventType {
         return EquilHistoryRecord.EventType.SET_BASAL_PROFILE
+    }
+
+    companion object {
+
+        /**
+         * The rate the pump really gives for an hourly [rate] (#2454). [CmdBasalSet.getFirstData] sends each half hour half of the
+         * rate in 0.00625 U steps and drops the rest, so the pump gives the rate cut down to a 0.0125 U/h step.
+         */
+        fun deliveredRate(rate: Double): Double =
+            BigDecimal(Utils.decodeSpeedToUH(rate / 2f) * 2).multiply(BigDecimal("0.00625")).toDouble()
     }
 }
