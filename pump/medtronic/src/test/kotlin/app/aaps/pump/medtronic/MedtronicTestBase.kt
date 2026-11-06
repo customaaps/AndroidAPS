@@ -1,6 +1,5 @@
 package app.aaps.pump.medtronic
 
-import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.pump.common.hw.rileylink.RileyLinkUtil
 import app.aaps.pump.common.sync.PumpSyncStorage
@@ -9,23 +8,41 @@ import app.aaps.pump.medtronic.comm.history.pump.PumpHistoryEntry
 import app.aaps.pump.medtronic.comm.history.pump.PumpHistoryEntryType
 import app.aaps.pump.medtronic.util.MedtronicUtil
 import app.aaps.shared.tests.TestBaseWithProfile
-import dagger.android.AndroidInjector
-import dagger.android.HasAndroidInjector
-import org.mockito.Answers
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.BeforeEach
 import org.mockito.Mock
+import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.whenever
 
 open class MedtronicTestBase : TestBaseWithProfile() {
 
-    var rileyLinkUtil = RileyLinkUtil()
-
     @Mock lateinit var pumpSync: PumpSync
     @Mock lateinit var pumpSyncStorage: PumpSyncStorage
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS) override lateinit var activePlugin: ActivePlugin
 
-    lateinit var medtronicUtil: MedtronicUtil
-    lateinit var decoder: MedtronicPumpHistoryDecoder
+    @Mock lateinit var medtronicUtil: MedtronicUtil
+    @Mock lateinit var decoder: MedtronicPumpHistoryDecoder
+    lateinit var rileyLinkUtil: RileyLinkUtil
 
-    val packetInjector = HasAndroidInjector { AndroidInjector { } }
+    @BeforeEach
+    fun mock() {
+        rileyLinkUtil = RileyLinkUtil(aapsLogger, context)
+        // Default mock returns for suspend PumpSync methods to avoid NPE from runBlocking
+        runBlocking {
+            whenever(pumpSync.insertFingerBgIfNewWithTimestamp(any(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(true)
+            whenever(pumpSync.syncTemporaryBasalWithPumpId(any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull())).thenReturn(true)
+            whenever(pumpSync.syncBolusWithTempId(any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(true)
+            whenever(pumpSync.syncBolusWithPumpId(any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull())).thenReturn(true)
+            whenever(pumpSync.insertTherapyEventIfNewWithTimestamp(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(true)
+            whenever(pumpSync.syncExtendedBolusWithPumpId(any(), any(), any(), any(), any(), anyOrNull(), anyOrNull())).thenReturn(true)
+            whenever(pumpSync.createOrUpdateTotalDailyDose(any(), any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(true)
+        }
+    }
+
+    fun initializeCommonMocks() {
+        // Common initialization for all Medtronic tests
+        // Override in specific test classes if needed
+    }
 
     fun preProcessListTBR(inputList: MutableList<PumpHistoryEntry>) {
 
@@ -52,7 +69,7 @@ open class MedtronicTestBase : TestBaseWithProfile() {
     fun getPumpHistoryEntryFromData(vararg elements: Int): PumpHistoryEntry {
         val data: MutableList<Byte> = ArrayList()
         for (item in elements) {
-            var b = if (item > 128) item - 256 else item
+            val b = if (item > 128) item - 256 else item
             data.add(b.toByte())
         }
 

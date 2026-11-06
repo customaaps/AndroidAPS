@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AAPS</string>
-    <string name="label_actions_activity">AAPS</string>
     <string name="label_watchface_circle">AAPS(Kružni)</string>
     <string name="menu_wizard">Kalkulator</string>
     <string name="menu_wizard_short">Izračun</string>
@@ -9,10 +7,6 @@
     <string name="menu_bolus">Bolus</string>
     <string name="menu_carb">UH</string>
     <string name="menu_settings">Postavke</string>
-    <string name="action_duration">Trajanje</string>
-    <string name="action_target" comment="In temp target menu, single target value">Cilj</string>
-    <string name="action_low" comment="In temp target menu, lower value from range">Nisko</string>
-    <string name="action_high" comment="In temp target menu, higher value from range">Visoko</string>
     <string name="action_carbs">UH</string>
     <string name="action_insulin">Inzulin</string>
     <string name="status_pump">Pumpa</string>
@@ -20,8 +14,6 @@
     <string name="status_tdd">TDD</string>
     <string name="activity_IOB">Aktivni inzulin</string>
     <string name="temp_target_cancel">Otkaži</string>
-    <string name="increment">povećanje</string>
-    <string name="decrement">smanjenje</string>
     <string name="abbreviation_average">prosječno</string>
     <string name="no_iob_u">U</string>
     <string name="no_cob_g">--g</string>

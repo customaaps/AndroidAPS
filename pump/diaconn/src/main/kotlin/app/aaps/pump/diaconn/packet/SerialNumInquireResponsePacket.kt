@@ -1,20 +1,20 @@
 package app.aaps.pump.diaconn.packet
 
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.sharedPreferences.SP
-import dagger.android.HasAndroidInjector
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.diaconn.DiaconnG8Pump
-import app.aaps.pump.diaconn.R
-import javax.inject.Inject
+import app.aaps.pump.diaconn.keys.DiaconnStringNonKey
+import dev.zacsweers.metro.Inject
 
 /**
  * SerialNumInquireResponsePacket
  */
-class SerialNumInquireResponsePacket(injector: HasAndroidInjector) : DiaconnG8Packet(injector) {
+class SerialNumInquireResponsePacket(injector: MetroMemberInjector) : DiaconnG8Packet(injector) {
 
     @Inject lateinit var diaconnG8Pump: DiaconnG8Pump
-    @Inject lateinit var sp: SP
+    @Inject lateinit var preferences: Preferences
     @Inject lateinit var rh: ResourceHelper
 
     init {
@@ -37,8 +37,8 @@ class SerialNumInquireResponsePacket(injector: HasAndroidInjector) : DiaconnG8Pa
             return
         }
 
-        diaconnG8Pump.country = getByteToInt(bufferData).toChar().toString().toInt() // ASCII
-        diaconnG8Pump.productType = getByteToInt(bufferData).toChar().toString().toInt() // ASCII
+        diaconnG8Pump.country = Char(getByteToInt(bufferData)).toString().toInt() // ASCII
+        diaconnG8Pump.productType = Char(getByteToInt(bufferData)).toString().toInt() // ASCII
         diaconnG8Pump.makeYear = getByteToInt(bufferData)
         diaconnG8Pump.makeMonth = getByteToInt(bufferData)
         diaconnG8Pump.makeDay = getByteToInt(bufferData)
@@ -59,7 +59,7 @@ class SerialNumInquireResponsePacket(injector: HasAndroidInjector) : DiaconnG8Pa
         aapsLogger.debug(LTag.PUMPCOMM, "majorVersion --> ${diaconnG8Pump.majorVersion}")
         aapsLogger.debug(LTag.PUMPCOMM, "minorVersion --> ${diaconnG8Pump.minorVersion}")
 
-        sp.putString(rh.gs(R.string.pumpversion), diaconnG8Pump.majorVersion.toString() + "." + diaconnG8Pump.minorVersion.toString())
+        preferences.put(DiaconnStringNonKey.PumpVersion, diaconnG8Pump.majorVersion.toString() + "." + diaconnG8Pump.minorVersion.toString())
     }
 
     override val friendlyName = "PUMP_SERIAL_NUM_INQUIRE_RESPONSE"

@@ -1,41 +1,67 @@
-@file:Suppress("DEPRECATION")
-
 package app.aaps.wear.complications
 
 import android.app.PendingIntent
-import android.support.wearable.complications.ComplicationData
-import android.support.wearable.complications.ComplicationText
+import androidx.wear.watchface.complications.data.ComplicationData
+import androidx.wear.watchface.complications.data.ComplicationType
+import androidx.wear.watchface.complications.data.PlainComplicationText
+import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.wear.data.RawDisplayData
-import dagger.android.AndroidInjection
+import app.aaps.core.interfaces.rx.weardata.EventData
+import app.aaps.wear.R
+import dev.zacsweers.metro.HasMemberInjections
 
-/*
- * Created by dlvoy on 2019-11-12
+/**
+ * SGV (Sensor Glucose Value) Complication
+ *
+ * Shows current blood glucose with arrow, auto-updating time, and delta
+ * Display format: "6.8↘" with "5m +0.1" above (mmol/L) or "5m +1" (mg/dL)
+ * - Time auto-updates every minute (battery efficient)
+ * - Delta is static until new BG reading
  */
-class SgvComplication : BaseComplicationProviderService() {
+@HasMemberInjections
+open class SgvComplication : ModernBaseComplicationProviderService() {
 
-    // Not derived from DaggerService, do injection here
-    override fun onCreate() {
-        AndroidInjection.inject(this)
-        super.onCreate()
-    }
 
-    override fun buildComplicationData(dataType: Int, raw: RawDisplayData, complicationPendingIntent: PendingIntent): ComplicationData? {
-        var complicationData: ComplicationData? = null
-        when (dataType) {
-            ComplicationData.TYPE_SHORT_TEXT -> {
-                val builder = ComplicationData.Builder(ComplicationData.TYPE_SHORT_TEXT)
-                    .setShortText(ComplicationText.plainText(raw.singleBg[0].sgvString + raw.singleBg[0].slopeArrow + "\uFE0E"))
-                    .setShortTitle(ComplicationText.plainText(displayFormat.shortTrend(raw, 0)))
-                    .setTapAction(complicationPendingIntent)
-                complicationData = builder.build()
+    override fun buildComplicationData(
+        type: ComplicationType,
+        data: app.aaps.wear.data.ComplicationData,
+        complicationPendingIntent: PendingIntent
+    ): ComplicationData? {
+        // Use dataset 0 (primary)
+        val bgData = data.bgData
+        aapsLogger.debug(LTag.WEAR, "SgvComplication building: dataset=0 sgv=${bgData.sgvString} arrow=${bgData.slopeArrow}")
+
+        return when (type) {
+            ComplicationType.SHORT_TEXT -> {
+                buildShortTextComplication(bgData, complicationPendingIntent)
             }
 
-            else                             -> aapsLogger.warn(LTag.WEAR, "Unexpected complication type $dataType")
+            else -> {
+                aapsLogger.warn(LTag.WEAR, "SgvComplication unexpected type: $type")
+                null
+            }
         }
-        return complicationData
     }
 
+    private fun buildShortTextComplication(
+        bgData: EventData.SingleBg,
+        pendingIntent: PendingIntent
+    ): ShortTextComplicationData {
+        val mainText = bgData.sgvString + bgData.slopeArrow
+
+        // Title: auto-updating time + delta (e.g., "5m +0.1")
+        val titleText = buildCountUpText(bgData.timeStamp, "^1 ${bgData.delta}")
+
+        return ShortTextComplicationData.Builder(
+            text = PlainComplicationText.Builder(text = mainText).build(),
+            contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_glucose_value, mainText)).build()
+        )
+            .setTitle(titleText)
+            .setTapAction(pendingIntent)
+            .build()
+    }
+
+    override fun getComplicationAction(): ComplicationAction = ComplicationAction.LOOP_STATUS
+
     override fun getProviderCanonicalName(): String = SgvComplication::class.java.canonicalName!!
-    override fun usesSinceField(): Boolean = true
 }

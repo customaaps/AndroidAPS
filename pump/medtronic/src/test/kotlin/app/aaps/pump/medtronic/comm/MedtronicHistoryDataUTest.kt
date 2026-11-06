@@ -1,7 +1,6 @@
 package app.aaps.pump.medtronic.comm
 
 import android.util.Log
-import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.medtronic.MedtronicTestBase
 import app.aaps.pump.medtronic.comm.history.RawHistoryPage
@@ -15,14 +14,13 @@ import app.aaps.pump.medtronic.driver.MedtronicPumpStatus
 import app.aaps.pump.medtronic.util.MedtronicUtil
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mock
 
 /**
  * Created by andy on 3/10/19.
  */
-@Suppress("unused") class MedtronicHistoryDataUTest : MedtronicTestBase() {
+@Suppress("unused")
+class MedtronicHistoryDataUTest : MedtronicTestBase() {
 
-    @Mock lateinit var uiInteraction: UiInteraction
     //TestLogger LOGGER = TestLoggerFactory.getTestLogger(MedtronicHistoryDataUTest.class);
     // var historyPageData = ByteUtil
     //     .createByteArrayFromString(
@@ -34,12 +32,11 @@ import org.mockito.Mock
 
     @BeforeEach
     fun setup() {
-        medtronicPumpStatus = MedtronicPumpStatus(rh, sp, rxBus, rileyLinkUtil)
-        medtronicUtil = MedtronicUtil(aapsLogger, rxBus, rileyLinkUtil, medtronicPumpStatus, uiInteraction)
+        medtronicPumpStatus = MedtronicPumpStatus(preferences, rxBus, rileyLinkUtil)
+        medtronicUtil = MedtronicUtil(aapsLogger, rxBus, rileyLinkUtil, medtronicPumpStatus, notificationManager)
         decoder = MedtronicPumpHistoryDecoder(aapsLogger, medtronicUtil)
         medtronicHistoryData = MedtronicHistoryData(
-            packetInjector, aapsLogger, sp, rh, rxBus, activePlugin,
-            medtronicUtil, decoder, medtronicPumpStatus, pumpSync, pumpSyncStorage, uiInteraction, profileUtil
+            aapsLogger, preferences, medtronicUtil, decoder, medtronicPumpStatus, pumpSync, pumpSyncStorage, notificationManager, profileUtil
         )
 
 

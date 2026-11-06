@@ -1,5 +1,6 @@
 package info.nightscout.comboctl.main
 
+import app.aaps.shared.tests.TestBase
 import info.nightscout.comboctl.base.DisplayFrame
 import info.nightscout.comboctl.base.LogLevel
 import info.nightscout.comboctl.base.Logger
@@ -10,10 +11,10 @@ import info.nightscout.comboctl.parser.AlertScreenException
 import info.nightscout.comboctl.parser.BatteryState
 import info.nightscout.comboctl.parser.MainScreenContent
 import info.nightscout.comboctl.parser.ParsedScreen
+import info.nightscout.comboctl.parser.TbrPercentageAndDurationScreens
 import info.nightscout.comboctl.parser.testFrameMainScreenWithTimeSeparator
 import info.nightscout.comboctl.parser.testFrameMainScreenWithoutTimeSeparator
 import info.nightscout.comboctl.parser.testFrameStandardBolusMenuScreen
-import info.nightscout.comboctl.parser.TbrPercentageAndDurationScreens
 import info.nightscout.comboctl.parser.testFrameTemporaryBasalRateNoPercentageScreen
 import info.nightscout.comboctl.parser.testFrameTemporaryBasalRatePercentage110Screen
 import info.nightscout.comboctl.parser.testFrameW6CancelTbrWarningScreen
@@ -23,7 +24,7 @@ import info.nightscout.comboctl.parser.testTimeAndDateSettingsHourTurkishScreen
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,8 +33,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-class ParsedDisplayFrameStreamTest {
+class ParsedDisplayFrameStreamTest : TestBase() {
     companion object {
+
         @BeforeAll
         @JvmStatic
         fun commonInit() {
@@ -42,7 +44,7 @@ class ParsedDisplayFrameStreamTest {
     }
 
     @Test
-    fun checkSingleDisplayFrame() = runBlocking {
+    fun checkSingleDisplayFrame() = runTest {
         /* Check if a frame is correctly recognized. */
 
         val stream = ParsedDisplayFrameStream()
@@ -53,7 +55,7 @@ class ParsedDisplayFrameStreamTest {
     }
 
     @Test
-    fun checkNullDisplayFrame() = runBlocking {
+    fun checkNullDisplayFrame() = runTest {
         /* Check if a null frame is handled correctly. */
 
         val stream = ParsedDisplayFrameStream()
@@ -63,7 +65,7 @@ class ParsedDisplayFrameStreamTest {
     }
 
     @Test
-    fun checkDuplicateDisplayFrameFiltering() = runBlocking {
+    fun checkDuplicateDisplayFrameFiltering() = runTest {
         // Test the duplicate detection by feeding the stream test frames
         // along with unrecognizable ones. We feed duplicates, both recognizable
         // and unrecognizable ones, to check that the stream filters these out.
@@ -164,7 +166,7 @@ class ParsedDisplayFrameStreamTest {
     }
 
     @Test
-    fun checkDuplicateParsedScreenFiltering() = runBlocking {
+    fun checkDuplicateParsedScreenFiltering() = runTest {
         // Test the duplicate parsed screen detection with 3 time and date hour settings screens.
         // All three are parsed to ParsedScreen.TimeAndDateSettingsHourScreen instances.
         // All three contain different pixels. (This is the crucial difference to the
@@ -212,7 +214,7 @@ class ParsedDisplayFrameStreamTest {
     }
 
     @Test
-    fun checkDuplicateDetectionReset() = runBlocking {
+    fun checkDuplicateDetectionReset() = runTest {
         // Test that resetting the duplicate detection works correctly.
 
         // Two screens with equal content (both are a TimeAndDateSettingsHourScreen
@@ -240,7 +242,7 @@ class ParsedDisplayFrameStreamTest {
     }
 
     @Test
-    fun checkDisabledDuplicateDetection() = runBlocking {
+    fun checkDisabledDuplicateDetection() = runTest {
         // Test that getting frames with disabled duplicate detection works correctly.
 
         // Two screens with equal content (both are a TimeAndDateSettingsHourScreen
@@ -284,7 +286,7 @@ class ParsedDisplayFrameStreamTest {
     }
 
     @Test
-    fun checkAlertScreenDetection() = runBlocking {
+    fun checkAlertScreenDetection() = runTest {
         // Test that alert screens are detected and handled correctly.
 
         val stream = ParsedDisplayFrameStream()
@@ -310,7 +312,7 @@ class ParsedDisplayFrameStreamTest {
             stream.getParsedDisplayFrame(processAlertScreens = true)
         }
         assertIs<AlertScreenContent.Warning>(alertScreenException.alertScreenContent)
-        assertEquals(6, (alertScreenException.alertScreenContent as AlertScreenContent.Warning).code)
+        assertEquals(6, alertScreenException.alertScreenContent.code)
 
         // Feed another dummy non-alert screen to see that the stream
         // parses correctly even after an AlertScreenException.
@@ -320,7 +322,7 @@ class ParsedDisplayFrameStreamTest {
     }
 
     @Test
-    fun checkSkippingBlinkedOutScreens() = runBlocking {
+    fun checkSkippingBlinkedOutScreens() = runTest {
         // Test that the stream correctly skips blinked-out screens.
 
         // Produce a test feed of 3 frames, with the second frame being blinked out.

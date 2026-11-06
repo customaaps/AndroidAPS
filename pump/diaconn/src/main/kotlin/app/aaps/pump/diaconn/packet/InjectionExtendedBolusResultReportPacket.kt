@@ -1,16 +1,16 @@
 package app.aaps.pump.diaconn.packet
 
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import dagger.android.HasAndroidInjector
 import app.aaps.pump.diaconn.DiaconnG8Pump
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
 
 /**
  * InjectionExtendedBolusResultReportPacket
  */
-class InjectionExtendedBolusResultReportPacket(injector: HasAndroidInjector) : DiaconnG8Packet(injector) {
+class InjectionExtendedBolusResultReportPacket(injector: MetroMemberInjector) : DiaconnG8Packet(injector) {
 
     @Inject lateinit var diaconnG8Pump: DiaconnG8Pump
     @Inject lateinit var rxBus: RxBus
@@ -37,7 +37,7 @@ class InjectionExtendedBolusResultReportPacket(injector: HasAndroidInjector) : D
         val bolusAmountToBeDelivered = getShortToInt(bufferData) / 100.0
         val deliveredBolusAmount = getShortToInt(bufferData) / 100.0
 
-        diaconnG8Pump.isExtendedInProgress = result == 0
+        diaconnG8Pump.squareStatus = if (result == 0) 1 else 2 // 1=in progress, 2=stopped
         diaconnG8Pump.squareTime = settingMinutes
         diaconnG8Pump.squareInjTime = elapsedTime
         diaconnG8Pump.squareAmount = bolusAmountToBeDelivered

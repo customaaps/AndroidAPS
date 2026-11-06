@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_set_temp_basal_failed">Не удалось установить абсолютную временную базальную скорость Medtrum</string>
+    <string name="localization_percentage_temp_basal_not_supported">Драйвер Medtrum не поддерживает временную базальную скорость в процентах</string>
+    <string name="localization_extended_bolus_not_supported">Драйвер Medtrum не поддерживает растянутые болюсы</string>
+    <string name="localization_cancel_temp_basal_failed">Не удалось отменить временную базальную скорость Medtrum</string>
+</resources>

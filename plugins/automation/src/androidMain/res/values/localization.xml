@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_connector_label">Connector</string>
+    <string name="map_current_location">Current Location</string>
+    <string name="map_selected_location">Selected Location</string>
+</resources>

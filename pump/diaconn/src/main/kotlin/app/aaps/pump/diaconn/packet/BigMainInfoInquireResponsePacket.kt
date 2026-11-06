@@ -1,14 +1,14 @@
 package app.aaps.pump.diaconn.packet
 
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.sharedPreferences.SP
-import dagger.android.HasAndroidInjector
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.diaconn.DiaconnG8Pump
-import app.aaps.pump.diaconn.R
+import app.aaps.pump.diaconn.keys.DiaconnStringNonKey
 import app.aaps.pump.diaconn.pumplog.PumpLogUtil
+import dev.zacsweers.metro.Inject
 import org.joda.time.DateTime
-import javax.inject.Inject
 import kotlin.math.floor
 
 /**
@@ -16,11 +16,11 @@ import kotlin.math.floor
  */
 @Suppress("SpellCheckingInspection")
 class BigMainInfoInquireResponsePacket(
-    injector: HasAndroidInjector
+    injector: MetroMemberInjector
 ) : DiaconnG8Packet(injector) {
 
     @Inject lateinit var diaconnG8Pump: DiaconnG8Pump
-    @Inject lateinit var sp: SP
+    @Inject lateinit var preferences: Preferences
     @Inject lateinit var rh: ResourceHelper
 
     init {
@@ -64,8 +64,8 @@ class BigMainInfoInquireResponsePacket(
         diaconnG8Pump.second = getByteToInt(bufferData) // 초 (0~59)
 
         //4. pump system info
-        diaconnG8Pump.country = getByteToInt(bufferData).toChar().toString().toInt() // ASCII
-        diaconnG8Pump.productType = getByteToInt(bufferData).toChar().toString().toInt() // ASCII
+        diaconnG8Pump.country = Char(getByteToInt(bufferData)).toString().toInt() // ASCII
+        diaconnG8Pump.productType = Char(getByteToInt(bufferData)).toString().toInt() // ASCII
         diaconnG8Pump.makeYear = getByteToInt(bufferData)
         diaconnG8Pump.makeMonth = getByteToInt(bufferData)
         diaconnG8Pump.makeDay = getByteToInt(bufferData)
@@ -74,7 +74,7 @@ class BigMainInfoInquireResponsePacket(
         diaconnG8Pump.majorVersion = getByteToInt(bufferData)
         diaconnG8Pump.minorVersion = getByteToInt(bufferData)
 
-        sp.putString(rh.gs(R.string.pumpversion), diaconnG8Pump.majorVersion.toString() + "." + diaconnG8Pump.minorVersion.toString())
+        preferences.put(DiaconnStringNonKey.PumpVersion, diaconnG8Pump.majorVersion.toString() + "." + diaconnG8Pump.minorVersion.toString())
 
         // 5. pump log status
         diaconnG8Pump.pumpLastLogNum = getShortToInt(bufferData) // last saved log no
@@ -211,8 +211,9 @@ class BigMainInfoInquireResponsePacket(
         diaconnG8Pump.pumpProfiles!![diaconnG8Pump.activeProfile][23] = diaconnG8Pump.baseAmount24
 
         //incarnation no 처리
-        diaconnG8Pump.isPumpVersionGe2_63 = PumpLogUtil.isPumpVersionGe(sp.getString(rh.gs(R.string.pumpversion), ""), 2, 63)
-        diaconnG8Pump.isPumpVersionGe3_53 = PumpLogUtil.isPumpVersionGe(sp.getString(rh.gs(R.string.pumpversion), ""), 3, 53)
+        diaconnG8Pump.isPumpVersionGe2_63 = PumpLogUtil.isPumpVersionGe(preferences.get(DiaconnStringNonKey.PumpVersion), 2, 63)
+        diaconnG8Pump.isPumpVersionGe3_53 = PumpLogUtil.isPumpVersionGe(preferences.get(DiaconnStringNonKey.PumpVersion), 3, 53)
+        diaconnG8Pump.isPumpVersionGe3_58 = PumpLogUtil.isPumpVersionGe(preferences.get(DiaconnStringNonKey.PumpVersion), 3, 58)
 
         aapsLogger.debug(LTag.PUMPCOMM, "result > " + diaconnG8Pump.result)
         aapsLogger.debug(LTag.PUMPCOMM, "systemRemainInsulin > " + diaconnG8Pump.systemRemainInsulin)

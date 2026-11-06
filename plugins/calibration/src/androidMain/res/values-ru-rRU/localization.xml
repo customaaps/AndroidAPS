@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cal_chart_platform_unavailable">График калибровки пока недоступен на этой платформе</string>
+</resources>

@@ -1,43 +1,57 @@
-@file:Suppress("DEPRECATION")
-
 package app.aaps.wear.complications
 
 import android.app.PendingIntent
-import android.support.wearable.complications.ComplicationData
-import android.support.wearable.complications.ComplicationText
+import androidx.wear.watchface.complications.data.ComplicationData
+import androidx.wear.watchface.complications.data.ComplicationType
+import androidx.wear.watchface.complications.data.LongTextComplicationData
+import androidx.wear.watchface.complications.data.PlainComplicationText
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.wear.data.RawDisplayData
-import dagger.android.AndroidInjection
+import app.aaps.wear.R
 
-/*
- * Created by dlvoy on 2019-11-12
+/**
+ * Long Status Flipped Complication
+ *
+ * Shows comprehensive glucose and status information as a single long text line
+ * (flipped layout): glucose value, arrow, auto-updating time, and delta, then
+ * COB, IOB, and basal rate.
+ *
+ * Everything lives in the text field (no title) so the separator between glucose and
+ * status is ours — watch faces join text and title with their own separator (often "/").
+ *
  */
-class LongStatusFlippedComplication : BaseComplicationProviderService() {
+class LongStatusFlippedComplication : ModernBaseComplicationProviderService() {
 
-    // Not derived from DaggerService, do injection here
-    override fun onCreate() {
-        AndroidInjection.inject(this)
-        super.onCreate()
-    }
 
-    override fun buildComplicationData(dataType: Int, raw: RawDisplayData, complicationPendingIntent: PendingIntent): ComplicationData? {
-        var complicationData: ComplicationData? = null
-        when (dataType) {
-            ComplicationData.TYPE_LONG_TEXT -> {
-                val glucoseLine = displayFormat.longGlucoseLine(raw, 0)
-                val detailsLine = displayFormat.longDetailsLine(raw, 0)
-                val builderLong = ComplicationData.Builder(ComplicationData.TYPE_LONG_TEXT)
-                    .setLongTitle(ComplicationText.plainText(detailsLine))
-                    .setLongText(ComplicationText.plainText(glucoseLine))
+    override fun buildComplicationData(
+        type: ComplicationType,
+        data: app.aaps.wear.data.ComplicationData,
+        complicationPendingIntent: PendingIntent
+    ): ComplicationData? {
+        return when (type) {
+            ComplicationType.LONG_TEXT      -> {
+                // Pass EventData arrays directly to DisplayFormat
+                val status = arrayOf(data.statusData, data.statusData1, data.statusData2)
+
+                val bgData = data.bgData
+                val glucose = bgData.sgvString + bgData.slopeArrow
+                val detailsLine = displayFormat.longDetailsLine(status, 0)
+                val sep = displayFormat.fieldSeparator()
+
+                LongTextComplicationData.Builder(
+                    // Age + delta formatted like SgvComplication's title ("5m +0.1")
+                    text = buildCountUpText(bgData.timeStamp, "$glucose ^1 ${bgData.delta}$sep$detailsLine"),
+                    contentDescription = PlainComplicationText.Builder(text = getString(R.string.localization_status_value, "$glucose ${bgData.delta} $detailsLine")).build()
+                )
                     .setTapAction(complicationPendingIntent)
-                complicationData = builderLong.build()
+                    .build()
             }
 
-            else                            -> aapsLogger.warn(LTag.WEAR, "Unexpected complication type $dataType")
+            else                            -> {
+                aapsLogger.warn(LTag.WEAR, "Unexpected complication type $type")
+                null
+            }
         }
-        return complicationData
     }
 
     override fun getProviderCanonicalName(): String = LongStatusFlippedComplication::class.java.canonicalName!!
-    override fun usesSinceField(): Boolean = true
 }

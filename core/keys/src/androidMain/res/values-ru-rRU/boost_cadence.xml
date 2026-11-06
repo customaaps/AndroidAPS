@@ -1,0 +1,4 @@
+<resources>
+    <string name="loop_native_cadence_title">Запуск Loop с частотой сенсора</string>
+    <string name="loop_native_cadence_summary">Общая настройка Loop. При включении запускать цикл для каждого нового показания сенсора. При выключении сохранять пятиминутный интервал. Для пятиминутных сенсоров работа не меняется.</string>
+</resources>

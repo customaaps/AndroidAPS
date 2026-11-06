@@ -1,19 +1,20 @@
 package app.aaps.pump.diaconn.packet
 
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.sharedPreferences.SP
-import dagger.android.HasAndroidInjector
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.diaconn.DiaconnG8Pump
-import javax.inject.Inject
+import app.aaps.pump.diaconn.keys.DiaconnIntKey
+import dev.zacsweers.metro.Inject
 
 /**
  * BolusSpeedInquireResponsePacket
  */
 @Suppress("SpellCheckingInspection")
-class BolusSpeedInquireResponsePacket(injector: HasAndroidInjector) : DiaconnG8Packet(injector) {
+class BolusSpeedInquireResponsePacket(injector: MetroMemberInjector) : DiaconnG8Packet(injector) {
 
     @Inject lateinit var diaconnG8Pump: DiaconnG8Pump
-    @Inject lateinit var sp: SP
+    @Inject lateinit var preferences: Preferences
 
     init {
         msgType = 0x85.toByte()
@@ -37,7 +38,7 @@ class BolusSpeedInquireResponsePacket(injector: HasAndroidInjector) : DiaconnG8P
         }
 
         diaconnG8Pump.speed = getByteToInt(bufferData) //주입속도
-        sp.putString("g8_bolusspeed", diaconnG8Pump.speed.toString())
+        preferences.put(DiaconnIntKey.BolusSpeed, diaconnG8Pump.speed)
 
         aapsLogger.debug(LTag.PUMPCOMM, "Result --> ${diaconnG8Pump.result}")
         aapsLogger.debug(LTag.PUMPCOMM, "bolusSpeed > " + diaconnG8Pump.speed)

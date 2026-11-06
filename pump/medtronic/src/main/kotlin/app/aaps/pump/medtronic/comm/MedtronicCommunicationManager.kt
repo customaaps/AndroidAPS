@@ -2,16 +2,23 @@ package app.aaps.pump.medtronic.comm
 
 import android.os.SystemClock
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.pump.defs.PumpDeviceState
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.utils.DateTimeUtil
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.hw.rileylink.RileyLinkCommunicationManager
-import app.aaps.pump.common.hw.rileylink.RileyLinkConst
+import app.aaps.pump.common.hw.rileylink.RileyLinkUtil
+import app.aaps.pump.common.hw.rileylink.ble.RFSpy
 import app.aaps.pump.common.hw.rileylink.ble.RileyLinkCommunicationException
 import app.aaps.pump.common.hw.rileylink.ble.data.RadioPacket
 import app.aaps.pump.common.hw.rileylink.ble.data.RadioResponse
 import app.aaps.pump.common.hw.rileylink.ble.defs.RLMessageType
+import app.aaps.pump.common.hw.rileylink.keys.RileyLinkLongKey
+import app.aaps.pump.common.hw.rileylink.service.RileyLinkServiceData
+import app.aaps.pump.common.hw.rileylink.service.tasks.ServiceTaskExecutor
 import app.aaps.pump.common.hw.rileylink.service.tasks.WakeAndTuneTask
 import app.aaps.pump.medtronic.MedtronicPumpPlugin
 import app.aaps.pump.medtronic.comm.history.RawHistoryPage
@@ -37,12 +44,13 @@ import app.aaps.pump.medtronic.driver.MedtronicPumpStatus
 import app.aaps.pump.medtronic.util.MedtronicUtil
 import app.aaps.pump.medtronic.util.MedtronicUtil.Companion.createByteArray
 import app.aaps.pump.medtronic.util.MedtronicUtil.Companion.getByteArrayFromUnsignedShort
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import org.joda.time.LocalDateTime
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Original file created by geoff on 5/30/16.
@@ -52,21 +60,54 @@ import javax.inject.Singleton
  * This was mostly rewritten from Original version, and lots of commands and
  * functionality added.
  */
-@Singleton
-class MedtronicCommunicationManager  // This empty constructor must be kept, otherwise dagger injection might break!
-@Inject constructor() : RileyLinkCommunicationManager<PumpMessage?>() {
-
-    @Inject lateinit var medtronicPumpStatus: MedtronicPumpStatus
-    @Inject lateinit var medtronicPumpPlugin: MedtronicPumpPlugin
-    @Inject lateinit var medtronicConverter: MedtronicConverter
-    @Inject lateinit var medtronicUtil: MedtronicUtil
-    @Inject lateinit var medtronicPumpHistoryDecoder: MedtronicPumpHistoryDecoder
+@SingleIn(AppScope::class)
+@Inject
+class MedtronicCommunicationManager(
+    private val medtronicPumpStatus: MedtronicPumpStatus,
+    private val medtronicPumpPlugin: MedtronicPumpPlugin,
+    private val medtronicConverter: MedtronicConverter,
+    private val medtronicUtil: MedtronicUtil,
+    private val medtronicPumpHistoryDecoder: MedtronicPumpHistoryDecoder,
+    aapsLogger: AAPSLogger,
+    preferences: Preferences,
+    rileyLinkServiceData: RileyLinkServiceData,
+    serviceTaskExecutor: ServiceTaskExecutor,
+    rfspy: RFSpy,
+    activePlugin: ActivePlugin,
+    rileyLinkUtil: RileyLinkUtil,
+    wakeAndTuneTaskProvider: () -> WakeAndTuneTask,
+    radioResponseProvider: () -> RadioResponse
+) : RileyLinkCommunicationManager<PumpMessage>(
+    aapsLogger, preferences, rileyLinkServiceData, serviceTaskExecutor, rfspy, activePlugin, rileyLinkUtil, wakeAndTuneTaskProvider, radioResponseProvider
+) {
 
     companion object {
 
         private const val MAX_COMMAND_TRIES = 3
         private const val DEFAULT_TIMEOUT = 2000
         private const val RILEYLINK_TIMEOUT: Long = 15 * 60 * 1000L // 15 min
+
+        /** NAK error code: the pump has no history page with the asked number. */
+        internal const val NAK_PAGE_DOES_NOT_EXIST = 0x0D
+
+        /** The error code of a NAK the pump sent, or null when [response] is not a NAK. */
+        internal fun nakErrorCode(response: PumpMessage): Int? =
+            if (response.commandType == MedtronicCommandType.CommandNAK)
+                response.messageBody?.txData?.firstOrNull()?.toInt()?.and(0xFF) ?: 0
+            else null
+
+        /** A history page comes in this many frames of 64 bytes. */
+        internal const val FRAMES_PER_PAGE = 16
+
+        /** A page that lost a frame is read again, but not more often than this. */
+        private const val MAX_PAGE_ATTEMPTS = 2
+
+        /**
+         * True when the pump sent a later frame than [expectedFrame]: the expected one was lost on the radio,
+         * and the pump took our ACK as the ACK for it. More ACKs only bring later frames.
+         */
+        internal fun pumpSkippedFrame(response: GetHistoryPageCarelinkMessageBody, expectedFrame: Int): Boolean =
+            response.frameData.isNotEmpty() && response.frameNumber in expectedFrame + 1..FRAMES_PER_PAGE
     }
 
     var errorResponse: String? = null
@@ -74,12 +115,8 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
     private val debugSetCommands = false
     private var doWakeUpBeforeCommand = true
 
-    @Inject
-    fun onInit() {
-        // we can't do this in the constructor, as sp only gets injected after the constructor has returned
-        medtronicPumpStatus.previousConnection = sp.getLong(
-            RileyLinkConst.Prefs.LastGoodDeviceCommunicationTime, 0L
-        )
+    init {
+        medtronicPumpStatus.previousConnection = preferences.get(RileyLinkLongKey.LastGoodDeviceCommunicationTime)
     }
 
     override fun createResponseMessage(payload: ByteArray): PumpMessage {
@@ -117,7 +154,7 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
         if (!canPreventTuneUp) {
             val diff = System.currentTimeMillis() - medtronicPumpStatus.lastConnection
             if (diff > RILEYLINK_TIMEOUT) {
-                serviceTaskExecutor.startTask(WakeAndTuneTask(injector))
+                serviceTaskExecutor.startTask(wakeAndTuneTaskProvider())
             }
         }
         return false
@@ -129,19 +166,18 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
         // check connection
         val pumpMsgContent = createPumpMessageContent(RLMessageType.ReadSimpleData) // simple
         val rfSpyResponse = rfspy.transmitThenReceive(
-            RadioPacket(injector, pumpMsgContent), 0.toByte(), 200.toByte(),
-            0.toByte(), 0.toByte(), 25000, 0.toByte()
+            RadioPacket(rileyLinkUtil, pumpMsgContent), 0.toByte(), 200.toByte(), 0.toByte(), 0.toByte(), 25000, 0.toByte()
         )
-        aapsLogger.info(LTag.PUMPCOMM, "wakeup: raw response is " + ByteUtil.shortHexString(rfSpyResponse.raw))
-        if (rfSpyResponse.wasTimeout()) {
+        aapsLogger.info(LTag.PUMPCOMM, "wakeup: raw response is " + ByteUtil.shortHexString(rfSpyResponse?.raw))
+        if (rfSpyResponse?.wasTimeout() == true) {
             aapsLogger.error(LTag.PUMPCOMM, "isDeviceReachable. Failed to find pump (timeout).")
-        } else if (rfSpyResponse.looksLikeRadioPacket()) {
-            val radioResponse = RadioResponse(injector)
+        } else if (rfSpyResponse?.looksLikeRadioPacket() == true) {
+            val radioResponse = radioResponseProvider()
             try {
                 radioResponse.init(rfSpyResponse.raw)
-                if (radioResponse.isValid) {
-                    val pumpResponse = createResponseMessage(radioResponse.payload)
-                    if (!pumpResponse.isValid) {
+                if (radioResponse.isValid()) {
+                    val pumpResponse = createResponseMessage(radioResponse.getPayload())
+                    if (!pumpResponse.isValid()) {
                         aapsLogger.warn(
                             LTag.PUMPCOMM, String.format(
                                 Locale.ENGLISH, "Response is invalid ! [interrupted=%b, timeout=%b]", rfSpyResponse.wasInterrupted(),
@@ -181,14 +217,14 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
                             + ByteUtil.shortHexString(rfSpyResponse.raw)
                     )
                 }
-            } catch (e: RileyLinkCommunicationException) {
+            } catch (_: RileyLinkCommunicationException) {
                 aapsLogger.warn(
                     LTag.PUMPCOMM, "isDeviceReachable. Failed to decode radio response: "
                         + ByteUtil.shortHexString(rfSpyResponse.raw)
                 )
             }
         } else {
-            aapsLogger.warn(LTag.PUMPCOMM, "isDeviceReachable. Unknown response: " + ByteUtil.shortHexString(rfSpyResponse.raw))
+            aapsLogger.warn(LTag.PUMPCOMM, "isDeviceReachable. Unknown response: " + ByteUtil.shortHexString(rfSpyResponse?.raw))
         }
         return false
     }
@@ -200,15 +236,15 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
     @Throws(RileyLinkCommunicationException::class)
     private fun runCommandWithArgs(msg: PumpMessage): PumpMessage {
         if (debugSetCommands) aapsLogger.debug(LTag.PUMPCOMM, "Run command with Args: ")
-        val rval: PumpMessage
+        val rVal: PumpMessage
         val shortMessage = makePumpMessage(msg.commandType, CarelinkShortMessageBody(byteArrayOf(0)))
         // look for ack from short message
         val shortResponse = sendAndListen(shortMessage)
         return if (shortResponse.commandType === MedtronicCommandType.CommandACK) {
             if (debugSetCommands) aapsLogger.debug(LTag.PUMPCOMM, "Run command with Args: Got ACK response")
-            rval = sendAndListen(msg)
-            if (debugSetCommands) aapsLogger.debug(LTag.PUMPCOMM, "2nd Response: $rval")
-            rval
+            rVal = sendAndListen(msg)
+            if (debugSetCommands) aapsLogger.debug(LTag.PUMPCOMM, "2nd Response: $rVal")
+            rVal
         } else {
             aapsLogger.error(LTag.PUMPCOMM, "runCommandWithArgs: Pump did not ack Attention packet")
             PumpMessage(aapsLogger, "No ACK after Attention packet.")
@@ -219,7 +255,7 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
     @Throws(RileyLinkCommunicationException::class)
     private fun runCommandWithFrames(commandType: MedtronicCommandType, frames: List<List<Byte>>): PumpMessage? {
         aapsLogger.debug(LTag.PUMPCOMM, "Run command with Frames: " + commandType.name)
-        var rval: PumpMessage? = null
+        var rVal: PumpMessage? = null
         val shortMessage = makePumpMessage(commandType, CarelinkShortMessageBody(byteArrayOf(0)))
         // look for ack from short message
         val shortResponse = sendAndListen(shortMessage)
@@ -235,15 +271,15 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
 
             // aapsLogger.debug(LTag.PUMPCOMM,"Frame {} data:\n{}", frameNr, ByteUtil.getCompactString(frameData));
             val msg = makePumpMessage(commandType, CarelinkLongMessageBody(frameData))
-            rval = sendAndListen(msg)
+            rVal = sendAndListen(msg)
 
             // aapsLogger.debug(LTag.PUMPCOMM,"PumpResponse: " + rval);
-            if (rval.commandType !== MedtronicCommandType.CommandACK) {
+            if (rVal.commandType !== MedtronicCommandType.CommandACK) {
                 aapsLogger.error(LTag.PUMPCOMM, "runCommandWithFrames: Pump did not ACK frame #$frameNr")
                 aapsLogger.error(
                     LTag.PUMPCOMM, String.format(
                         Locale.ENGLISH, "Run command with Frames FAILED (command=%s, response=%s)", commandType.name,
-                        rval.toString()
+                        rVal.toString()
                     )
                 )
                 return PumpMessage(aapsLogger, "No ACK after frame #$frameNr")
@@ -252,7 +288,7 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
             }
             frameNr++
         }
-        return rval
+        return rVal
     }
 
     fun getPumpHistory(lastEntry: PumpHistoryEntry?, targetDate: LocalDateTime?): PumpHistoryResult {
@@ -262,7 +298,7 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
         medtronicPumpStatus.pumpDeviceState = PumpDeviceState.Active
         var doneWithError = false
         for (pageNumber in 0..4) {
-            val rawHistoryPage = RawHistoryPage(aapsLogger)
+            var rawHistoryPage = RawHistoryPage(aapsLogger)
             // wakeUp(receiverDeviceAwakeForMinutes, false);
             val getHistoryMsg = makePumpMessage(
                 MedtronicCommandType.GetHistoryData,
@@ -271,31 +307,37 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
             aapsLogger.info(LTag.PUMPCOMM, "getPumpHistory: Page $pageNumber")
             // aapsLogger.info(LTag.PUMPCOMM,"getPumpHistoryPage("+pageNumber+"): "+ByteUtil.shortHexString(getHistoryMsg.getTxData()));
             // Ask the pump to transfer history (we get first frame?)
-            var firstResponse: PumpMessage? = null
-            var failed = false
             medtronicUtil.setCurrentCommand(MedtronicCommandType.GetHistoryData, pageNumber, null)
-            for (retries in 0 until MAX_COMMAND_TRIES) {
-                try {
-                    firstResponse = runCommandWithArgs(getHistoryMsg)
-                    failed = false
-                    break
-                } catch (e: RileyLinkCommunicationException) {
-                    aapsLogger.error(LTag.PUMPCOMM, String.format(Locale.ENGLISH, "First call for PumpHistory failed (retry=%d)", retries))
-                    failed = true
-                }
+            val firstResponse = requestHistoryPage(getHistoryMsg)
+            if (firstResponse == null) {
+                aapsLogger.error(LTag.PUMPCOMM, "getPumpHistory: Page $pageNumber could not be asked for, the read failed.")
+                pumpTotalResult.readFailed = true
+                medtronicPumpStatus.pumpDeviceState = PumpDeviceState.Sleeping
+                return pumpTotalResult
             }
-            if (failed) {
+
+            // The pump answers a page it does not have with a NAK. Its error code was read as a frame
+            // number ("expected 1, received 13"), and the ACKs sent to retry were never answered:
+            // every history read lost about 80 s in timeouts before it gave up.
+            nakErrorCode(firstResponse)?.let { errorCode ->
+                if (errorCode == NAK_PAGE_DOES_NOT_EXIST)
+                    aapsLogger.info(LTag.PUMPCOMM, "getPumpHistory: Page $pageNumber does not exist, there is no older history")
+                else {
+                    aapsLogger.error(LTag.PUMPCOMM, String.format(Locale.ENGLISH, "getPumpHistory: Pump refused page %d (NAK, error 0x%02X)", pageNumber, errorCode))
+                    pumpTotalResult.readFailed = true
+                }
                 medtronicPumpStatus.pumpDeviceState = PumpDeviceState.Sleeping
                 return pumpTotalResult
             }
 
             // aapsLogger.info(LTag.PUMPCOMM,"getPumpHistoryPage("+pageNumber+"): " + ByteUtil.shortHexString(firstResponse.getContents()));
             val ackMsg = makePumpMessage(MedtronicCommandType.CommandACK, PumpAckMessageBody())
-            var currentResponse = GetHistoryPageCarelinkMessageBody(firstResponse!!.messageBody!!.txData)
+            var currentResponse = GetHistoryPageCarelinkMessageBody(firstResponse.messageBody!!.txData)
             var expectedFrameNum = 1
             var done = false
             // while (expectedFrameNum == currentResponse.getFrameNumber()) {
             var failures = 0
+            var pageAttempt = 1
             while (!done) {
                 // examine current response for problems.
                 val frameData = currentResponse.frameData
@@ -320,6 +362,32 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
                     } else {
                         done = true // successful completion
                     }
+                } else if (pumpSkippedFrame(currentResponse, expectedFrameNum)) {
+                    // Sending the ACK again, as below, only brought later frames until it gave up after 6 tries.
+                    aapsLogger.warn(
+                        LTag.PUMPCOMM, String.format(
+                            Locale.ENGLISH, "getPumpHistory: Frame %d of page %d was lost, the pump sent frame %d",
+                            expectedFrameNum, pageNumber, currentResponse.frameNumber
+                        )
+                    )
+                    finishHistoryPage(ackMsg, currentResponse)
+                    val firstFrame =
+                        if (pageAttempt < MAX_PAGE_ATTEMPTS) {
+                            pageAttempt++
+                            aapsLogger.info(LTag.PUMPCOMM, "getPumpHistory: Reading page $pageNumber again")
+                            requestHistoryPage(getHistoryMsg)?.takeIf { nakErrorCode(it) == null }
+                        } else null
+                    if (firstFrame == null) {
+                        aapsLogger.error(LTag.PUMPCOMM, "getPumpHistory: Page $pageNumber could not be read, giving up.")
+                        done = true
+                        doneWithError = true
+                    } else {
+                        rawHistoryPage = RawHistoryPage(aapsLogger)
+                        expectedFrameNum = 1
+                        failures = 0
+                        currentResponse = GetHistoryPageCarelinkMessageBody(firstFrame.messageBody!!.txData)
+                    }
+                    continue
                 } else {
                     if (frameData.isEmpty()) {
                         aapsLogger.error(LTag.PUMPCOMM, "null frame data, retrying")
@@ -345,7 +413,7 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
                         try {
                             nextMsg = sendAndListen(ackMsg)
                             break
-                        } catch (e: RileyLinkCommunicationException) {
+                        } catch (_: RileyLinkCommunicationException) {
                             aapsLogger.error(LTag.PUMPCOMM, String.format(Locale.ENGLISH, "Problem acknowledging frame response. (retry=%d)", retries))
                         }
                     }
@@ -368,6 +436,9 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
                 doneWithError = true
             }
             if (doneWithError) {
+                // The pages before this one were read, but the entries on this page are missing. Processed without them,
+                // a temp basal was ended by the wrong entry, and the missing ones were never read again (#3378).
+                pumpTotalResult.readFailed = true
                 medtronicPumpStatus.pumpDeviceState = PumpDeviceState.Sleeping
                 return pumpTotalResult
             }
@@ -385,11 +456,46 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
         return pumpTotalResult
     }
 
+    /** Asks the pump for a history page. Returns its first reply, or null when the pump did not answer. */
+    private fun requestHistoryPage(getHistoryMsg: PumpMessage): PumpMessage? {
+        for (retries in 0 until MAX_COMMAND_TRIES) {
+            try {
+                val reply = runCommandWithArgs(getHistoryMsg)
+                // No ACK to the attention packet: the pump did not start the page. This reply was taken as the
+                // first frame, and ACKing a page that never started timed out for about 70 s.
+                if (!reply.isErrorResponse) return reply
+                aapsLogger.error(LTag.PUMPCOMM, String.format(Locale.ENGLISH, "First call for PumpHistory got no ACK (retry=%d)", retries))
+            } catch (_: RileyLinkCommunicationException) {
+                aapsLogger.error(LTag.PUMPCOMM, String.format(Locale.ENGLISH, "First call for PumpHistory failed (retry=%d)", retries))
+            }
+        }
+        return null
+    }
+
+    /**
+     * Sends ACKs until the pump sent the last frame of the page. The pump then waits for a new command, the
+     * same way as after a page that was read without a problem.
+     */
+    private fun finishHistoryPage(ackMsg: PumpMessage, response: GetHistoryPageCarelinkMessageBody) {
+        var current = response
+        var acks = 0
+        while (!current.wasLastFrame() && current.frameNumber != FRAMES_PER_PAGE && acks < FRAMES_PER_PAGE) {
+            acks++
+            val next = try {
+                sendAndListen(ackMsg)
+            } catch (_: RileyLinkCommunicationException) {
+                aapsLogger.warn(LTag.PUMPCOMM, "getPumpHistory: No answer to an ACK, the page may have ended")
+                return
+            }
+            current = GetHistoryPageCarelinkMessageBody(next.messageBody?.txData ?: byteArrayOf())
+        }
+    }
+
     override fun createPumpMessageContent(type: RLMessageType): ByteArray {
         return when (type) {
             RLMessageType.PowerOn        -> medtronicUtil.buildCommandPayload(rileyLinkServiceData, MedtronicCommandType.RFPowerOn, byteArrayOf(2, 1, receiverDeviceAwakeForMinutes.toByte()))
             RLMessageType.ReadSimpleData -> medtronicUtil.buildCommandPayload(rileyLinkServiceData, MedtronicCommandType.PumpModel, null)
-            else                         -> ByteArray(0)
+            // else                         -> ByteArray(0)
         }
     }
 
@@ -430,11 +536,6 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
     @Throws(RileyLinkCommunicationException::class)
     private fun sendAndListen(msg: PumpMessage): PumpMessage {
         return sendAndListen(msg, 4000) // 2000
-    }
-
-    // All pump communications go through this function.
-    @Throws(RileyLinkCommunicationException::class) private /*override*/ fun sendAndListen(msg: PumpMessage, timeout_ms: Int): PumpMessage {
-        return super.sendAndListen(msg, timeout_ms)!!
     }
 
     private inline fun <reified T> sendAndGetResponseWithCheck(
@@ -485,7 +586,7 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
     }
 
     private fun checkResponseContent(response: PumpMessage, method: String, expectedLength: Int): String? {
-        if (!response.isValid) {
+        if (!response.isValid()) {
             val responseData = String.format("%s: Invalid response.", method)
             aapsLogger.warn(LTag.PUMPCOMM, responseData)
             return responseData

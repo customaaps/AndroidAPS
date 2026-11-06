@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Calibration management screen -->
+
+    <!-- Russian coverage for current interface -->
+    <string name="no_calibration_name">Без калибровки</string>
+    <string name="description_no_calibration">\"Коррекция калибровки не применяется. Значения сенсора используются без изменений. Используйте этот режим, если сенсор уже откалиброван на заводе и показывает точные значения.\"</string>
+    <string name="linear_calibration_name">Линейная калибровка</string>
+    <string name="description_linear_calibration">\"Индивидуальная линейная коррекция показаний сенсора (наклон и смещение) рассчитывается по введённым измерениям глюкометром. Недавние измерения имеют больший вес. Коррекция применяется с начала текущего сеанса сенсора; первые 2 часа пропускаются для прогрева.\"</string>
+    <string name="sensor_change_detected_text">Возможно, сенсор был заменён в %1$s. Отметить установку нового сенсора?</string>
+    <string name="sensor_change_detected_action">Отметить замену сенсора</string>
+    <string name="cal_status_no_session">Зарегистрируйте замену сенсора, чтобы включить калибровку.</string>
+    <string name="cal_status_warmup">Прогрев сенсора — калибровка начнётся после %1$s.</string>
+    <string name="cal_status_need_more_entries">Нужно не менее 2 измерений глюкометром (сейчас %1$d).</string>
+    <string name="cal_status_unsafe_fit">Расчётные параметры вне безопасного диапазона — калибровка не применяется.</string>
+    <string name="cal_status_applied">Калибровка применяется.</string>
+    <string name="cal_status_applied_offset_only">Применяется только коррекция смещения — диапазон показаний сенсора слишком узок для расчёта наклона.</string>
+    <string name="cal_status_applied_slope_clamped">Калибровка применяется — наклон ограничен безопасным диапазоном. Добавьте измерения для уточнения.</string>
+    <string name="cal_slope_offset">Наклон %1$.2f, коррекция в середине диапазона %2$s</string>
+    <string name="cal_session_started">Сеанс начат: %1$s</string>
+    <string name="cal_mark_sensor_change_now">Зарегистрировать замену сенсора</string>
+    <string name="cal_add_calibration">Добавить калибровку</string>
+    <string name="cal_entries_header">Измерения глюкометром (%1$d)</string>
+    <string name="cal_no_entries">Измерений глюкометром пока нет.</string>
+    <string name="cal_entry_pair">Глюкометр %1$s → сенсор %2$s (Δ %3$s)</string>
+    <string name="cal_chart_entry_readout">Измерение %1$d/%2$d · %3$s · сенсор %4$s → BG %5$s</string>
+</resources>

@@ -2,16 +2,17 @@ package app.aaps.pump.equil.manager.command
 
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.utils.notify
 import app.aaps.pump.equil.database.EquilHistoryRecord
 import app.aaps.pump.equil.manager.EquilManager
 import app.aaps.pump.equil.manager.Utils
 
 class CmdDevicesGet(
     aapsLogger: AAPSLogger,
-    sp: SP,
+    preferences: Preferences,
     equilManager: EquilManager
-) : BaseSetting(System.currentTimeMillis(), aapsLogger, sp, equilManager) {
+) : BaseSetting(System.currentTimeMillis(), aapsLogger, preferences, equilManager) {
 
     init {
         port = "0000"
@@ -43,10 +44,10 @@ class CmdDevicesGet(
         )
         equilManager.setFirmwareVersion(firmwareVersion)
         synchronized(this) {
-            cmdStatus = true
-            (this as Object).notify()
+            cmdSuccess = true
+            notify()
         }
     }
 
-    override fun getEventType(): EquilHistoryRecord.EventType? = EquilHistoryRecord.EventType.READ_DEVICES
+    override fun getEventType(): EquilHistoryRecord.EventType = EquilHistoryRecord.EventType.READ_DEVICES
 }

@@ -1,5 +1,9 @@
 package info.nightscout.comboctl.base
 
+import info.nightscout.comboctl.base.ApplicationLayer.MAX_VALID_PAYLOAD_SIZE
+import info.nightscout.comboctl.base.ApplicationLayer.createCMDDeliverBolusPacket
+import info.nightscout.comboctl.base.ApplicationLayer.createCMDReadHistoryBlockPacket
+import info.nightscout.comboctl.base.ApplicationLayer.parseCMDReadHistoryBlockResponsePacket
 import kotlinx.datetime.LocalDateTime
 
 private val logger = Logger.get("ApplicationLayer")
@@ -397,47 +401,47 @@ object ApplicationLayer {
      * IMPORTANT: Bolus amounts are given in 0.1 IU units,
      * so for example, "57" means 5.7 IU.
      */
-    sealed class CMDHistoryEventDetail(val isBolusDetail: Boolean) {
+    sealed class CMDHistoryEventDetail {
 
-        data class QuickBolusRequested(val bolusAmount: Int) : CMDHistoryEventDetail(isBolusDetail = true)
-        data class QuickBolusInfused(val bolusAmount: Int) : CMDHistoryEventDetail(isBolusDetail = true)
+        data class QuickBolusRequested(val bolusAmount: Int) : CMDHistoryEventDetail()
+        data class QuickBolusInfused(val bolusAmount: Int) : CMDHistoryEventDetail()
         data class StandardBolusRequested(
             val bolusAmount: Int,
             val manual: Boolean
-        ) : CMDHistoryEventDetail(isBolusDetail = true)
+        ) : CMDHistoryEventDetail()
 
         data class StandardBolusInfused(
             val bolusAmount: Int,
             val manual: Boolean
-        ) : CMDHistoryEventDetail(isBolusDetail = true)
+        ) : CMDHistoryEventDetail()
 
         data class ExtendedBolusStarted(
             val totalBolusAmount: Int,
             val totalDurationMinutes: Int,
             val manual: Boolean
-        ) : CMDHistoryEventDetail(isBolusDetail = true)
+        ) : CMDHistoryEventDetail()
 
         data class ExtendedBolusEnded(
             val totalBolusAmount: Int,
             val totalDurationMinutes: Int,
             val manual: Boolean
-        ) : CMDHistoryEventDetail(isBolusDetail = true)
+        ) : CMDHistoryEventDetail()
 
         data class MultiwaveBolusStarted(
             val totalBolusAmount: Int,
             val immediateBolusAmount: Int,
             val totalDurationMinutes: Int,
             val manual: Boolean
-        ) : CMDHistoryEventDetail(isBolusDetail = true)
+        ) : CMDHistoryEventDetail()
 
         data class MultiwaveBolusEnded(
             val totalBolusAmount: Int,
             val immediateBolusAmount: Int,
             val totalDurationMinutes: Int,
             val manual: Boolean
-        ) : CMDHistoryEventDetail(isBolusDetail = true)
+        ) : CMDHistoryEventDetail()
 
-        data class NewDateTimeSet(val dateTime: LocalDateTime) : CMDHistoryEventDetail(isBolusDetail = false)
+        data class NewDateTimeSet(val dateTime: LocalDateTime) : CMDHistoryEventDetail()
     }
 
     /**
@@ -1227,8 +1231,8 @@ object ApplicationLayer {
             second = payload[8].toPosInt(),
             minute = payload[7].toPosInt(),
             hour = payload[6].toPosInt(),
-            dayOfMonth = payload[5].toPosInt(),
-            monthNumber = payload[4].toPosInt(),
+            day = payload[5].toPosInt(),
+            month = payload[4].toPosInt(),
             year = (payload[2].toPosInt() shl 0) or (payload[3].toPosInt() shl 8)
         )
 
@@ -1348,6 +1352,11 @@ object ApplicationLayer {
                 "number of events: $numEvents"
         }
 
+        // The oldest events were lost before we could read them. Log this at a level
+        // that is kept in the logs, so a report of missing boluses can be checked later.
+        if (historyGap)
+            logger(LogLevel.WARN) { "History gap: the pump overwrote its oldest history events before they were read" }
+
         val events = mutableListOf<CMDHistoryEvent>()
         for (eventIndex in 0 until numEvents) {
             val payloadOffset = 7 + eventIndex * 18
@@ -1363,8 +1372,8 @@ object ApplicationLayer {
                     ((payload[payloadOffset + 1].toPosInt() and 0b00001111) shl 2),
                 hour = ((payload[payloadOffset + 1].toPosInt() and 0b11110000) ushr 4) or
                     ((payload[payloadOffset + 2].toPosInt() and 0b00000001) shl 4),
-                dayOfMonth = (payload[payloadOffset + 2].toPosInt() and 0b00111110) ushr 1,
-                monthNumber = ((payload[payloadOffset + 2].toPosInt() and 0b11000000) ushr 6) or
+                day = (payload[payloadOffset + 2].toPosInt() and 0b00111110) ushr 1,
+                month = ((payload[payloadOffset + 2].toPosInt() and 0b11000000) ushr 6) or
                     ((payload[payloadOffset + 3].toPosInt() and 0b00000011) shl 2),
                 year = ((payload[payloadOffset + 3].toPosInt() and 0b11111100) ushr 2) + 2000
             )
@@ -1557,8 +1566,8 @@ object ApplicationLayer {
                             ((detailBytes[1].toPosInt() and 0b00001111) shl 2),
                         hour = ((detailBytes[1].toPosInt() and 0b11110000) ushr 4) or
                             ((detailBytes[2].toPosInt() and 0b00000001) shl 4),
-                        dayOfMonth = (detailBytes[2].toPosInt() and 0b00111110) ushr 1,
-                        monthNumber = ((detailBytes[2].toPosInt() and 0b11000000) ushr 6) or
+                        day = (detailBytes[2].toPosInt() and 0b00111110) ushr 1,
+                        month = ((detailBytes[2].toPosInt() and 0b11000000) ushr 6) or
                             ((detailBytes[3].toPosInt() and 0b00000011) shl 2),
                         year = ((detailBytes[3].toPosInt() and 0b11111100) ushr 2) + 2000
                     )

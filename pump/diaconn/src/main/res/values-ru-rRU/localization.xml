@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_pump_not_initialized">Помпа не инициализирована</string>
+    <string name="localization_undefined_error_code">Неизвестный код ошибки: %1$d</string>
+    <string name="localization_history_meal_bolus_success">Болюс на еду завершён</string>
+    <string name="localization_history_meal_bolus_fail">Ошибка болюса на еду</string>
+    <string name="localization_history_bolus_success">Болюс завершён</string>
+    <string name="localization_history_bolus_fail">Ошибка болюса</string>
+    <string name="localization_history_extended_bolus_start">Растянутый болюс запущен</string>
+    <string name="localization_history_extended_bolus_end">Растянутый болюс завершён</string>
+    <string name="localization_history_extended_bolus_fail">Ошибка растянутого болюса</string>
+    <string name="localization_history_dual_extended_start">Растянутая часть двойного болюса запущена</string>
+    <string name="localization_history_dual_bolus">Двойной болюс</string>
+    <string name="localization_history_dual_bolus_square_success">Растянутая часть двойного болюса завершена</string>
+    <string name="localization_history_dual_bolus_fail">Ошибка двойного болюса</string>
+    <string name="localization_history_suspend">Введение приостановлено</string>
+    <string name="localization_history_suspend_release">Введение возобновлено</string>
+    <string name="localization_history_insulin_change">Инсулин заменён</string>
+    <string name="localization_history_tube_change">Инфузионная трубка заменена</string>
+    <string name="localization_history_daily_bolus">Суточный болюс</string>
+    <string name="localization_history_daily_basal">Суточный базал</string>
+    <string name="localization_history_needle_change">Канюля заменена</string>
+    <string name="localization_history_temp_start">Временный базал запущен</string>
+    <string name="localization_history_temp_stop">Временный базал остановлен</string>
+    <string name="localization_history_battery_alarm">Сигнал тревоги батареи</string>
+    <string name="localization_history_block_alarm">Сигнал окклюзии</string>
+    <string name="localization_history_short_age_alarm">Сигнал низкого уровня инсулина</string>
+    <string name="localization_history_reset">Сброс</string>
+</resources>

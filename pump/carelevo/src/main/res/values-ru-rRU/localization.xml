@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="localization_profile_not_set">Профиль не задан</string>
+    <string name="localization_missing_patch_address">Адрес патч-помпы отсутствует</string>
+    <string name="localization_another_bolus_in_progress">Уже вводится другой болюс</string>
+    <string name="localization_internal_error">Внутренняя ошибка</string>
+    <string name="localization_stop_result">Результат остановки: %1$d</string>
+    <string name="localization_resume_result">Результат возобновления: %1$d</string>
+</resources>

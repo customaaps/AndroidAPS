@@ -1,35 +1,44 @@
 package app.aaps.pump.eopatch.ble
 
 import android.content.Context
-import android.content.Intent
 import app.aaps.core.data.model.TE
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.AlarmSound
+import app.aaps.core.interfaces.notifications.NotificationId
+import app.aaps.core.interfaces.notifications.NotificationLevel
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.interfaces.rx.events.EventCustomActionsChanged
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.eopatch.R
 import app.aaps.pump.eopatch.RxAction
 import app.aaps.pump.eopatch.alarm.AlarmCode
 import app.aaps.pump.eopatch.alarm.IAlarmRegistry
-import app.aaps.pump.eopatch.code.SettingKeys.Companion.BUZZER_REMINDERS
-import app.aaps.pump.eopatch.code.SettingKeys.Companion.EXPIRATION_REMINDERS
-import app.aaps.pump.eopatch.code.SettingKeys.Companion.LOW_RESERVOIR_REMINDERS
 import app.aaps.pump.eopatch.core.scan.BleConnectionState
 import app.aaps.pump.eopatch.core.scan.IPatchScanner
 import app.aaps.pump.eopatch.core.scan.PatchScanner
 import app.aaps.pump.eopatch.core.scan.ScanList
 import app.aaps.pump.eopatch.event.EventPatchActivationNotComplete
-import app.aaps.pump.eopatch.ui.DialogHelperActivity
+import app.aaps.pump.eopatch.keys.EopatchBooleanKey
+import app.aaps.pump.eopatch.keys.EopatchIntKey
 import app.aaps.pump.eopatch.vo.Alarms
 import app.aaps.pump.eopatch.vo.PatchConfig
 import app.aaps.pump.eopatch.vo.PatchState
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
@@ -38,12 +47,18 @@ import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.functions.Consumer
 import io.reactivex.rxjava3.functions.Function
 import io.reactivex.rxjava3.functions.Predicate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-import javax.inject.Singleton
+import kotlin.time.Duration.Companion.hours
 
-@Singleton
-class PatchManager @Inject constructor(
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
+@Inject
+class PatchManager(
     private val aapsPatchManager: PatchManagerExecutor,
     private val pm: PreferenceManager,
     private val alarms: Alarms,
@@ -51,21 +66,25 @@ class PatchManager @Inject constructor(
     private val rh: ResourceHelper,
     private val rxBus: RxBus,
     private val context: Context,
-    private val sp: SP,
+    private val preferences: Preferences,
     private val pumpSync: PumpSync,
     private val dateUtil: DateUtil,
     private val rxAction: RxAction,
     private val aapsSchedulers: AapsSchedulers,
-    private val alarmRegistry: IAlarmRegistry
+    private val alarmRegistry: IAlarmRegistry,
+    private val aapsLogger: AAPSLogger,
+    private val notificationManager: NotificationManager
 ) : IPatchManager {
 
     private val compositeDisposable = CompositeDisposable()
 
-    private var patchScanner: IPatchScanner = PatchScanner(context)
+    // App lifetime, like the CompositeDisposable above: this is a singleton that never tears down.
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private val patchScanner: IPatchScanner by lazy { PatchScanner(context, aapsLogger) }
     private var mConnectingDisposable: Disposable? = null
 
-    @Inject
-    fun onInit() {
+    init {
         compositeDisposable.add(
             aapsPatchManager.observePatchConnectionState()
                 .subscribe(Consumer { bleConnectionState: BleConnectionState ->
@@ -93,19 +112,18 @@ class PatchManager @Inject constructor(
                     }
                 })
         )
-        compositeDisposable.add(
-            rxBus
-                .toObservable<EventPatchActivationNotComplete>(EventPatchActivationNotComplete::class.java)
-                .observeOn(aapsSchedulers.io)
-                .subscribeOn(aapsSchedulers.main)
-                .subscribe(Consumer {
-                    val i = Intent(context, DialogHelperActivity::class.java)
-                    i.putExtra("title", rh.gs(R.string.patch_activate_reminder_title))
-                    i.putExtra("message", rh.gs(R.string.patch_activate_reminder_desc))
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(i)
-                })
-        )
+        // App lifetime scope, matching the CompositeDisposable here which is never cleared. IO, like
+        // observeOn(aapsSchedulers.io). UNDISPATCHED because RxBus has no replay, so a scheduled
+        // collector could miss an alert sent before it starts.
+        rxBus.toFlow(EventPatchActivationNotComplete::class)
+            .collectResilient(scope, aapsLogger, LTag.PUMP, start = CoroutineStart.UNDISPATCHED) {
+                notificationManager.post(
+                    id = NotificationId.EOFLOW_PATCH_ALERT,
+                    text = rh.gs(R.string.patch_activate_reminder_desc),
+                    level = NotificationLevel.URGENT,
+                    sound = AlarmSound.ALARM
+                )
+            }
     }
 
     override fun init() {
@@ -136,22 +154,27 @@ class PatchManager @Inject constructor(
                 if (success) {
                     pumpSync.connectNewPump(true)
                     Thread.sleep(1000)
-                    pumpSync.insertTherapyEventIfNewWithTimestamp(
-                        System.currentTimeMillis(),
-                        TE.Type.CANNULA_CHANGE,
-                        null,
-                        null,
-                        PumpType.EOFLOW_EOPATCH2,
-                        patchConfig.patchSerialNumber
-                    )
-                    pumpSync.insertTherapyEventIfNewWithTimestamp(
-                        System.currentTimeMillis(),
-                        TE.Type.INSULIN_CHANGE,
-                        null,
-                        null,
-                        PumpType.EOFLOW_EOPATCH2,
-                        patchConfig.patchSerialNumber
-                    )
+                    runBlocking {
+                        pumpSync.insertTherapyEventIfNewWithTimestamp(
+                            System.currentTimeMillis(),
+                            TE.Type.CANNULA_CHANGE,
+                            null,
+                            null,
+                            PumpType.EOFLOW_EOPATCH2,
+                            patchConfig.patchSerialNumber
+                        )
+                        pumpSync.insertTherapyEventIfNewWithTimestamp(
+                            System.currentTimeMillis(),
+                            TE.Type.INSULIN_CHANGE,
+                            null,
+                            null,
+                            PumpType.EOFLOW_EOPATCH2,
+                            patchConfig.patchSerialNumber
+                        )
+                    }
+                    // A patch is active again: the loop ends its "suspended by pump" mode on this event, not at its
+                    // next run. connectNewPump above has already ended the no-patch temp basal.
+                    rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.CONNECTED))
                 }
             })
     }
@@ -166,19 +189,21 @@ class PatchManager @Inject constructor(
         val detailedBolusInfo = originalDetailedBolusInfo.copy()
 
         if (detailedBolusInfo.insulin > 0) {
-            pumpSync.syncBolusWithPumpId(
-                dateUtil.now(),  // Use real timestamp to have it different from carbs (otherwise NS sync fail)
-                detailedBolusInfo.insulin,
-                detailedBolusInfo.bolusType,
-                dateUtil.now(),
-                PumpType.EOFLOW_EOPATCH2,
-                patchConfig.patchSerialNumber
-            )
+            runBlocking {
+                pumpSync.syncBolusWithPumpId(
+                    dateUtil.now(),  // Use real timestamp to have it different from carbs (otherwise NS sync fail)
+                    PumpInsulin(detailedBolusInfo.insulin),
+                    detailedBolusInfo.bolusType,
+                    dateUtil.now(),
+                    PumpType.EOFLOW_EOPATCH2,
+                    patchConfig.patchSerialNumber
+                )
+            }
         }
     }
 
     override fun changeBuzzerSetting() {
-        val buzzer = sp.getBoolean(BUZZER_REMINDERS, false)
+        val buzzer = preferences.get(EopatchBooleanKey.BuzzerReminder)
         if (patchConfig.infoReminder != buzzer) {
             if (patchConfig.isActivated) {
                 compositeDisposable.add(
@@ -197,8 +222,8 @@ class PatchManager @Inject constructor(
     }
 
     override fun changeReminderSetting() {
-        val doseUnit = sp.getInt(LOW_RESERVOIR_REMINDERS, 0)
-        val hours = sp.getInt(EXPIRATION_REMINDERS, 0)
+        val doseUnit = preferences.get(EopatchIntKey.LowReservoirReminder)
+        val hours = preferences.get(EopatchIntKey.ExpirationReminder)
         val pc: PatchConfig = patchConfig
         if (pc.lowReservoirAlertAmount != doseUnit || pc.patchExpireAlertTime != hours) {
             if (patchConfig.isActivated) {
@@ -207,9 +232,9 @@ class PatchManager @Inject constructor(
                         .observeOn(aapsSchedulers.main)
                         .doOnSubscribe(Consumer {
                             if (pc.patchExpireAlertTime != hours) {
-                                Maybe.just<AlarmCode>(AlarmCode.B000)
-                                    .flatMap<AlarmCode>(Function { alarmCode: AlarmCode -> alarmRegistry.remove(alarmCode) })
-                                    .flatMap<AlarmCode>(Function { alarmCode: AlarmCode -> alarmRegistry.add(alarmCode, (pc.expireTimestamp - System.currentTimeMillis() - TimeUnit.HOURS.toMillis(hours.toLong())), false) })
+                                Maybe.just(AlarmCode.B000)
+                                    .flatMap(Function { alarmCode: AlarmCode -> alarmRegistry.remove(alarmCode) })
+                                    .flatMap(Function { alarmCode: AlarmCode -> alarmRegistry.add(alarmCode, (pc.expireTimestamp - System.currentTimeMillis() - hours.toLong().hours.inWholeMilliseconds), false) })
                                     .subscribe()
                             }
                         })
@@ -232,7 +257,7 @@ class PatchManager @Inject constructor(
             && !alarms.isOccurring(AlarmCode.A005)
             && !alarms.isOccurring(AlarmCode.A020)
         ) {
-            rxAction.runOnMainThread(Runnable { rxBus.send(EventPatchActivationNotComplete()) })
+            rxAction.runOnMainThread({ rxBus.send(EventPatchActivationNotComplete()) })
         }
     }
 }

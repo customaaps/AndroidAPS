@@ -1,0 +1,120 @@
+name: Boost KMP port integration
+
+on:
+  workflow_dispatch:
+  push:
+    # Always validate the dedicated port branch: changes in shared Gradle/build logic
+    # and core libraries can break Boost without touching plugins/boost-port/**.
+    branches: [nigthscout-dev-boost-port-20261026, 'boost-verify/**']
+
+concurrency:
+  group: boost-port-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  boost-port:
+    name: boost-${{ matrix.suite }}
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [engine, android, apk]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Read JDK version
+        id: jdk
+        run: echo "version=$(jq -r '.default' .github/jdk-map.json)" >> "$GITHUB_OUTPUT"
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.jdk.outputs.version }}
+          cache: gradle
+      - name: Constrain build memory
+        run: |
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx3g -XX:+UseParallelGC -Xss4m
+          org.gradle.workers.max=2
+          kotlin.daemon.jvm.options=-Xmx4g
+          EOF
+      - name: Verify Gradle and Android SDK setup
+        run: |
+          test -f gradlew
+          test -f gradle/wrapper/gradle-wrapper.jar
+          test -f gradle/wrapper/gradle-wrapper.properties
+          test -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          java -version
+          ./gradlew --version --no-daemon
+      - name: Validate Boost ML assets
+        run: python3 plugins/boost-port/tools/validate_ml_assets.py
+      - name: Verify Boost isolation and explicit APS selection
+        run: python3 plugins/boost-port/tools/check_port_isolation.py
+      - name: Audit archived V5-to-V1 integration contract
+        run: python3 plugins/boost-port/tools/check_v1_v5_source_contract.py
+      - name: Run migrated Boost common/JVM tests
+        if: matrix.suite == 'engine'
+        run: |
+          chmod +x gradlew
+          ./gradlew :plugins:boost-port:jvmTest --no-daemon --stacktrace
+      - name: Compile isolated Boost Android KMP target
+        if: matrix.suite == 'engine'
+        run: |
+          ./gradlew :plugins:boost-port:assemble --no-daemon --stacktrace
+      - name: Test Boost APS activation and lifecycle
+        if: matrix.suite == 'android'
+        run: |
+          ./gradlew :plugins:aps:testAndroidHostTest --tests 'app.aaps.plugins.aps.openAPSBoost.OpenAPSBoostPluginTest' --tests 'app.aaps.plugins.aps.openAPSBoost.BoostPreferenceKeysTest' --tests 'app.aaps.plugins.aps.loop.LoopPluginTest' --no-daemon --stacktrace
+      - name: Test read-only APS version metadata publication
+        if: matrix.suite == 'android'
+        run: |
+          ./gradlew :plugins:configuration:testAndroidHostTest --tests 'app.aaps.plugins.configuration.configBuilder.RunningConfigurationImplTest' --no-daemon --stacktrace
+      - name: Test native CGM cadence and global Loop integration
+        if: matrix.suite == 'android'
+        run: |
+          ./gradlew :plugins:main:testAndroidHostTest --tests 'app.aaps.plugins.main.iob.AutosensDataStoreTest' --no-daemon --stacktrace
+          ./gradlew :workflow:testAndroidHostTest --tests 'app.aaps.workflow.PostCalculationRunnerTest' --tests 'app.aaps.workflow.LoopCadenceTest' --no-daemon --stacktrace
+          ./gradlew :implementation:testAndroidHostTest --tests 'app.aaps.implementation.iob.GlucoseStatusTestSMB' --no-daemon --stacktrace
+      - name: Test Boost registration in the application graph
+        if: matrix.suite == 'android'
+        run: |
+          ./gradlew :app:testFullDebugUnitTest --tests 'app.aaps.di.metro.BoostPluginRegistrationTest' --tests 'app.aaps.di.metro.ContributedPluginsTest.every contributed plugin*' --no-daemon --stacktrace
+      - name: Compile complete Android fullDebug APK
+        if: matrix.suite == 'apk'
+        run: |
+          ./gradlew :app:assembleFullDebug --no-daemon --stacktrace
+      - name: Publish fullDebug APK
+        if: success() && matrix.suite == 'apk'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dmitry-boost-port-full-debug-apk
+          path: app/build/outputs/apk/full/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Summarize verification requirements
+        if: always()
+        run: |
+          echo "## Boost port verification" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "All matrix jobs must pass: source/assets/isolation, JVM and KMP assembly, Android host/app graph tests, and fullDebug APK." >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish Boost KMP test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boost-port-${{ matrix.suite }}-test-reports
+          path: |
+            plugins/boost-port/build/reports/tests/
+            plugins/boost-port/build/test-results/
+            plugins/configuration/build/test-results/
+            plugins/main/build/test-results/
+            workflow/build/test-results/
+            implementation/build/test-results/
+            plugins/aps/build/test-results/
+            app/build/test-results/
+          if-no-files-found: ignore

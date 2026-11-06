@@ -2,11 +2,11 @@ package app.aaps.pump.insight
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
+import android.app.Service
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Binder
-import android.os.Build
 import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -14,10 +14,11 @@ import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.MutableLiveData
+import app.aaps.core.interfaces.di.injectMetroMembers
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.utils.HtmlHelper
+import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.pump.insight.app_layer.activities.InsightAlertActivity
 import app.aaps.pump.insight.app_layer.remote_control.ConfirmAlertMessage
 import app.aaps.pump.insight.app_layer.remote_control.SnoozeAlertMessage
@@ -31,17 +32,17 @@ import app.aaps.pump.insight.exceptions.InsightException
 import app.aaps.pump.insight.exceptions.app_layer_errors.AppLayerErrorException
 import app.aaps.pump.insight.utils.AlertUtils
 import app.aaps.pump.insight.utils.ExceptionTranslator
-import dagger.android.DaggerService
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
 
-class InsightAlertService : DaggerService(), InsightConnectionService.StateCallback {
+class InsightAlertService : Service(), InsightConnectionService.StateCallback {
 
     private val localBinder: LocalBinder = LocalBinder()
-    private val alertLock = Object()
+    private val alertLock = Any()
     val alertLiveData = MutableLiveData<Alert?>()
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var alertUtils: AlertUtils
+    @Inject lateinit var rxBus: RxBus
 
     private var connectionRequested = false
     private var alert: Alert? = null
@@ -83,13 +84,10 @@ class InsightAlertService : DaggerService(), InsightConnectionService.StateCallb
 
     @SuppressWarnings("deprecation", "RedundantSuppression")
     override fun onCreate() {
+        // What MetroService does; this module does not depend on :core:objects, where that base lives.
+        injectMetroMembers(this)
         super.onCreate()
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
+        vibrator = (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
         bindService(Intent(this, InsightConnectionService::class.java), serviceConnection, BIND_AUTO_CREATE)
         alertLiveData.value = null
     }
@@ -205,13 +203,13 @@ class InsightAlertService : DaggerService(), InsightConnectionService.StateCallb
                 }
             } catch (e: AppLayerErrorException) {
                 aapsLogger.info(LTag.PUMP, "Exception while muting alert: " + e.javaClass.canonicalName + " (" + e.errorCode + ")")
-                ExceptionTranslator.makeToast(this@InsightAlertService, e)
+                ExceptionTranslator.notify(this@InsightAlertService, rxBus, e)
             } catch (e: InsightException) {
                 aapsLogger.info(LTag.PUMP, "Exception while muting alert: " + e.javaClass.simpleName)
-                ExceptionTranslator.makeToast(this@InsightAlertService, e)
+                ExceptionTranslator.notify(this@InsightAlertService, rxBus, e)
             } catch (e: Exception) {
                 aapsLogger.error(LTag.PUMP, "Exception while muting alert", e)
-                ExceptionTranslator.makeToast(this@InsightAlertService, e)
+                ExceptionTranslator.notify(this@InsightAlertService, rxBus, e)
             }
         }).start()
     }
@@ -231,13 +229,13 @@ class InsightAlertService : DaggerService(), InsightConnectionService.StateCallb
                 }
             } catch (e: AppLayerErrorException) {
                 aapsLogger.info(LTag.PUMP, "Exception while confirming alert: " + e.javaClass.canonicalName + " (" + e.errorCode + ")")
-                ExceptionTranslator.makeToast(this@InsightAlertService, e)
+                ExceptionTranslator.notify(this@InsightAlertService, rxBus, e)
             } catch (e: InsightException) {
                 aapsLogger.info(LTag.PUMP, "Exception while confirming alert: " + e.javaClass.simpleName)
-                ExceptionTranslator.makeToast(this@InsightAlertService, e)
+                ExceptionTranslator.notify(this@InsightAlertService, rxBus, e)
             } catch (e: Exception) {
                 aapsLogger.error(LTag.PUMP, "Exception while confirming alert", e)
-                ExceptionTranslator.makeToast(this@InsightAlertService, e)
+                ExceptionTranslator.notify(this@InsightAlertService, rxBus, e)
             }
         }).start()
     }
@@ -252,26 +250,26 @@ class InsightAlertService : DaggerService(), InsightConnectionService.StateCallb
         notificationBuilder.setOngoing(true)
         notificationBuilder.setOnlyAlertOnce(true)
         notificationBuilder.setAutoCancel(false)
-        alert.alertCategory?.let { notificationBuilder.setSmallIcon(alertUtils.getAlertIcon(it)) }
+        notificationBuilder.setSmallIcon(app.aaps.core.ui.R.drawable.notif_icon)
         alert.alertType?.let { notificationBuilder.setContentTitle(alertUtils.getAlertCode(it) + " – " + alertUtils.getAlertTitle(it)) }
         val description = alertUtils.getAlertDescription(alert)
-        if (description != null) notificationBuilder.setContentText(HtmlHelper.fromHtml(description).toString())
+        if (description != null) notificationBuilder.setContentText(description)
         val fullScreenIntent = Intent(this, InsightAlertActivity::class.java)
-        val fullScreenPendingIntent = PendingIntent.getActivity(this, 0, fullScreenIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+        val fullScreenPendingIntent = PendingIntent.getActivity(this, 0, fullScreenIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         notificationBuilder.setFullScreenIntent(fullScreenPendingIntent, true)
         when (alert.alertStatus) {
             AlertStatus.ACTIVE  -> {
                 val muteIntent = Intent(this, InsightAlertService::class.java).putExtra("command", "mute")
-                val mutePendingIntent = PendingIntent.getService(this, 1, muteIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                val mutePendingIntent = PendingIntent.getService(this, 1, muteIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
                 notificationBuilder.addAction(0, resourceHelper.gs(app.aaps.core.ui.R.string.mute), mutePendingIntent)
                 val confirmIntent = Intent(this, InsightAlertService::class.java).putExtra("command", "confirm")
-                val confirmPendingIntent = PendingIntent.getService(this, 2, confirmIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                val confirmPendingIntent = PendingIntent.getService(this, 2, confirmIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
                 notificationBuilder.addAction(0, resourceHelper.gs(app.aaps.core.ui.R.string.confirm), confirmPendingIntent)
             }
 
             AlertStatus.SNOOZED -> {
                 val confirmIntent = Intent(this, InsightAlertService::class.java).putExtra("command", "confirm")
-                val confirmPendingIntent = PendingIntent.getService(this, 2, confirmIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                val confirmPendingIntent = PendingIntent.getService(this, 2, confirmIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
                 notificationBuilder.addAction(0, resourceHelper.gs(app.aaps.core.ui.R.string.confirm), confirmPendingIntent)
             }
 

@@ -1,15 +1,16 @@
 package app.aaps.pump.medtrum.comm.packets
 
-import dagger.android.HasAndroidInjector
+import app.aaps.core.interfaces.di.MetroMemberInjector
 import app.aaps.pump.medtrum.MedtrumPump
 import app.aaps.pump.medtrum.comm.enums.CommandType.GET_TIME
 import app.aaps.pump.medtrum.extension.toLong
 import app.aaps.pump.medtrum.util.MedtrumTimeUtil
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
 
-class GetTimePacket(injector: HasAndroidInjector) : MedtrumPacket(injector) {
+class GetTimePacket(injector: MetroMemberInjector) : MedtrumPacket(injector) {
 
     @Inject lateinit var medtrumPump: MedtrumPump
+    @Inject lateinit var medtrumTimeUtil: MedtrumTimeUtil
 
     companion object {
 
@@ -25,7 +26,7 @@ class GetTimePacket(injector: HasAndroidInjector) : MedtrumPacket(injector) {
     override fun handleResponse(data: ByteArray): Boolean {
         val success = super.handleResponse(data)
         if (success) {
-            val time = MedtrumTimeUtil().convertPumpTimeToSystemTimeMillis(data.copyOfRange(RESP_TIME_START, RESP_TIME_END).toLong())
+            val time = medtrumTimeUtil.convertPumpTimeToSystemTimeMillis(data.copyOfRange(RESP_TIME_START, RESP_TIME_END).toLong())
             medtrumPump.lastTimeReceivedFromPump = time
         }
 

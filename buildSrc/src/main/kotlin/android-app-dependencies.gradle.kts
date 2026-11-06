@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("kotlin-android")
 }
 
 android {
@@ -10,7 +9,6 @@ android {
         versionCode = Versions.versionCode
         version = Versions.appVersion
 
-        // Removed after Dagger injection setup in instrumentation tests
         //testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -21,7 +19,7 @@ android {
     buildTypes {
         named("release") {
             isMinifyEnabled = false
-            setProguardFiles(listOf(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"))
+            setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
         }
         named("debug") {
             enableUnitTestCoverage = true

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="load_user_entries_failed">"Could not load user entries."</string>
+    <string name="load_temp_targets_failed">"Could not load temporary targets."</string>
+    <string name="load_temp_basals_failed">"Could not load temporary basals."</string>
+    <string name="load_running_modes_failed">"Could not load running modes."</string>
+    <string name="load_profile_switches_failed">"Could not load profile switches."</string>
+    <string name="load_extended_boluses_failed">"Could not load extended boluses."</string>
+    <string name="load_therapy_events_failed">"Could not load therapy events."</string>
+    <string name="load_bolus_carbs_failed">"Could not load boluses and carbohydrates."</string>
+    <string name="load_presets_failed">"Could not load presets."</string>
+    <string name="save_presets_failed">"Could not save presets."</string>
+    <string name="new_preset">"New preset"</string>
+    <string name="load_running_mode_failed">"Could not load the running mode."</string>
+    <string name="load_entries_failed">"Could not load entries."</string>
+    <string name="carbs_must_be_positive">"Carbohydrates must be greater than 0."</string>
+    <string name="insulin_must_be_positive">"Insulin must be greater than 0."</string>
+    <string name="save_entry_failed">"Could not save the entry."</string>
+    <string name="add_entry_failed">"Could not add the entry."</string>
+    <string name="clone_entry_failed">"Could not copy the entry."</string>
+    <string name="delete_entry_failed">"Could not delete the entry."</string>
+    <string name="connecting_to_cloud">"Connecting to cloud…"</string>
+    <string name="load_files_failed">"Could not load files."</string>
+    <string name="extended_bolus_delivery_error">"Extended bolus delivery error"</string>
+    <string name="app_icon">"App icon"</string>
+    <string name="about_build">"Build: %1$s\nRevision: %2$s\n"</string>
+    <string name="about_flavor">"Flavor: %1$s\n"</string>
+    <string name="about_platform">"Platform: %1$s\n"</string>
+</resources>
