@@ -300,11 +300,11 @@ enum class DoubleKey(
         key = "pp_ISF_weight",
         defaultValue = 0.0,
         min = 0.0,
-        max = 0.15,
+        max = 1.0,
         title = KeysStrings.pref_title_pp_weight,
         summary = KeysStrings.openapsama_pp_ISF_weight_summary,
         defaultedBySM = true,
-        unitType = UnitType.DOUBLE_3,
+        unitType = UnitType.DOUBLE_2, // 0.01 slider increments, two decimal places
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
     ApsAutoIsfDuraWeight(
