@@ -1,6 +1,5 @@
 package app.aaps.implementation.queue.commands
 
-import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.pump.PumpWithConcentration
 import app.aaps.core.interfaces.queue.Command
@@ -17,7 +16,6 @@ import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -32,10 +30,10 @@ class CommandSetProfileTest : TestBaseWithProfile() {
     /** Real English for the Named strings; the mocked rh still answers the resource ids below. */
     private val text by lazy { generatedTextResolver(rh) }
 
-    private fun newCommand(hasNsId: Boolean = false) =
+    private fun newCommand() =
         CommandSetProfile(
-            aapsLogger, text, smsCommunicator, activePlugin, dateUtil, commandQueue, config, persistenceLayer,
-            pumpEnactResultProvider::invoke, effectiveProfile, hasNsId
+            aapsLogger, text, activePlugin, dateUtil, commandQueue, persistenceLayer,
+            pumpEnactResultProvider::invoke, effectiveProfile
         )
 
     @Test
@@ -67,25 +65,7 @@ class CommandSetProfileTest : TestBaseWithProfile() {
     }
 
     @Test
-    fun `execute sends SMS notification when enacted and hasNsId and not AAPSCLIENT`() = runTest {
-        val pumpResult = PumpEnactResultObject(text).success(true).enacted(true)
-        val pump = mock<PumpWithConcentration> {
-            on { setNewBasalProfile(effectiveProfile) } doReturn pumpResult
-        }
-        whenever(commandQueue.isThisProfileSet(effectiveProfile)).thenReturn(false)
-        whenever(activePlugin.activePump).thenReturn(pump)
-        whenever(persistenceLayer.getEffectiveProfileSwitchActiveAt(anyLong())).thenReturn(effectiveProfileSwitch)
-        whenever(config.AAPSCLIENT).thenReturn(false)
-        whenever(config.isEnabled(eq(ExternalOptions.DO_NOT_SEND_SMS_ON_PROFILE_CHANGE))).thenReturn(false)
-        whenever(smsCommunicator.isEnabled()).thenReturn(true)
-
-        newCommand(hasNsId = true).execute()
-
-        verify(smsCommunicator).sendNotificationToAllNumbers("Basal profile in pump updated")
-    }
-
-    @Test
-    fun `execute does not send SMS when hasNsId is false`() = runTest {
+    fun `successful low-level profile write leaves user notification to the queue`() = runTest {
         val pumpResult = PumpEnactResultObject(text).success(true).enacted(true)
         val pump = mock<PumpWithConcentration> {
             on { setNewBasalProfile(effectiveProfile) } doReturn pumpResult
@@ -94,24 +74,7 @@ class CommandSetProfileTest : TestBaseWithProfile() {
         whenever(activePlugin.activePump).thenReturn(pump)
         whenever(persistenceLayer.getEffectiveProfileSwitchActiveAt(anyLong())).thenReturn(effectiveProfileSwitch)
 
-        newCommand(hasNsId = false).execute()
-
-        verify(smsCommunicator, never()).sendNotificationToAllNumbers(any())
-    }
-
-    @Test
-    fun `execute does not send SMS when AAPSCLIENT`() = runTest {
-        val pumpResult = PumpEnactResultObject(text).success(true).enacted(true)
-        val pump = mock<PumpWithConcentration> {
-            on { setNewBasalProfile(effectiveProfile) } doReturn pumpResult
-        }
-        whenever(commandQueue.isThisProfileSet(effectiveProfile)).thenReturn(false)
-        whenever(activePlugin.activePump).thenReturn(pump)
-        whenever(persistenceLayer.getEffectiveProfileSwitchActiveAt(anyLong())).thenReturn(effectiveProfileSwitch)
-        whenever(config.AAPSCLIENT).thenReturn(true)
-
-        newCommand(hasNsId = true).execute()
-
+        assertThat(newCommand().execute()).isSameInstanceAs(pumpResult)
         verify(smsCommunicator, never()).sendNotificationToAllNumbers(any())
     }
 
