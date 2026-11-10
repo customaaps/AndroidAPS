@@ -48,5 +48,11 @@ data class OapsProfile(
     var variable_sens: Double,
     var insulinDivisor: Int,
     var TDD: Double,
-    var use_TDD_for_predictions: Boolean = true
+    /**
+     * DynISF ISF at the normal target (100 mg/dL), without rounding, before the BG factor is
+     * applied: the base the old `1800 / (TDD * ln(bg / divisor + 1))` formula was expressed from.
+     * Recomputing it inline from [TDD] and [insulinDivisor] (as `DetermineBasalSMB` used to) is
+     * what let the dosing ISF and the prediction ISF drift apart.
+     */
+    var dynIsfBaseSens: Double = 0.0
 )

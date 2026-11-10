@@ -79,7 +79,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlin.math.floor
-import kotlin.math.ln
 
 @SingleIn(AppScope::class)
 @Inject
@@ -248,6 +247,9 @@ open class OpenAPSSMBPlugin(
         var variableSensitivity: Double? = null
         var insulinDivisor: Int = 0
 
+        /** ISF at [DynIsfSensitivity.NORMAL_TARGET_MGDL] that produced [variableSensitivity]. */
+        var baseSensitivity: Double? = null
+
         var tddLast24HCarbs = 0.0
         var tdd7DDataCarbs = 0.0
         var tdd7DAllDaysHaveCarbs = false
@@ -257,14 +259,7 @@ open class OpenAPSSMBPlugin(
         fun tddQuickCalculated() = tddLast4H != null && tddLast8to4H != null
 
         fun log() =
-            "DynIsfResult: tdd1D=$tdd1D tdd7D=$tdd7D tddLast24H=$tddLast24H tddLast4H=$tddLast4H tddLast8to4H=$tddLast8to4H tdd=$tdd variableSensitivity=$variableSensitivity insulinDivisor=$insulinDivisor tdd7DDataCarbs=$tdd7DDataCarbs tdd7DAllDaysHaveCarbs=$tdd7DAllDaysHaveCarbs"
-    }
-
-    private fun capGlucose(glucoseStatus: GlucoseStatus): Double {
-        val bgCap = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.ApsDynIsfBgCap))
-        return if (glucoseStatus.glucose > bgCap)
-            bgCap + ((glucoseStatus.glucose - bgCap) / 3)
-        else glucoseStatus.glucose
+            "DynIsfResult: tdd1D=$tdd1D tdd7D=$tdd7D tddLast24H=$tddLast24H tddLast4H=$tddLast4H tddLast8to4H=$tddLast8to4H tdd=$tdd variableSensitivity=$variableSensitivity baseSensitivity=$baseSensitivity insulinDivisor=$insulinDivisor tdd7DDataCarbs=$tdd7DDataCarbs tdd7DAllDaysHaveCarbs=$tdd7DAllDaysHaveCarbs"
     }
 
     private suspend fun calculateRawDynIsf(profile: EffectiveProfile, multiplier: Double): DynIsfResult {
@@ -297,7 +292,7 @@ open class OpenAPSSMBPlugin(
         }
 
 
-        val normalTarget = 100.0
+        val normalTarget = DynIsfSensitivity.NORMAL_TARGET_MGDL
         var baseSensitivity = profile.getProfileIsfMgdl()
 
         if (dynIsfResult.tddPartsCalculated()) {
@@ -318,10 +313,12 @@ open class OpenAPSSMBPlugin(
                 aapsLogger.error(LTag.APS, "Using TDD-based DynISF, but got no TDD")
                 return dynIsfResult
             }
-            baseSensitivity = Round.roundTo(1800.0 / (dynIsfResult.tdd!! * (ln((normalTarget / dynIsfResult.insulinDivisor) + 1))), 0.1)
+            // Unrounded: the old formula rounds the final ISF, not the base. Rounding here and then
+            // multiplying by the BG factor would move the dose by a few hundredths of a unit.
+            baseSensitivity = DynIsfSensitivity.baseFromTdd(dynIsfResult.tdd!!, dynIsfResult.insulinDivisor)
         }
 
-        val glucose = glucoseStatus?.let { capGlucose(it) }
+        val glucose = glucoseStatus?.glucose
         if (glucose == null) {
             aapsLogger.error(LTag.APS, "Glucose is null")
             return dynIsfResult
@@ -350,13 +347,15 @@ open class OpenAPSSMBPlugin(
             }
         }
 
-        val velocity = preferences.get(IntKey.ApsDynIsfVelocity) / 100.0
-        val sbg = ln((glucose / dynIsfResult.insulinDivisor) + 1)
-        val scaler = ln((normalTarget / dynIsfResult.insulinDivisor) + 1) / sbg
-        val ratio = 1 - (1 - scaler) * velocity
-        dynIsfResult.variableSensitivity = baseSensitivity * ratio
+        dynIsfResult.baseSensitivity = baseSensitivity
+        // The old code rounded the final sensitivity to one decimal, keep that, but do not round
+        // the base (see above).
+        dynIsfResult.variableSensitivity = Round.roundTo(DynIsfSensitivity.atBg(glucose, baseSensitivity, dynIsfResult.insulinDivisor), 0.1)
 
-        aapsLogger.debug(LTag.APS, "multiplier=$multiplier gluc=$glucose tdd=${dynIsfResult.tdd} baseSens=$baseSensitivity velocity=$velocity -> sensRatio=$ratio sens=${dynIsfResult.variableSensitivity}")
+        aapsLogger.debug(
+            LTag.APS,
+            "multiplier=$multiplier gluc=$glucose tdd=${dynIsfResult.tdd} baseSens=$baseSensitivity sens=${dynIsfResult.variableSensitivity}"
+        )
         return dynIsfResult
     }
 
@@ -403,11 +402,6 @@ open class OpenAPSSMBPlugin(
                 ApsStrings.dyn_isf_adjust_title,
                 IntKey.ApsDynIsfAdjustmentFactor.min.toDouble(),
                 IntKey.ApsDynIsfAdjustmentFactor.max.toDouble()
-            ) && hardLimits.checkHardLimits(
-                preferences.get(IntKey.ApsDynIsfVelocity).toDouble(),
-                ApsStrings.dyn_isf_velocity_title,
-                IntKey.ApsDynIsfVelocity.min.toDouble(),
-                IntKey.ApsDynIsfVelocity.max.toDouble()
             )
         val smbEnabled = preferences.get(BooleanKey.ApsUseSmb)
         val advancedFiltering = constraintsChecker.isAdvancedFilteringEnabled().also { inputConstraints.copyReasons(it) }.value()
@@ -454,6 +448,7 @@ open class OpenAPSSMBPlugin(
             aapsLogger.debug(LTag.APS, "ActivityClass: $activityClass steps15m=$steps15mTotal hr=$avgHrForActivity")
             if (activityClass != ActivityClass.REST) {
                 dynIsfResult.variableSensitivity = dynIsfResult.variableSensitivity?.times(activityClass.isfMultiplier)
+                dynIsfResult.baseSensitivity = dynIsfResult.baseSensitivity?.times(activityClass.isfMultiplier)
             }
         }
         if (useActivityTargetOffset && activityClass.targetBgOffsetMgdl > 0.0 && !isTempTarget) {
@@ -462,7 +457,7 @@ open class OpenAPSSMBPlugin(
             maxBg = (maxBg + activityClass.targetBgOffsetMgdl).coerceAtMost(maxOf(maxBg, 180.0))
         }
 
-        if (dynIsfMode && !dynIsfResult.tddPartsCalculated()) {
+        if (dynIsfMode && !dynIsfResult.tddPartsCalculated() && !preferences.get(BooleanKey.ApsDynIsfUseProfileSens)) {
             notificationManager.post(
                 NotificationId.SMB_FALLBACK,
                 ApsStrings.fallback_smb_no_tdd,
@@ -565,11 +560,15 @@ open class OpenAPSSMBPlugin(
             variable_sens = if (dynIsfMode) dynIsfResult.variableSensitivity ?: 0.0 else 0.0,
             insulinDivisor = dynIsfResult.insulinDivisor,
             TDD = dynIsfResult.tdd ?: 0.0,
-            use_TDD_for_predictions = !preferences.get(BooleanKey.ApsDynIsfUseProfileSens)
+            dynIsfBaseSens = dynIsfResult.baseSensitivity ?: 0.0
         )
         val microBolusAllowed = constraintsChecker.isSMBModeEnabled(ConstraintObject(tempBasalFallback.not(), aapsLogger)).also { inputConstraints.copyReasons(it) }.value()
         val flatBGsDetected = bgQualityCheck.state == BgQualityCheck.State.FLAT
-        val effectiveDynIsfMode = dynIsfMode && dynIsfResult.tddPartsCalculated() &&
+        // Same gating as 3.x: TDD-based DynISF needs the full TDD history and falls back to plain
+        // SMB without it. The "profile ISF as base" option does not need a TDD at all - requiring
+        // it used to disable DynISF in exactly the case the option was added for.
+        val effectiveDynIsfMode = dynIsfMode &&
+            (dynIsfResult.tddPartsCalculated() || preferences.get(BooleanKey.ApsDynIsfUseProfileSens)) &&
             dynIsfResult.variableSensitivity != null &&
             dynIsfResult.variableSensitivity!!.isFinite() &&
             dynIsfResult.variableSensitivity!! > 0.0
@@ -582,15 +581,15 @@ open class OpenAPSSMBPlugin(
             !autosensResult.ratio.isFinite() || autosensResult.ratio <= 0.0 ||
             (effectiveDynIsfMode && (
                 !oapsProfile.variable_sens.isFinite() || oapsProfile.variable_sens <= 0.0 ||
-                    !oapsProfile.TDD.isFinite() || oapsProfile.TDD <= 0.0 ||
+                    !oapsProfile.dynIsfBaseSens.isFinite() || oapsProfile.dynIsfBaseSens <= 0.0 ||
                     oapsProfile.insulinDivisor <= 0
                 ))
         if (invalidInputs) {
             val msg = "OpenAPS SMB aborting: invalid ISF inputs " +
                 "dynIsfMode=$effectiveDynIsfMode sens=${oapsProfile.sens} " +
                 "carb_ratio=${oapsProfile.carb_ratio} autosensRatio=${autosensResult.ratio} " +
-                "variable_sens=${oapsProfile.variable_sens} TDD=${oapsProfile.TDD} " +
-                "insulinDivisor=${oapsProfile.insulinDivisor}"
+                "variable_sens=${oapsProfile.variable_sens} baseSens=${oapsProfile.dynIsfBaseSens} " +
+                "TDD=${oapsProfile.TDD} insulinDivisor=${oapsProfile.insulinDivisor}"
             aapsLogger.error(LTag.APS, msg)
             fabricPrivacy.logException(IllegalStateException(msg))
             rxBus.send(EventResetOpenAPSGui(msg))
@@ -751,8 +750,6 @@ open class OpenAPSSMBPlugin(
             BooleanKey.ApsDynIsfUseProfileSens,
             BooleanKey.ApsUseAutosens,
             IntKey.ApsDynIsfAdjustmentFactor,
-            IntKey.ApsDynIsfVelocity,
-            UnitDoubleKey.ApsDynIsfBgCap,
             BooleanKey.ApsDynIsfProfilePercentage,
             BooleanKey.ApsDynIsfAdjustSensitivity,
             BooleanKey.ApsAutoIsfHighTtRaisesSens,

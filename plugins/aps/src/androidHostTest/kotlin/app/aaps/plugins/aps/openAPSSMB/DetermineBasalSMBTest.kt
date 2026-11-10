@@ -316,23 +316,45 @@ class DetermineBasalSMBTest : TestBaseWithProfile() {
         assertThat(enableSmbWithTempTarget(100.0)).isFalse()
     }
 
+    private fun round1(value: Double): Double = kotlin.math.round(value * 10) / 10.0
+
+    /**
+     * The ported DynISF must dose and predict with the 3.x formula
+     * `1800 / (TDD * ln(bg / insulinDivisor + 1))`. Before the refactor the plugin produced one ISF
+     * while `DetermineBasalSMB` recomputed another from `TDD` inline in five places, so the two
+     * could disagree; this test checks the dosing ISF and replays the prediction curve against the
+     * old expression, tick by tick.
+     */
     @Test
-    fun `non-TDD dynamic ISF uses sens for IOB predictions`() {
-        val iobs = iobArray(activity = 0.0105)
-        val tddBased = run(
-            noMeal(),
-            iobDataArray = iobs,
-            profile = profile().copy(use_TDD_for_predictions = true),
-            dynIsfMode = true
-        )
-        val sensBased = run(
-            noMeal(),
-            iobDataArray = iobs,
-            profile = profile().copy(use_TDD_for_predictions = false),
-            dynIsfMode = true
+    fun `DynISF doses and predicts with the 3_x TDD formula`() {
+        val divisor = 75
+        val tdd = 40.0
+        val base = DynIsfSensitivity.baseFromTdd(tdd, divisor)
+        fun oldSens(bg: Double): Double = 1800.0 / (tdd * kotlin.math.ln((bg / divisor) + 1))
+        val activity = 0.0105
+        val profile = profile().copy(
+            variable_sens = round1(oldSens(150.0)),
+            insulinDivisor = divisor,
+            TDD = tdd,
+            dynIsfBaseSens = base
         )
 
-        assertThat(sensBased.console()).contains("running in non-TDD mode")
-        assertThat(sensBased.predBGs!!.IOB!!.last()).isLessThan(tddBased.predBGs!!.IOB!!.last())
+        val rT = run(noMeal(), iobDataArray = iobArray(activity = activity), profile = profile, dynIsfMode = true)
+
+        // The dose is computed at the current BG (delta > 0 and eventualBG > target).
+        assertThat(rT.reason.toString()).contains("Dosing sensitivity: ${round1(oldSens(150.0))}")
+        assertThat(rT.effectiveIsf!!).isWithin(1e-9).of(round1(oldSens(150.0)))
+
+        // The ZT curve is the pure insulin effect (no carb deviation), so every tick must follow the
+        // old expression evaluated at the previous predicted BG. Comparing ints, so allow 1 mg/dL.
+        val zt = rT.predBGs!!.ZT!!
+        var expected = 150.0
+        assertThat(zt.first()).isEqualTo(150)
+        for (i in 1 until zt.size) {
+            expected += -activity * (1800.0 / (tdd * kotlin.math.ln((maxOf(expected, 39.0) / divisor) + 1))) * 5
+            // The returned curve is clamped at 39 mg/dL, stop before the clamp.
+            if (expected <= 40.0) break
+            assertThat(zt[i].toDouble()).isWithin(1.0).of(expected)
+        }
     }
 }

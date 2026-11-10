@@ -23,6 +23,7 @@ import app.aaps.di.testGraphs
 import app.aaps.plugins.aps.openAPSAMA.DetermineBasalAdapterAMAJS
 import app.aaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalAdapterSMBJS
+import app.aaps.plugins.aps.openAPSSMB.DynIsfSensitivity
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
 import app.aaps.plugins.aps.openAPSSMBAutoISF.DetermineBasalAdapterAutoISFJS
 import app.aaps.plugins.aps.openAPSSMBDynamicISF.DetermineBasalAdapterSMBDynamicISFJS
@@ -376,7 +377,14 @@ class ReplayApsResultsTest : AapsInstrumentedTest() {
             out_units = determineBasalResult.profile.optString("out_units"),
             variable_sens = determineBasalResult.profile.getDouble("variable_sens"),
             insulinDivisor = determineBasalResult.profile.getInt("insulinDivisor"),
-            TDD = determineBasalResult.profile.getDouble("TDD")
+            TDD = determineBasalResult.profile.getDouble("TDD"),
+            // The JS reference is the 3.x formula: the base is derived from the same TDD/divisor, so
+            // the ported curve lands on exactly the same values.
+            dynIsfBaseSens = determineBasalResult.profile.getDouble("TDD").let { tdd ->
+                determineBasalResult.profile.getInt("insulinDivisor").let { divisor ->
+                    if (tdd > 0.0 && divisor > 0) DynIsfSensitivity.baseFromTdd(tdd, divisor) else 0.0
+                }
+            }
         )
         val meatData = MealData(
             carbs = determineBasalResult.mealData.getDouble("carbs"),
