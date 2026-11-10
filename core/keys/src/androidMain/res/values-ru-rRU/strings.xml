@@ -191,6 +191,8 @@
     <string name="pref_title_sms_allow_remote_commands">Разрешить удалённые команды по SMS</string>
     <string name="pref_title_sms_report_pump_unreachable">Сообщать о недоступности помпы по SMS</string>
     <string name="pref_summary_sms_report_pump_unreachable">Отправлять SMS, если помпа становится недоступна.</string>
+    <string name="pref_title_sms_notify_profile_change">Уведомлять о смене профиля</string>
+    <string name="pref_summary_sms_notify_profile_change">Отправлять SMS на разрешённые номера при смене активного профиля AAPS.</string>
     <string name="pref_title_virtual_pump_status_upload">Отправлять состояние помпы в NS</string>
     <string name="pref_title_ns_upload_data">Отправлять данные в NS</string>
     <string name="pref_summary_ns_upload_data">Отправлять в Nightscout записи терапии, временные базалы и другие данные.</string>

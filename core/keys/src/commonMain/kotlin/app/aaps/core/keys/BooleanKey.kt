@@ -278,6 +278,14 @@ enum class BooleanKey(
         platforms = AppPlatform.ANDROID_ONLY, dependency = SmsAllowRemoteCommands
     ),
     SmsReportPumpUnreachable("smscommunicator_report_pump_unreachable", true, KeysStrings.pref_title_sms_report_pump_unreachable, KeysStrings.pref_summary_sms_report_pump_unreachable),
+    SmsNotifyProfileChange(
+        key = "smscommunicator_notify_profile_change",
+        defaultValue = false,
+        title = KeysStrings.pref_title_sms_notify_profile_change,
+        summary = KeysStrings.pref_summary_sms_notify_profile_change,
+        platforms = AppPlatform.ANDROID_ONLY,
+        showInNsClientMode = false
+    ),
 
     VirtualPumpStatusUpload("virtualpump_uploadstatus", false, KeysStrings.pref_title_virtual_pump_status_upload, showInNsClientMode = false),
     // Hardened mode forces the upload and accept settings to their defaults (upload on, accept off) and hides them,

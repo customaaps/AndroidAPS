@@ -19,6 +19,7 @@ import app.aaps.core.interfaces.concurrent.AapsLock
 import app.aaps.core.interfaces.concurrent.aapsIoDispatcher
 import app.aaps.core.interfaces.concurrent.withLock
 import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -52,6 +53,7 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.objects.constraints.ConstraintObject
@@ -269,6 +271,25 @@ class CommandQueueImplementation(
                     iCfg = it.iCfg
                 )
                 persistenceLayer.insertOrUpdateEffectiveProfileSwitch(eps)
+                // Notify only when a genuinely NEW effective profile was persisted.
+                // The pump may not need a basal write (enacted=false) if only IC/ISF changed,
+                // so report the active AAPS profile, NOT "pump basal updated". A pump re-push,
+                // stale request, failed application or internal silent Scene is not a switch.
+                if (!alreadyEffective && !silentWrite && report != BasalReport.Rejected &&
+                    preferences.get(BooleanKey.SmsNotifyProfileChange) &&
+                    !config.isEnabled(ExternalOptions.DO_NOT_SEND_SMS_ON_PROFILE_CHANGE)
+                ) {
+                    try {
+                        val sms = smsCommunicator()
+                        if (sms.isEnabled()) sms.sendNotificationToAllNumbers(
+                            rh.gs(ImplementationStrings.sms_profile_changed, eps.originalCustomizedName)
+                        )
+                    } catch (error: Exception) {
+                        // A carrier/permission failure must never undo the already-persisted
+                        // profile or stop the serialized profile-change collector.
+                        aapsLogger.error(LTag.SMS, "Profile-change SMS notification failed: ${error.message}")
+                    }
+                }
             }
         }
     }
@@ -835,8 +856,8 @@ class CommandQueueImplementation(
         removeAll(CommandType.BASAL_PROFILE)
         return enqueue(
             CommandSetProfile(
-                aapsLogger, rh, smsCommunicator(), activePlugin, dateUtil, this, config, persistenceLayer, pumpEnactResultProvider,
-                profile, hasNsId
+                aapsLogger, rh, activePlugin, dateUtil, this, persistenceLayer, pumpEnactResultProvider,
+                profile
             )
         ).completion.await()
     }

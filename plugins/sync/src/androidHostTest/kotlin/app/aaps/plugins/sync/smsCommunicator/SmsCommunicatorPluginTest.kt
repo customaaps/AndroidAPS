@@ -161,6 +161,13 @@ class SmsCommunicatorPluginTest : TestBaseWithProfile() {
     }
 
     @Test
+    fun profileChangeSmsSwitchAppearsInPreferencesAndStartsOff() {
+        assertThat(smsCommunicatorPlugin.getPreferenceScreenContent().items)
+            .contains(BooleanKey.SmsNotifyProfileChange)
+        assertThat(BooleanKey.SmsNotifyProfileChange.defaultValue).isFalse()
+    }
+
+    @Test
     fun processSettingsTest() {
         // called from constructor
         assertThat(smsCommunicatorPlugin.allowedNumbers[0]).isEqualTo("1234")
