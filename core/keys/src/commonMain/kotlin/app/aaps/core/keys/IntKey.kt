@@ -384,9 +384,9 @@ enum class IntKey(
     ),
     ApsDynIsfVelocity(
         key = "dynisf_velocity",
-        defaultValue = 50,
-        min = 0,
-        max = 100,
+        defaultValue = 30,
+        min = 1,
+        max = 200,
         title = KeysStrings.pref_title_dynisf_velocity,
         summary = KeysStrings.dynisf_velocity_summary,
         dependency = BooleanKey.ApsUseDynamicSensitivity,

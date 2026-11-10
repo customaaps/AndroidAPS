@@ -79,6 +79,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlin.math.floor
+import kotlin.math.ln
 
 @SingleIn(AppScope::class)
 @Inject
@@ -155,10 +156,7 @@ open class OpenAPSSMBPlugin(
     override fun getIsfMgdl(profile: Profile, caller: String): Double? {
         val start = dateUtil.now()
         val epsProfile = profile as ProfileSealed.EPS
-        val multiplier = if (preferences.get(BooleanKey.ApsDynIsfProfilePercentage))
-            epsProfile.value.originalPercentage / 100.0
-        else 1.0
-        val sensitivity = runBlocking { calculateVariableIsf(epsProfile, start, multiplier) }
+        val sensitivity = runBlocking { calculateVariableIsf(epsProfile, start) }
         if (sensitivity.second == null)
             notificationManager.post(
                 NotificationId.DYN_ISF_FALLBACK,
@@ -168,7 +166,7 @@ open class OpenAPSSMBPlugin(
                 validTo = dateUtil.now() + T.mins(1).msecs())
         else
             notificationManager.dismiss(NotificationId.DYN_ISF_FALLBACK)
-        profiler.log(LTag.APS, "getIsfMgdl() multiplier=${multiplier} reason=${sensitivity.first} sensitivity=${sensitivity.second} caller=$caller", start)
+        profiler.log(LTag.APS, "getIsfMgdl() reason=${sensitivity.first} sensitivity=${sensitivity.second} caller=$caller", start)
         return sensitivity.second
     }
 
@@ -203,7 +201,7 @@ open class OpenAPSSMBPlugin(
     /** Guards [dynIsfCache]. Was `synchronized(dynIsfCache)`, which is JVM only. */
     private val isfCacheLock = AapsLock()
 
-    private suspend fun calculateVariableIsf(profile: EffectiveProfile, timestamp: Long, multiplier: Double): Pair<String, Double?> {
+    private suspend fun calculateVariableIsf(profile: EffectiveProfile, timestamp: Long): Pair<String, Double?> {
         if (!preferences.get(BooleanKey.ApsUseDynamicSensitivity)) return Pair("OFF", null)
 
         val useProfileSensitivity = preferences.get(BooleanKey.ApsDynIsfUseProfileSens)
@@ -225,7 +223,7 @@ open class OpenAPSSMBPlugin(
             return Pair("HIT", cached)
         }
 
-        val dynIsfResult = calculateRawDynIsf(profile, multiplier)
+        val dynIsfResult = calculateRawDynIsf(profile)
         if (!dynIsfResult.tddPartsCalculated() && !useProfileSensitivity) return Pair("TDD miss", null)
         // no cached result found, let's calculate the value
         //aapsLogger.debug("calculateVariableIsf $caller CAL ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $sensitivity")
@@ -247,7 +245,12 @@ open class OpenAPSSMBPlugin(
         var variableSensitivity: Double? = null
         var insulinDivisor: Int = 0
 
-        /** ISF at [DynIsfSensitivity.NORMAL_TARGET_MGDL] that produced [variableSensitivity]. */
+        /**
+         * ISF at [DynIsfSensitivity.NORMAL_TARGET_MGDL] the velocity blend started from: rounded
+         * to 0.1, after the profile-% and temp-target scaling. The activity multiplier (4.0) is
+         * applied to [variableSensitivity] only. The raw TDD base the predictions use is derived
+         * from [tdd], not from this.
+         */
         var baseSensitivity: Double? = null
 
         var tddLast24HCarbs = 0.0
@@ -262,12 +265,26 @@ open class OpenAPSSMBPlugin(
             "DynIsfResult: tdd1D=$tdd1D tdd7D=$tdd7D tddLast24H=$tddLast24H tddLast4H=$tddLast4H tddLast8to4H=$tddLast8to4H tdd=$tdd variableSensitivity=$variableSensitivity baseSensitivity=$baseSensitivity insulinDivisor=$insulinDivisor tdd7DDataCarbs=$tdd7DDataCarbs tdd7DAllDaysHaveCarbs=$tdd7DAllDaysHaveCarbs"
     }
 
-    private suspend fun calculateRawDynIsf(profile: EffectiveProfile, multiplier: Double): DynIsfResult {
+    private fun capGlucose(glucoseStatus: GlucoseStatus): Double {
+        // inspired by justmara
+        val bgCap = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.ApsDynIsfBgCap))
+        return if (glucoseStatus.glucose > bgCap)
+            bgCap + ((glucoseStatus.glucose - bgCap) / 3)
+        else
+            glucoseStatus.glucose
+    }
+
+    private suspend fun calculateRawDynIsf(profile: EffectiveProfile): DynIsfResult {
         val dynIsfResult = DynIsfResult()
+        val profileMultiplier = if (preferences.get(BooleanKey.ApsDynIsfProfilePercentage))
+            100.0 / (profile as ProfileSealed.EPS).value.originalPercentage
+        else
+            1.0
+
         // DynamicISF specific
         // without these values DynISF doesn't work properly
-        // Current implementation is fallback to SMB if TDD history is not available. Thus calculated here
         val glucoseStatus = glucoseStatusCalculatorSMB.getGlucoseStatusData(allowOldData = false)
+        val glucose = glucoseStatus?.let { capGlucose(it) }
         dynIsfResult.tdd1D = tddCalculator.averageTDD(tddCalculator.calculate(1, allowMissingDays = false))?.data?.totalAmount
         tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.let {
             dynIsfResult.tdd7D = it.data.totalAmount
@@ -281,20 +298,17 @@ open class OpenAPSSMBPlugin(
         dynIsfResult.tddLast4H = tddCalculator.calculateDaily(-4, 0)?.totalAmount
         dynIsfResult.tddLast8to4H = tddCalculator.calculateDaily(-8, -4)?.totalAmount
 
-        // Peak comes from the profile this calculation is about, which owns the authoritative (non-null)
-        // iCfg. The result is cached per timestamp for ISF replay, so a global "currently active
-        // insulin" would be the wrong source even when one is available.
-        val peak = profile.iCfg.peak
-        dynIsfResult.insulinDivisor = when {
-            peak > 65 -> 55 // rapid peak: 75
-            peak > 50 -> 65 // ultra rapid peak: 55
-            else      -> 75 // lyumjev peak: 45
-        }
-
+        // 3.x: (120 - activeInsulin.peak), at least 1 - rapid (75) -> 45, Fiasp (55) -> 65,
+        // Lyumjev (45) -> 75. Peak comes from the profile this calculation is about, which owns the
+        // authoritative (non-null) iCfg. The result is cached per timestamp for ISF replay, so a
+        // global "currently active insulin" would be the wrong source even when one is available.
+        dynIsfResult.insulinDivisor = (120 - profile.iCfg.peak).coerceAtLeast(1)
 
         val normalTarget = DynIsfSensitivity.NORMAL_TARGET_MGDL
         var baseSensitivity = profile.getProfileIsfMgdl()
 
+        // Always calculate TDD, it's used not just in sensitivity calculation
+        val useTDD = !preferences.get(BooleanKey.ApsDynIsfUseProfileSens)
         if (dynIsfResult.tddPartsCalculated()) {
             val tddStatus = TddStatus(dynIsfResult.tdd1D!!, dynIsfResult.tdd7D!!, dynIsfResult.tddLast24H!!, dynIsfResult.tddLast4H!!, dynIsfResult.tddLast8to4H!!)
             val tddWeightedFromLast8H = ((1.4 * tddStatus.tddLast4H) + (0.6 * tddStatus.tddLast8to4H)) * 3
@@ -305,25 +319,27 @@ open class OpenAPSSMBPlugin(
         }
 
         val adjFactor = preferences.get(IntKey.ApsDynIsfAdjustmentFactor) / 100.0
-        if (dynIsfResult.tdd != null) dynIsfResult.tdd = dynIsfResult.tdd!! * adjFactor * multiplier
+        if (dynIsfResult.tdd != null) dynIsfResult.tdd = dynIsfResult.tdd!! * adjFactor
 
-        val useTDD = !preferences.get(BooleanKey.ApsDynIsfUseProfileSens)
         if (useTDD) {
             if (dynIsfResult.tdd == null) {
                 aapsLogger.error(LTag.APS, "Using TDD-based DynISF, but got no TDD")
                 return dynIsfResult
             }
-            // Unrounded: the old formula rounds the final ISF, not the base. Rounding here and then
-            // multiplying by the BG factor would move the dose by a few hundredths of a unit.
-            baseSensitivity = DynIsfSensitivity.baseFromTdd(dynIsfResult.tdd!!, dynIsfResult.insulinDivisor)
+            aapsLogger.debug(LTag.APS, "Using TDD base sensitivity")
+            baseSensitivity = Round.roundTo(DynIsfSensitivity.baseFromTdd(dynIsfResult.tdd!!, dynIsfResult.insulinDivisor), 0.1)
+            if (preferences.get(BooleanKey.ApsDynIsfProfilePercentage)) {
+                baseSensitivity *= profileMultiplier
+                aapsLogger.debug(LTag.APS, "Scaling TDD sensitivity by profile% - $profileMultiplier")
+            }
         }
 
-        val glucose = glucoseStatus?.glucose
         if (glucose == null) {
             aapsLogger.error(LTag.APS, "Glucose is null")
             return dynIsfResult
         }
 
+        // Scale base sensitivity by TT if needed
         var isTempTarget = false
         var targetBg = profile.getTargetMgdl()
         persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now())?.let { tempTarget ->
@@ -335,6 +351,8 @@ open class OpenAPSSMBPlugin(
                 || (preferences.get(BooleanKey.ApsAutoIsfLowTtLowersSens) && targetBg < normalTarget)) {
                 val c = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.ApsAutoIsfHalfBasalExerciseTarget)) - normalTarget
                 if (c * (c + targetBg - normalTarget) > 0.0) {
+                    // The 3.x clamp here was a no-op (.apply discards the coerced result); the
+                    // clamp is kept on purpose as the approved deviation from the reference.
                     val sensitivityRatio = Round.roundTo(
                         (c / (c + targetBg - normalTarget)).coerceIn(
                             preferences.get(DoubleKey.AutosensMin),
@@ -348,13 +366,17 @@ open class OpenAPSSMBPlugin(
         }
 
         dynIsfResult.baseSensitivity = baseSensitivity
-        // The old code rounded the final sensitivity to one decimal, keep that, but do not round
-        // the base (see above).
-        dynIsfResult.variableSensitivity = Round.roundTo(DynIsfSensitivity.atBg(glucose, baseSensitivity, dynIsfResult.insulinDivisor), 0.1)
+        // The 3.x velocity blend, final value left unrounded: velocity 100 gives the pure curve,
+        // 0 a flat ISF at the base. DetermineBasalSMB rounds where the old code rounded.
+        val velocity = preferences.get(IntKey.ApsDynIsfVelocity) / 100.0
+        val sbg = ln((glucose / dynIsfResult.insulinDivisor) + 1)
+        val scaler = ln((normalTarget / dynIsfResult.insulinDivisor) + 1) / sbg
+        val ratio = 1 - (1 - scaler) * velocity
+        dynIsfResult.variableSensitivity = baseSensitivity * ratio
 
         aapsLogger.debug(
             LTag.APS,
-            "multiplier=$multiplier gluc=$glucose tdd=${dynIsfResult.tdd} baseSens=$baseSensitivity sens=${dynIsfResult.variableSensitivity}"
+            "multiplier=$profileMultiplier gluc=$glucose tdd=${dynIsfResult.tdd} (${adjFactor}x) baseSens=$baseSensitivity velocity=$velocity -> sensRatio=$ratio sens=${dynIsfResult.variableSensitivity}"
         )
         return dynIsfResult
     }
@@ -396,13 +418,47 @@ open class OpenAPSSMBPlugin(
 
         // End of check, start gathering data
 
-        val dynIsfMode =
-            preferences.get(BooleanKey.ApsUseDynamicSensitivity) && hardLimits.checkHardLimits(
-                preferences.get(IntKey.ApsDynIsfAdjustmentFactor).toDouble(),
-                ApsStrings.dyn_isf_adjust_title,
-                IntKey.ApsDynIsfAdjustmentFactor.min.toDouble(),
-                IntKey.ApsDynIsfAdjustmentFactor.max.toDouble()
+        val epsProfile = profile as ProfileSealed.EPS
+        val dynIsfResult = calculateRawDynIsf(epsProfile)
+
+        // 4.0: the activity classifier scales the final variable sensitivity (only) and can lift
+        // the targets. The ISF multiplier runs before the dynIsfMode check, so the value that
+        // becomes variable_sens is the value the 2..1000 range check below saw, as in 3.x.
+        val useActivityClassifier = preferences.get(BooleanKey.ActivityMonitorDetection) && preferences.get(BooleanKey.ApsAutoIsfUseActivityClassifier)
+        val useActivityTargetOffset = useActivityClassifier && preferences.get(BooleanKey.ApsAutoIsfUseActivityTargetOffset)
+        var activityClass = ActivityClass.REST
+        if (useActivityClassifier) {
+            val avgHrForActivity = persistenceLayer.getHeartRatesFromTime(dateUtil.now() - T.mins(15).msecs())
+                .map { it.beatsPerMinute }.average().takeIf { !it.isNaN() } ?: 0.0
+            val steps15mTotal = StepService.getRecentStepCount5Min() +
+                StepService.getRecentStepCount10Min() +
+                StepService.getRecentStepCount15Min()
+            activityClass = ActivityClassifier.classify(
+                steps15m = steps15mTotal,
+                avgHrLast15m = avgHrForActivity,
+                restingHr = preferences.get(IntKey.ActivityRestingHr)
             )
+            aapsLogger.debug(LTag.APS, "ActivityClass: $activityClass steps15m=$steps15mTotal hr=$avgHrForActivity")
+            if (activityClass != ActivityClass.REST) {
+                dynIsfResult.variableSensitivity = dynIsfResult.variableSensitivity?.times(activityClass.isfMultiplier)
+            }
+        }
+
+        val dynIsfMode =
+            preferences.get(BooleanKey.ApsUseDynamicSensitivity) &&
+                hardLimits.checkHardLimits(
+                    preferences.get(IntKey.ApsDynIsfAdjustmentFactor).toDouble(),
+                    ApsStrings.dyn_isf_adjust_title,
+                    IntKey.ApsDynIsfAdjustmentFactor.min.toDouble(),
+                    IntKey.ApsDynIsfAdjustmentFactor.max.toDouble()
+                ) &&
+                hardLimits.checkHardLimits(
+                    preferences.get(IntKey.ApsDynIsfVelocity).toDouble(),
+                    IntKey.ApsDynIsfVelocity.title,
+                    IntKey.ApsDynIsfVelocity.min.toDouble(),
+                    IntKey.ApsDynIsfVelocity.max.toDouble()
+                ) &&
+                hardLimits.checkHardLimits(dynIsfResult.variableSensitivity ?: 0.0, ApsStrings.dynisf_settings_title, HardLimits.LIMIT_ISF)
         val smbEnabled = preferences.get(BooleanKey.ApsUseSmb)
         val advancedFiltering = constraintsChecker.isAdvancedFilteringEnabled().also { inputConstraints.copyReasons(it) }.value()
 
@@ -425,32 +481,7 @@ open class OpenAPSSMBPlugin(
         }
 
         var autosensResult = AutosensResult()
-        // var variableSensitivity = 0.0
-        // var tdd = 0.0
-        // var insulinDivisor = 0
-        val epsProfile = profile as ProfileSealed.EPS
-        val dynIsfResult = calculateRawDynIsf(epsProfile, epsProfile.value.originalPercentage / 100.0)
 
-        val useActivityClassifier = preferences.get(BooleanKey.ActivityMonitorDetection) && preferences.get(BooleanKey.ApsAutoIsfUseActivityClassifier)
-        val useActivityTargetOffset = useActivityClassifier && preferences.get(BooleanKey.ApsAutoIsfUseActivityTargetOffset)
-        var activityClass = ActivityClass.REST
-        if (useActivityClassifier) {
-            val avgHrForActivity = persistenceLayer.getHeartRatesFromTime(dateUtil.now() - T.mins(15).msecs())
-                .map { it.beatsPerMinute }.average().takeIf { !it.isNaN() } ?: 0.0
-            val steps15mTotal = app.aaps.plugins.aps.openAPSSMB.StepService.getRecentStepCount5Min() +
-                app.aaps.plugins.aps.openAPSSMB.StepService.getRecentStepCount10Min() +
-                app.aaps.plugins.aps.openAPSSMB.StepService.getRecentStepCount15Min()
-            activityClass = ActivityClassifier.classify(
-                steps15m = steps15mTotal,
-                avgHrLast15m = avgHrForActivity,
-                restingHr = preferences.get(IntKey.ActivityRestingHr)
-            )
-            aapsLogger.debug(LTag.APS, "ActivityClass: $activityClass steps15m=$steps15mTotal hr=$avgHrForActivity")
-            if (activityClass != ActivityClass.REST) {
-                dynIsfResult.variableSensitivity = dynIsfResult.variableSensitivity?.times(activityClass.isfMultiplier)
-                dynIsfResult.baseSensitivity = dynIsfResult.baseSensitivity?.times(activityClass.isfMultiplier)
-            }
-        }
         if (useActivityTargetOffset && activityClass.targetBgOffsetMgdl > 0.0 && !isTempTarget) {
             targetBg = (targetBg + activityClass.targetBgOffsetMgdl).coerceAtMost(maxOf(targetBg, 180.0))
             minBg = (minBg + activityClass.targetBgOffsetMgdl).coerceAtMost(maxOf(minBg, 180.0))
@@ -560,33 +591,30 @@ open class OpenAPSSMBPlugin(
             variable_sens = if (dynIsfMode) dynIsfResult.variableSensitivity ?: 0.0 else 0.0,
             insulinDivisor = dynIsfResult.insulinDivisor,
             TDD = dynIsfResult.tdd ?: 0.0,
-            dynIsfBaseSens = dynIsfResult.baseSensitivity ?: 0.0
+            dynIsfBaseSens = dynIsfResult.tdd?.let { DynIsfSensitivity.baseFromTdd(it, dynIsfResult.insulinDivisor) } ?: 0.0,
+            use_TDD_for_predictions = !preferences.get(BooleanKey.ApsDynIsfUseProfileSens)
         )
         val microBolusAllowed = constraintsChecker.isSMBModeEnabled(ConstraintObject(tempBasalFallback.not(), aapsLogger)).also { inputConstraints.copyReasons(it) }.value()
         val flatBGsDetected = bgQualityCheck.state == BgQualityCheck.State.FLAT
-        // Same gating as 3.x: TDD-based DynISF needs the full TDD history and falls back to plain
-        // SMB without it. The "profile ISF as base" option does not need a TDD at all - requiring
-        // it used to disable DynISF in exactly the case the option was added for.
-        val effectiveDynIsfMode = dynIsfMode &&
-            (dynIsfResult.tddPartsCalculated() || preferences.get(BooleanKey.ApsDynIsfUseProfileSens)) &&
-            dynIsfResult.variableSensitivity != null &&
-            dynIsfResult.variableSensitivity!!.isFinite() &&
-            dynIsfResult.variableSensitivity!! > 0.0
 
         // Refuse to run the algorithm with degenerate ISF inputs — division by these would produce NaN/Infinity in the result.
         // carb_ratio feeds csf (sens/carb_ratio) and autosensResult.ratio becomes the non-dynISF sensitivityRatio
         // (sens = profile.sens/sensitivityRatio); a non-finite/≤0 value of either cascades to a NaN carbsReq (round() crash).
+        // variable_sens passed the hard-limit range check inside dynIsfMode, which also rejects NaN
+        // and the out-of-range values; the raw TDD base is only needed for predictions.
         val invalidInputs = !oapsProfile.sens.isFinite() || oapsProfile.sens <= 0.0 ||
             !oapsProfile.carb_ratio.isFinite() || oapsProfile.carb_ratio <= 0.0 ||
             !autosensResult.ratio.isFinite() || autosensResult.ratio <= 0.0 ||
-            (effectiveDynIsfMode && (
+            (dynIsfMode && (
                 !oapsProfile.variable_sens.isFinite() || oapsProfile.variable_sens <= 0.0 ||
-                    !oapsProfile.dynIsfBaseSens.isFinite() || oapsProfile.dynIsfBaseSens <= 0.0 ||
+                    (oapsProfile.use_TDD_for_predictions == true && (
+                        !oapsProfile.dynIsfBaseSens.isFinite() || oapsProfile.dynIsfBaseSens <= 0.0
+                        )) ||
                     oapsProfile.insulinDivisor <= 0
                 ))
         if (invalidInputs) {
             val msg = "OpenAPS SMB aborting: invalid ISF inputs " +
-                "dynIsfMode=$effectiveDynIsfMode sens=${oapsProfile.sens} " +
+                "dynIsfMode=$dynIsfMode sens=${oapsProfile.sens} " +
                 "carb_ratio=${oapsProfile.carb_ratio} autosensRatio=${autosensResult.ratio} " +
                 "variable_sens=${oapsProfile.variable_sens} baseSens=${oapsProfile.dynIsfBaseSens} " +
                 "TDD=${oapsProfile.TDD} insulinDivisor=${oapsProfile.insulinDivisor}"
@@ -618,7 +646,7 @@ open class OpenAPSSMBPlugin(
             microBolusAllowed = microBolusAllowed,
             currentTime = now,
             flatBGsDetected = flatBGsDetected,
-            dynIsfMode = effectiveDynIsfMode,
+            dynIsfMode = dynIsfMode,
             smbRatio = getSmbRatio(glucoseStatus.glucose, targetBg),
             smbMaxRangeExtension = preferences.get(DoubleKey.ApsAutoIsfSmbMaxRangeExtension)
         ).also {
@@ -750,6 +778,8 @@ open class OpenAPSSMBPlugin(
             BooleanKey.ApsDynIsfUseProfileSens,
             BooleanKey.ApsUseAutosens,
             IntKey.ApsDynIsfAdjustmentFactor,
+            IntKey.ApsDynIsfVelocity,
+            UnitDoubleKey.ApsDynIsfBgCap,
             BooleanKey.ApsDynIsfProfilePercentage,
             BooleanKey.ApsDynIsfAdjustSensitivity,
             BooleanKey.ApsAutoIsfHighTtRaisesSens,

@@ -336,7 +336,8 @@ class DetermineBasalSMBTest : TestBaseWithProfile() {
             variable_sens = round1(oldSens(150.0)),
             insulinDivisor = divisor,
             TDD = tdd,
-            dynIsfBaseSens = base
+            dynIsfBaseSens = base,
+            use_TDD_for_predictions = true
         )
 
         val rT = run(noMeal(), iobDataArray = iobArray(activity = activity), profile = profile, dynIsfMode = true)

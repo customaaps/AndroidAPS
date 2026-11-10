@@ -45,9 +45,9 @@ enum class UnitDoubleKey(
     ),
     ApsDynIsfBgCap(
         key = "dynisf_bg_cap",
-        defaultValue = 400.0,
-        minMgdl = 100,
-        maxMgdl = 600,
+        defaultValue = 430.0,
+        minMgdl = 108,
+        maxMgdl = 450,
         title = KeysStrings.pref_title_dynisf_bg_cap,
         summary = KeysStrings.dynisf_bg_cap_summary,
         dependency = BooleanKey.ApsUseDynamicSensitivity,

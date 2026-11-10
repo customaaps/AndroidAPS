@@ -68,9 +68,11 @@ class DetermineBasalSMB(
         if (isFinite()) maxOf(this, minimum) else minimum
 
     /**
-     * The one DynISF ISF used by this run: current-BG `sens`, dosing `future_sens` and every
-     * prediction tick go through here. See [DynIsfSensitivity] for why it must not be recomputed
-     * inline from `TDD` - that is how the dosing ISF and the prediction ISF drifted apart.
+     * The raw TDD curve the 3.x predictions used: `1800 / (TDD * ln(bg / divisor + 1))`, from
+     * [OapsProfile.dynIsfBaseSens]. `future_sens` and the prediction BGI terms go through here;
+     * the dosing ISF is [OapsProfile.variable_sens], which the velocity blend, BG cap and
+     * temp-target scaling make different from this curve. See [DynIsfSensitivity] for why the
+     * base is carried in the profile instead of being recomputed from `TDD` inline.
      */
     private fun dynIsfSensitivity(profile: OapsProfile, bg: Double): Double =
         DynIsfSensitivity.atBg(bg, profile.dynIsfBaseSens, profile.insulinDivisor)
@@ -313,6 +315,7 @@ class DetermineBasalSMB(
         if (dynIsfMode) {
             consoleError.add("---------------------------------------------------------")
             consoleError.add(" Dynamic ISF version 2.0 ")
+            if (profile.use_TDD_for_predictions == false) consoleError.add(" running in non-TDD mode")
             consoleError.add("---------------------------------------------------------")
         }
 
@@ -374,7 +377,7 @@ class DetermineBasalSMB(
         val maxDelta = max(glucose_status.delta, max(glucose_status.shortAvgDelta, glucose_status.longAvgDelta))
 
         val sens =
-            if (dynIsfMode) round(dynIsfSensitivity(profile, bg), 1)
+            if (dynIsfMode) profile.variable_sens
             else {
                 val profile_sens = round(profile.sens, 1)
                 val adjusted_sens = round(profile.sens / sensitivityRatio, 1)
@@ -640,19 +643,18 @@ class DetermineBasalSMB(
 
         iobArray.forEach { iobTick ->
             //console.error(iobTick);
-            // COB/aCOB use this; in DynISF mode it is the ISF at the BG the COB curve is predicting.
-            val predBGI: Double =
-                if (dynIsfMode) round((-iobTick.activity * dynIsfSensitivity(profile, max(COBpredBGs[COBpredBGs.size - 1], 39.0)) * 5), 2)
-                else round((-iobTick.activity * sens * 5), 2)
+            // COB/aCOB and the fallback terms are built from this: the ISF at the current BG. In
+            // TDD-prediction mode the other three terms use the raw curve at their own predicted BG.
+            val predBGI: Double = round((-iobTick.activity * sens * 5), 2)
             val IOBpredBGI: Double =
-                if (dynIsfMode) round((-iobTick.activity * dynIsfSensitivity(profile, max(IOBpredBGs[IOBpredBGs.size - 1], 39.0)) * 5), 2)
+                if (dynIsfMode && profile.use_TDD_for_predictions == true) round((-iobTick.activity * dynIsfSensitivity(profile, max(IOBpredBGs[IOBpredBGs.size - 1], 39.0)) * 5), 2)
                 else predBGI
             iobTick.iobWithZeroTemp ?: error("iobTick.iobWithZeroTemp missing")
             val predZTBGI =
-                if (dynIsfMode) round((-iobTick.iobWithZeroTemp!!.activity * dynIsfSensitivity(profile, max(ZTpredBGs[ZTpredBGs.size - 1], 39.0)) * 5), 2)
+                if (dynIsfMode && profile.use_TDD_for_predictions == true) round((-iobTick.iobWithZeroTemp!!.activity * dynIsfSensitivity(profile, max(ZTpredBGs[ZTpredBGs.size - 1], 39.0)) * 5), 2)
                 else round((-iobTick.iobWithZeroTemp!!.activity * sens * 5), 2)
             val predUAMBGI =
-                if (dynIsfMode) round((-iobTick.activity * dynIsfSensitivity(profile, max(UAMpredBGs[UAMpredBGs.size - 1], 39.0)) * 5), 2)
+                if (dynIsfMode && profile.use_TDD_for_predictions == true) round((-iobTick.activity * dynIsfSensitivity(profile, max(UAMpredBGs[UAMpredBGs.size - 1], 39.0)) * 5), 2)
                 else predBGI
             // for IOBpredBGs, predicted deviation impact drops linearly from current deviation down to zero
             // over 60 minutes (data points every 5m)
@@ -793,7 +795,7 @@ class DetermineBasalSMB(
         val fSensBG = min(minPredBG, bg)
 
         var future_sens = sens
-        if (dynIsfMode) {
+        if (dynIsfMode && profile.use_TDD_for_predictions == true) {
             if (bg > target_bg && glucose_status.delta < 3 && glucose_status.delta > -3 && glucose_status.shortAvgDelta > -3 && glucose_status.shortAvgDelta < 3 && eventualBG > target_bg && eventualBG
                 < bg
             ) {

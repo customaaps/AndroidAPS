@@ -384,7 +384,8 @@ class ReplayApsResultsTest : AapsInstrumentedTest() {
                 determineBasalResult.profile.getInt("insulinDivisor").let { divisor ->
                     if (tdd > 0.0 && divisor > 0) DynIsfSensitivity.baseFromTdd(tdd, divisor) else 0.0
                 }
-            }
+            },
+            use_TDD_for_predictions = determineBasalResult.profile.optBoolean("use_TDD_for_predictions", true)
         )
         val meatData = MealData(
             carbs = determineBasalResult.mealData.getDouble("carbs"),

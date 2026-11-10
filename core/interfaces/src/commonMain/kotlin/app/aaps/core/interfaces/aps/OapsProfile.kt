@@ -49,10 +49,16 @@ data class OapsProfile(
     var insulinDivisor: Int,
     var TDD: Double,
     /**
-     * DynISF ISF at the normal target (100 mg/dL), without rounding, before the BG factor is
-     * applied: the base the old `1800 / (TDD * ln(bg / divisor + 1))` formula was expressed from.
-     * Recomputing it inline from [TDD] and [insulinDivisor] (as `DetermineBasalSMB` used to) is
-     * what let the dosing ISF and the prediction ISF drift apart.
+     * DynISF base of the RAW TDD curve: `1800 / (TDD * ln(100 / divisor + 1))`, unrounded. It is
+     * what the 3.x predictions (`future_sens` and the prediction BGI terms) computed inline from
+     * `TDD` and the divisor, so it carries no velocity blend, no BG cap, no temp-target scaling,
+     * no profile-% multiplier and no activity multiplier - only [variable_sens] sees those.
      */
-    var dynIsfBaseSens: Double = 0.0
+    var dynIsfBaseSens: Double = 0.0,
+    /**
+     * DynISF only, null for the plugins that do not use DynISF (AMA). True when predictions and
+     * `future_sens` use the raw TDD curve instead of [variable_sens], as in 3.x. Off by the
+     * "depend on profile sensitivity" option, where the TDD curve is not the base at all.
+     */
+    var use_TDD_for_predictions: Boolean? = null
 )

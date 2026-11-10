@@ -7,6 +7,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.tempTargets.toTTPresets
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.keys.IntKey
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -325,6 +326,24 @@ class PreferenceMigrationsTest {
         sut().migrate(store)
 
         assertThat(store.getInt("DynISFAdjust", 0)).isEqualTo(90)
+    }
+
+    @Test fun `the 3_x velocity key is renamed`() = runTest {
+        val store = storeOf("DynISFVelocity" to 30)
+
+        sut().migrate(store)
+
+        assertThat(store.getInt(IntKey.ApsDynIsfVelocity.key, 0)).isEqualTo(30)
+        assertThat(store.contains("DynISFVelocity")).isFalse()
+    }
+
+    @Test fun `a velocity value that will not convert is left in place`() = runTest {
+        val store = storeOf("DynISFVelocity" to "fast")
+
+        sut().migrate(store)
+
+        assertThat(store.contains(IntKey.ApsDynIsfVelocity.key)).isFalse()
+        assertThat(store.contains("DynISFVelocity")).isTrue()
     }
 
     // ----- Temp target presets -----

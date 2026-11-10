@@ -117,6 +117,7 @@ class PreferenceMigrations(
         apsMode(sp)
         tempTargetPresets(sp)
         activityMonitorRetired(sp)
+        dynIsfVelocity(sp)
     }
 
     /**
@@ -462,6 +463,22 @@ class PreferenceMigrations(
      */
     private fun skip(name: String, reason: String) {
         aapsLogger.warn(LTag.CORE, "Not migrating '$name': $reason. Left in place.")
+    }
+
+    /**
+     * The velocity slider was stored as `DynISFVelocity` in 3.x and is `dynisf_velocity` now, with
+     * the same meaning and the same 1..200 range. The 4.0 builds in between read the new name but
+     * never wrote it, so an upgraded phone still carries only the old row while the new name shows
+     * the default. Move the old value over; a client build has no DynISF of its own to seed.
+     */
+    private fun dynIsfVelocity(sp: KeyValueStore) {
+        if (config.AAPSCLIENT) return
+        val legacyName = "DynISFVelocity"
+        val stored = sp.getAll()[legacyName] ?: return
+        val value = LegacyPreferenceValue.asLong(stored)
+            ?: return skip(legacyName, "expected a number, found ${LegacyPreferenceValue.describeType(stored)}")
+        sp.putInt(IntKey.ApsDynIsfVelocity.key, value.toInt())
+        sp.remove(legacyName)
     }
 
     /** The old per-preset keys, and what they became. */
