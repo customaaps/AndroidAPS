@@ -8,6 +8,8 @@ import app.aaps.core.data.model.getPassedDurationToTimeInMinutes
 import app.aaps.core.interfaces.aps.DynamicCarbRatioPolicy
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.time.T
+import androidx.collection.LongSparseArray
+import androidx.collection.forEach
 import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.aps.APSResult
@@ -17,6 +19,8 @@ import app.aaps.core.interfaces.aps.GlucoseStatus
 import app.aaps.core.interfaces.aps.OapsProfileAutoIsf
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
 import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.concurrent.AapsLock
+import app.aaps.core.interfaces.concurrent.withLock
 import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.constraints.PluginConstraints
@@ -177,22 +181,60 @@ open class OpenAPSAutoISFPlugin(
         iobThEffective = 0.0
     )
 
+    /** Last autoISF result per 30 min bucket, keyed like the SMB plugin's dynIsfCache: bucket + glucose. */
+    private val autoIsfCache = LongSparseArray<Double>()
+
+    /** Guards [autoIsfCache]. */
+    private val isfCacheLock = AapsLock()
+
+    /** Seed the cache with the last 24 h of stored results, so [getAverageIsfMgdl] works right after a restart. */
+    override suspend fun onStart() {
+        super.onStart()
+        var count = 0
+        val apsResults = persistenceLayer.getApsResults(dateUtil.now() - T.days(1).msecs(), dateUtil.now())
+        apsResults.forEach {
+            val glucose = it.glucoseStatus?.glucose ?: return@forEach
+            val variableSens = it.variableSens ?: return@forEach
+            val timestamp = it.date
+            val key = timestamp - timestamp % T.mins(30).msecs() + glucose.toLong()
+            if (variableSens > 0) isfCacheLock.withLock { autoIsfCache.put(key, variableSens) }
+            count++
+        }
+        aapsLogger.debug(LTag.APS, "Loaded $count variable sensitivity values from database")
+    }
+
     override fun usingDynamicIsf() = true //: Boolean = preferences.get(BooleanKey.ApsUseAutoIsf)
 
     /**
      * AutoISF works out its ISF inside its own run, as variable_sens. Every other caller gets the profile ISF,
-     * so this must answer null. It used to run autoISF() here as well, only to fill a cache for the old
-     * average ISF for carbs. That average is now worked out from the stored results, see `IsfForCarbs`.
+     * so this must answer null, like it did in the beta-apex branch. The per-run result goes to the cache
+     * in [invoke]; the 24 h average for carb calculations lives in [getAverageIsfMgdl].
      */
     override fun getIsfMgdl(profile: Profile, caller: String): Double? = null
 
     override fun getSensitivityOverviewString(): String? = null // placeholder for Auto ISF Detailed information for overview
 
     /**
-     * AutoISF works out its own ISF per cycle, so there is no cached average to hand out.
-     * Returning null makes the profile fall back to its scheduled ISF for carb calculations.
+     * The 24 h average of the autoISF results, for carb calculations (wizard, COB/graph workers, overview).
+     * Restores the beta-apex behaviour. null when nothing ran in the window, which makes the profile fall
+     * back to its scheduled ISF.
      */
-    override fun getAverageIsfMgdl(timestamp: Long, caller: String): Double? = null
+    override fun getAverageIsfMgdl(timestamp: Long, caller: String): Double? {
+        var count = 0
+        var sum = 0.0
+        val start = timestamp - T.hours(24).msecs()
+        isfCacheLock.withLock {
+            autoIsfCache.forEach { key, value ->
+                if (key in start..timestamp) {
+                    count++
+                    sum += value
+                }
+            }
+        }
+        val sensitivity = if (count == 0) null else sum / count
+        aapsLogger.debug(LTag.APS, "getAverageIsfMgdl() $sensitivity from $count values ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $caller")
+        return sensitivity
+    }
 
     /**
      * [Preferences.get] on a [UnitDoubleKey] returns the value in the CURRENT display units, so it has to be
@@ -331,6 +373,11 @@ open class OpenAPSAutoISFPlugin(
         preferences.put(BooleanKey.ActivityMonitorStepsInactive, stepInactivityDetected)
         if (autoIsfMode) {
             variableSensitivity = autoISF(profile)
+            val key = now - now % T.mins(30).msecs() + glucoseStatus.glucose.toLong()
+            if (variableSensitivity > 0) isfCacheLock.withLock {
+                autoIsfCache.put(key, variableSensitivity)
+                if (autoIsfCache.size() > 1000) autoIsfCache.clear()
+            }
         }
         val profileCrForCycle = profile.getIc()
         val profileIsfForCycle = profile.getProfileIsfMgdl()

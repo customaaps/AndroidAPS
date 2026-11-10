@@ -1,6 +1,7 @@
 package app.aaps.plugins.aps.openAPSAutoISF
 
 import app.aaps.core.data.aps.SMBDefaults
+import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.aps.GlucoseStatusAutoIsf
 import app.aaps.core.interfaces.aps.OapsProfileAutoIsf
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
@@ -15,9 +16,11 @@ import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.shared.tests.TestBaseWithProfile
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
+import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 
 class OpenAPSAutoISFPluginTest : TestBaseWithProfile() {
@@ -268,5 +271,37 @@ class OpenAPSAutoISFPluginTest : TestBaseWithProfile() {
         whenever(preferences.get(DoubleKey.ApsAutoIsfLowBgWeight)).thenReturn(2.0)
         assertThat(openAPSAutoISFPlugin.autoISF(profile)).isEqualTo(47.11 * 1.0)                       // bg_ISF strengthened by acce_ISF
 
+    }
+
+    @Test
+    fun `getAverageIsfMgdl returns the 24 hour mean of the seeded results`() = runBlocking {
+        val now = dateUtil.now()
+        fun resultAt(timestamp: Long, glucose: Double, variableSens: Double?) =
+            apsResultProvider().also {
+                it.date = timestamp
+                it.glucoseStatus = GlucoseStatusAutoIsf(glucose = glucose)
+                it.variableSens = variableSens
+            }
+        whenever(persistenceLayer.getApsResults(any(), any())).thenReturn(
+            listOf(
+                resultAt(now - T.hours(2).msecs(), 100.0, 200.0),
+                resultAt(now - T.hours(6).msecs(), 110.0, 220.0),
+                resultAt(now - T.hours(25).msecs(), 100.0, 1000.0),                                    // older than the window
+                resultAt(now - T.hours(3).msecs(), 100.0, 0.0),                                        // never seeded
+                resultAt(now - T.hours(4).msecs(), 100.0, null)                                        // never seeded
+            )
+        )
+        openAPSAutoISFPlugin.onStart()
+
+        assertThat(openAPSAutoISFPlugin.getAverageIsfMgdl(now, "Test")).isEqualTo(210.0)
+        assertThat(openAPSAutoISFPlugin.getAverageIsfMgdl(now + T.hours(30).msecs(), "Test")).isNull()  // window has moved away
+    }
+
+    @Test
+    fun `getAverageIsfMgdl returns null when the database has no results`() = runBlocking {
+        whenever(persistenceLayer.getApsResults(any(), any())).thenReturn(emptyList())
+        openAPSAutoISFPlugin.onStart()
+
+        assertThat(openAPSAutoISFPlugin.getAverageIsfMgdl(dateUtil.now(), "Test")).isNull()
     }
 }
