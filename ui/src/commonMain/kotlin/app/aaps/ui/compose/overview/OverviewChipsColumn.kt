@@ -4,6 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +61,7 @@ fun OverviewChipsColumn(
     onIobChipClick: () -> Unit,
     commandsAllowed: Boolean = true,
     showPrimaryChips: Boolean = true,
+    showDynamicValues: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -78,6 +83,20 @@ fun OverviewChipsColumn(
                 onNavigate = onNavigate,
                 commandsAllowed = commandsAllowed
             )
+        }
+        if (showDynamicValues && sensitivityUiState.hasProfileValues) {
+            // Move ISF/CR out of the lower status card into the free area beside
+            // the glucose ring. The original detail dialog remains clickable.
+            Surface(
+                shape = RoundedCornerShape(AapsSpacing.chipCornerRadius),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                DynamicValuesBlock(
+                    state = sensitivityUiState,
+                    modifier = Modifier.padding(horizontal = AapsSpacing.medium, vertical = AapsSpacing.small)
+                )
+            }
         }
         OverviewSecondaryChips(
             tempTargetText = tempTargetText,

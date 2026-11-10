@@ -90,10 +90,11 @@ fun OverviewStatusSection(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     sensitivity: SensitivityUiState = SensitivityUiState(),
+    equipmentSingleRow: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val items = listOfNotNull(cannulaStatus, insulinStatus, sensorStatus, batteryStatus)
-    if (items.isEmpty() && !sensitivity.hasProfileValues) return
+    if (items.isEmpty() && (equipmentSingleRow || !sensitivity.hasProfileValues)) return
     val compactItems = items.filter { it.compactAge || (it.compactLevel && it.level != null) }
 
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
@@ -109,12 +110,22 @@ fun OverviewStatusSection(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (!expanded || items.isEmpty()) {
-                CompactOverviewStatus(
-                    items = compactItems,
-                    sensitivity = sensitivity,
-                    canExpand = items.isNotEmpty(),
-                    onExpand = { onExpandedChange(true) }
-                )
+                if (equipmentSingleRow) {
+                    // Phone portrait: all four equipment indicators share one line. ISF/CR
+                    // have moved beside the BG ring, so they must not be repeated here.
+                    CompactEquipmentSingleRow(
+                        items = compactItems,
+                        canExpand = items.isNotEmpty(),
+                        onExpand = { onExpandedChange(true) }
+                    )
+                } else {
+                    CompactOverviewStatus(
+                        items = compactItems,
+                        sensitivity = sensitivity,
+                        canExpand = items.isNotEmpty(),
+                        onExpand = { onExpandedChange(true) }
+                    )
+                }
             } else Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -153,7 +164,7 @@ fun OverviewStatusSection(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (sensitivity.hasProfileValues) {
+                    if (!equipmentSingleRow && sensitivity.hasProfileValues) {
                         DynamicValuesBlock(state = sensitivity, modifier = Modifier.fillMaxWidth())
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
@@ -240,6 +251,45 @@ internal fun CompactOverviewStatus(
     }
 }
 
+/**
+ * Single compact equipment line for the portrait overview. It keeps the existing
+ * status sheet accessible and gives every available item equal horizontal space,
+ * instead of the former two-by-two layout next to ISF/CR.
+ */
+@Composable
+internal fun CompactEquipmentSingleRow(
+    items: List<StatusItem>,
+    canExpand: Boolean,
+    onExpand: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        if (items.isNotEmpty()) {
+            Row(
+                modifier = Modifier.weight(1f).clickable(enabled = canExpand, onClick = onExpand),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                items.forEach { item ->
+                    CompactStatusItem(
+                        item = item,
+                        age = item.ageShort,
+                        modifier = Modifier.weight(1f),
+                        fitToWidth = true,
+                        extraCompact = true
+                    )
+                }
+            }
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+        if (canExpand) StatusExpandButton(onExpand)
+    }
+}
+
 @Composable
 private fun StatusExpandButton(onExpand: () -> Unit) {
     IconButton(onClick = onExpand, modifier = Modifier.size(24.dp)) {
@@ -322,7 +372,7 @@ private fun CompactStatusItems(items: List<StatusItem>, shortAge: Boolean) {
 }
 
 @Composable
-private fun CompactStatusItem(item: StatusItem, age: String, modifier: Modifier = Modifier, fitToWidth: Boolean = false) {
+private fun CompactStatusItem(item: StatusItem, age: String, modifier: Modifier = Modifier, fitToWidth: Boolean = false, extraCompact: Boolean = false) {
     val showAge = item.compactAge
     val showLevel = item.compactLevel && item.level != null
     if (!showAge && !showLevel) return
@@ -359,7 +409,7 @@ private fun CompactStatusItem(item: StatusItem, age: String, modifier: Modifier 
         Icon(
             imageVector = item.icon,
             contentDescription = item.label,
-            modifier = Modifier.size(if (fitToWidth) 18.dp else 20.dp),
+            modifier = Modifier.size(if (extraCompact) 14.dp else if (fitToWidth) 18.dp else 20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(2.dp))
@@ -380,7 +430,7 @@ private fun CompactStatusItem(item: StatusItem, age: String, modifier: Modifier 
             BasicText(text = values, modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                 maxLines = 1, softWrap = false,
-                autoSize = TextAutoSize.StepBased(minFontSize = 10.sp,
+                autoSize = TextAutoSize.StepBased(minFontSize = if (extraCompact) 8.sp else 10.sp,
                     maxFontSize = MaterialTheme.typography.bodyMedium.fontSize, stepSize = 1.sp))
         } else Text(text = values, style = MaterialTheme.typography.bodyMedium)
     }

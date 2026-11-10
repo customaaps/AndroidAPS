@@ -1,5 +1,6 @@
 package app.aaps.ui.compose.overview
 
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -104,59 +106,69 @@ fun OverviewScreenStacked(
             formatDuration = formatDuration
         )
         eatReminderBanner()
-        // Compact current layout: the free strip above the BG ring holds mode/profile.
-        OverviewPrimaryChips(
-            runningMode = runningMode, runningModeText = runningModeText,
-            runningModeRemaining = runningModeRemaining, runningModeProgress = runningModeProgress,
-            runningModeSceneManaged = runningModeSceneManaged, smbEnabled = smbEnabled,
-            profileName = profileName, isProfileModified = isProfileModified,
-            profileProgress = profileProgress, profileSceneManaged = profileSceneManaged,
-            onNavigate = onNavigate, commandsAllowed = commandsAllowed,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                BgInfoSection(
-                    bgInfo = bgInfoState.bgInfo,
-                    timeAgoText = bgInfoState.timeAgoText
-                )
+        // A large enough portrait can keep the profile/mode controls beside the BG
+        // ring as well. On narrow phones they stay above, retaining usable touch targets
+        // and full values for the right-hand ISF/CR block.
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val primaryBesideBg = maxWidth >= 400.dp * LocalDensity.current.fontScale
+            Column {
+                if (!primaryBesideBg) {
+                    OverviewPrimaryChips(
+                        runningMode = runningMode, runningModeText = runningModeText,
+                        runningModeRemaining = runningModeRemaining, runningModeProgress = runningModeProgress,
+                        runningModeSceneManaged = runningModeSceneManaged, smbEnabled = smbEnabled,
+                        profileName = profileName, isProfileModified = isProfileModified,
+                        profileProgress = profileProgress, profileSceneManaged = profileSceneManaged,
+                        onNavigate = onNavigate, commandsAllowed = commandsAllowed,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        BgInfoSection(
+                            bgInfo = bgInfoState.bgInfo,
+                            timeAgoText = bgInfoState.timeAgoText
+                        )
+                    }
+                    OverviewChipsColumn(
+                        runningMode = runningMode,
+                        runningModeText = runningModeText,
+                        runningModeRemaining = runningModeRemaining,
+                        runningModeProgress = runningModeProgress,
+                        runningModeSceneManaged = runningModeSceneManaged,
+                        smbEnabled = smbEnabled,
+                        profileName = profileName,
+                        isProfileModified = isProfileModified,
+                        profileProgress = profileProgress,
+                        profileSceneManaged = profileSceneManaged,
+                        tempTargetText = tempTargetText,
+                        tempTargetState = tempTargetState,
+                        tempTargetProgress = tempTargetProgress,
+                        tempTargetReason = tempTargetReason,
+                        tempTargetSceneManaged = tempTargetSceneManaged,
+                        tbrState = tbrState,
+                        tbrText = tbrText,
+                        iobUiState = iobUiState,
+                        cobUiState = cobUiState,
+                        sensitivityUiState = sensitivityUiState,
+                        cycleUiState = cycleUiState,
+                        onNavigate = onNavigate,
+                        onTbrChipClick = onTbrChipClick,
+                        onIobChipClick = onIobChipClick,
+                        commandsAllowed = commandsAllowed,
+                        showPrimaryChips = primaryBesideBg,
+                        showDynamicValues = true,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp)
+                    )
+                }
             }
-            OverviewChipsColumn(
-                runningMode = runningMode,
-                runningModeText = runningModeText,
-                runningModeRemaining = runningModeRemaining,
-                runningModeProgress = runningModeProgress,
-                runningModeSceneManaged = runningModeSceneManaged,
-                smbEnabled = smbEnabled,
-                profileName = profileName,
-                isProfileModified = isProfileModified,
-                profileProgress = profileProgress,
-                profileSceneManaged = profileSceneManaged,
-                tempTargetText = tempTargetText,
-                tempTargetState = tempTargetState,
-                tempTargetProgress = tempTargetProgress,
-                tempTargetReason = tempTargetReason,
-                tempTargetSceneManaged = tempTargetSceneManaged,
-                tbrState = tbrState,
-                tbrText = tbrText,
-                iobUiState = iobUiState,
-                cobUiState = cobUiState,
-                sensitivityUiState = sensitivityUiState,
-                cycleUiState = cycleUiState,
-                onNavigate = onNavigate,
-                onTbrChipClick = onTbrChipClick,
-                onIobChipClick = onIobChipClick,
-                commandsAllowed = commandsAllowed,
-                showPrimaryChips = false,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp)
-            )
         }
         OverviewStatusSection(
             sensitivity = sensitivityUiState,
@@ -170,7 +182,8 @@ fun OverviewScreenStacked(
             onNavigate = onNavigate,
             statusLightsDef = statusLightsDef,
             expanded = statusExpanded,
-            onExpandedChange = { statusExpanded = it }
+            onExpandedChange = { statusExpanded = it },
+            equipmentSingleRow = true
         )
 
         if (config.AAPSCLIENT) {
