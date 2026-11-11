@@ -283,7 +283,6 @@ enum class BooleanKey(
         defaultValue = false,
         title = KeysStrings.pref_title_sms_notify_profile_change,
         summary = KeysStrings.pref_summary_sms_notify_profile_change,
-        platforms = AppPlatform.ANDROID_ONLY,
         showInNsClientMode = false
     ),
 

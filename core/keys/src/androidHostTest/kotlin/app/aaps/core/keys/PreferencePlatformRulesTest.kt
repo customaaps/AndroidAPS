@@ -55,6 +55,10 @@ class PreferencePlatformRulesTest {
      * left out genuinely cannot honour it rather than merely not having got round to it.
      * - the notification policy switch: iOS gives an app no say in whether an OS notification appears
      * - allow roaming: iOS publishes no roaming state and desktop reports every link as wifi
+     * - engineering mode: engineering builds exist only on Android
+     * - ignore bg source: iOS has a single BG source, so there is nothing for the switch to ignore
+     * - updates check: iOS updates come from TestFlight/App Store, not the in-app checker
+     * - SMS OTP: the SMS communicator does not exist outside Android
      */
     @Test
     fun `restrictions are the exception`() {
@@ -63,7 +67,11 @@ class PreferencePlatformRulesTest {
         assertThat(restricted).containsExactly(
             "raise_urgent_alarms_as_android_notification", AppPlatform.ANDROID_ONLY,
             "keep_screen_on", setOf(AppPlatform.Android, AppPlatform.Ios),
-            "ns_allow_roaming", AppPlatform.ANDROID_ONLY
+            "ns_allow_roaming", AppPlatform.ANDROID_ONLY,
+            "force_engineering_mode", AppPlatform.ANDROID_ONLY,
+            "ignore_bg_source", AppPlatform.ANDROID_ONLY,
+            "skip_updates_check", AppPlatform.ANDROID_ONLY,
+            "smscommunicator_enable_otp", AppPlatform.ANDROID_ONLY
         )
     }
 }
