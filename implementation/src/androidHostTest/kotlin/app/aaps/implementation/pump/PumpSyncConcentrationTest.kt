@@ -85,7 +85,7 @@ class PumpSyncConcentrationTest : TestBase() {
     }
 
     private suspend fun stubSyncPumpBolus() {
-        whenever(persistenceLayer.syncPumpBolus(any(), any())).thenAnswer { invocation ->
+        whenever(persistenceLayer.syncPumpBolus(any(), any(), any())).thenAnswer { invocation ->
             capturedBolus = invocation.getArgument(0)
             PersistenceLayer.TransactionResult<BS>().apply { inserted.add(capturedBolus!!) }
         }
