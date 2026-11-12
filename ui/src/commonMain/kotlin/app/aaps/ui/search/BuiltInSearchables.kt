@@ -86,6 +86,7 @@ class BuiltInSearchables(
                 BooleanKey.OverviewKeepScreenOn,
                 BooleanKey.EngineeringMode,
                 BooleanKey.ApsIgnoreBgSource,
+                BooleanKey.ApsLoopAtNativeCadence,
                 BooleanKey.DisableUpdatesChecker,
                 PreferenceSubScreenDef(
                     key = "dynamic_cr_settings", title = KeysStrings.dynamic_cr_settings,
