@@ -143,32 +143,32 @@ class FileListProviderImpl(
     override fun ensurePreferenceDirExists(): DocumentFile? {
         val prefUri = preferences().getIfExists(StringKey.AapsDirectoryUri) ?: return null
         val uri = Uri.parse(prefUri)
-        val baseDir = DocumentFile.fromTreeUri(context, uri)
-        val files = baseDir?.listFiles()
+        val baseDir = runCatching { DocumentFile.fromTreeUri(context, uri) }.getOrNull()
+        val files = baseDir?.let { runCatching { it.listFiles() }.getOrNull() }
         return files?.firstOrNull { it.name == preferencesPath } ?: baseDir?.createDirectory(preferencesPath)
     }
 
     override fun ensureExportDirExists(): DocumentFile? {
         val prefUri = preferences().getIfExists(StringKey.AapsDirectoryUri) ?: return null
         val uri = prefUri.toUri()
-        val baseDir = DocumentFile.fromTreeUri(context, uri)
-        val files = baseDir?.listFiles()
+        val baseDir = runCatching { DocumentFile.fromTreeUri(context, uri) }.getOrNull()
+        val files = baseDir?.let { runCatching { it.listFiles() }.getOrNull() }
         return files?.firstOrNull { it.name == exportsPath } ?: baseDir?.createDirectory(exportsPath)
     }
 
     override fun ensureTempDirExists(): DocumentFile? {
         val prefUri = preferences().getIfExists(StringKey.AapsDirectoryUri) ?: return null
         val uri = prefUri.toUri()
-        val baseDir = DocumentFile.fromTreeUri(context, uri)
-        val files = baseDir?.listFiles()
+        val baseDir = runCatching { DocumentFile.fromTreeUri(context, uri) }.getOrNull()
+        val files = baseDir?.let { runCatching { it.listFiles() }.getOrNull() }
         return files?.firstOrNull { it.name == tempPath } ?: baseDir?.createDirectory(tempPath)
     }
 
     override fun ensureExtraDirExists(): DocumentFile? {
         val prefUri = preferences().getIfExists(StringKey.AapsDirectoryUri) ?: return null
         val uri = prefUri.toUri()
-        val baseDir = DocumentFile.fromTreeUri(context, uri)
-        val files = baseDir?.listFiles()
+        val baseDir = runCatching { DocumentFile.fromTreeUri(context, uri) }.getOrNull()
+        val files = baseDir?.let { runCatching { it.listFiles() }.getOrNull() }
         return files?.firstOrNull { it.name == extraPath } ?: baseDir?.createDirectory(extraPath)
     }
 
