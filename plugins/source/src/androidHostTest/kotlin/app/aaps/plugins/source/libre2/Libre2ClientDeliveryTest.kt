@@ -3,6 +3,8 @@ package app.aaps.plugins.source.libre2
 import android.content.*
 import android.os.*
 import app.aaps.core.data.model.GV
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.shared.tests.AAPSLoggerTest
@@ -31,12 +33,16 @@ class Libre2ClientDeliveryTest {
         val registered = CountDownLatch(1)
         val registrations = java.util.concurrent.LinkedBlockingQueue<Messenger>()
         val acknowledged = CountDownLatch(1)
+        val acknowledgements = java.util.concurrent.LinkedBlockingQueue<String>()
         @Volatile var parent: Messenger? = null
         val remote = Messenger(object : Handler(thread.looper) {
             override fun handleMessage(message: Message) {
                 when (message.what) {
                     Libre2Ipc.REGISTER -> { parent = message.replyTo; registrations.add(message.replyTo); registered.countDown() }
-                    Libre2Ipc.ACK_READING -> acknowledged.countDown()
+                    Libre2Ipc.ACK_READING -> {
+                        acknowledgements.add(requireNotNull(message.data.getString("token")))
+                        acknowledged.countDown()
+                    }
                 }
             }
         })
@@ -45,13 +51,14 @@ class Libre2ClientDeliveryTest {
             return true
         }
         override fun unbindService(connection: ServiceConnection) = Unit
-        fun reading(target: Messenger = requireNotNull(parent), sampleId: Int = 1) {
-            val now = System.currentTimeMillis()
+        fun reading(target: Messenger = requireNotNull(parent), sampleId: Int = 1, timestamp: Long = System.currentTimeMillis()): Libre2Reading {
+            val reading = Libre2Reading("E007AABBCCDDEEFF", sampleId, timestamp, timestamp - 86_400_000, 35, 3)
             target.send(Message.obtain(null, Libre2Ipc.READING).apply {
                 sendingUid = android.os.Process.myUid()
-                data = Libre2Reading("E007AABBCCDDEEFF", sampleId, now, now - 86_400_000, 35, 3).toBundle()
+                data = reading.toBundle()
             })
             shadowOf(Looper.getMainLooper()).idle()
+            return reading
         }
     }
 
@@ -65,7 +72,9 @@ class Libre2ClientDeliveryTest {
             if (attempts.incrementAndGet() == 1) throw IOException("database temporarily unavailable")
             PersistenceLayer.TransactionResult<GV>()
         }
-        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest())
+        val preferences: Preferences = mock()
+        whenever(preferences.get(BooleanKey.BgSourceCreateSensorChange)).thenReturn(true)
+        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences)
         try {
             client.start()
             assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))
@@ -75,6 +84,41 @@ class Libre2ClientDeliveryTest {
             sensor.reading()
             assertTrue(sensor.acknowledged.await(5, TimeUnit.SECONDS))
             assertEquals(2, attempts.get())
+        } finally {
+            client.stop()
+            sensor.thread.quitSafely()
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `sensor registration disabled still delivers every minute without an insertion event`() = verifySensorRegistration(false)
+
+    @Test
+    fun `sensor registration enabled passes sensor start while preserving minute readings`() = verifySensorRegistration(true)
+
+    private fun verifySensorRegistration(enabled: Boolean) = runBlocking {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val sensor = SensorContext()
+        val database: PersistenceLayer = mock()
+        val preferences: Preferences = mock()
+        whenever(preferences.get(BooleanKey.BgSourceCreateSensorChange)).thenReturn(enabled)
+        whenever(database.insertCgmSourceData(any(), any(), any(), anyOrNull())).thenReturn(PersistenceLayer.TransactionResult<GV>())
+        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences)
+        try {
+            client.start()
+            assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))
+            val firstTime = System.currentTimeMillis() - 120_000
+            val sent = List(3) { index ->
+                sensor.reading(sampleId = index + 1, timestamp = firstTime + 60_000L * index).also {
+                    assertEquals(it.token, sensor.acknowledgements.poll(5, TimeUnit.SECONDS))
+                }
+            }
+            val values = argumentCaptor<List<GV>>()
+            if (enabled) verify(database, times(3)).insertCgmSourceData(any(), values.capture(), any(), any())
+            else verify(database, times(3)).insertCgmSourceData(any(), values.capture(), any(), isNull())
+            assertEquals(sent.map { it.timestamp }, values.allValues.map { it.single().timestamp })
+            assertEquals(listOf(35.0, 35.0, 35.0), values.allValues.map { it.single().value })
         } finally {
             client.stop()
             sensor.thread.quitSafely()
@@ -96,7 +140,9 @@ class Libre2ClientDeliveryTest {
             check(release.await(5, TimeUnit.SECONDS))
             PersistenceLayer.TransactionResult<GV>()
         }
-        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest())
+        val preferences: Preferences = mock()
+        whenever(preferences.get(BooleanKey.BgSourceCreateSensorChange)).thenReturn(true)
+        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences)
         try {
             client.start()
             assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))

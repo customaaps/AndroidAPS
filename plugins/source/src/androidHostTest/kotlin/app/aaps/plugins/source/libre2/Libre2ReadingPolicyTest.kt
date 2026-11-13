@@ -20,6 +20,19 @@ class Libre2ReadingPolicyTest {
     }
 
     @Test
+    fun `sensor registration ignores old and duplicate starts with xDrip tolerance`() {
+        val start = now - 86_400_000
+        assertEquals(start, Libre2ReadingPolicy.sensorInsertionTime(start, null, now))
+        assertNull(Libre2ReadingPolicy.sensorInsertionTime(start, start, now))
+        assertNull(Libre2ReadingPolicy.sensorInsertionTime(start + 300_000, start, now))
+        assertEquals(start + 300_001, Libre2ReadingPolicy.sensorInsertionTime(start + 300_001, start, now))
+        assertNull(Libre2ReadingPolicy.sensorInsertionTime(start - 1, start, now))
+        assertNull(Libre2ReadingPolicy.sensorInsertionTime(now + 1, null, now))
+        assertNull(Libre2ReadingPolicy.sensorInsertionTime(0, null, now))
+        assertNull(Libre2ReadingPolicy.sensorInsertionTime(now - 31L * 86_400_000, null, now))
+    }
+
+    @Test
     fun `vendor trend codes map to APS directions without reversing arrows`() {
         assertEquals(listOf(TrendArrow.NONE, TrendArrow.DOUBLE_DOWN, TrendArrow.SINGLE_DOWN,
             TrendArrow.FLAT, TrendArrow.SINGLE_UP, TrendArrow.DOUBLE_UP),

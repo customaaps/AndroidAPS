@@ -3,7 +3,7 @@
     <string name="source_libre2">Либра 2 (прямое подключение)</string>
     <string name="description_source_libre2">Прямое подключение Libre 2, включая RU, по NFC и Bluetooth.</string>
     <string name="libre2_stream_notification">Получение показаний Libre 2 по Bluetooth</string>
-    <string name="libre2_instructions">Включите Bluetooth и NFC. Отсканируйте действующий сенсор или запустите новый. Держите телефон у сенсора до завершения сканирования. Показания поступают по Bluetooth, пока выбран этот источник. Новому сенсору нужен прогрев.</string>
+    <string name="libre2_instructions">Включите Bluetooth и NFC. «Запустить новый сенсор» выполняет запуск и включение Bluetooth-потока за одно сканирование. Для уже работающего сенсора выберите «Сканировать действующий сенсор». Не убирайте телефон до завершения. После прогрева корректные новые показания сохраняются по мере получения, обычно раз в минуту, пока выбран этот источник.</string>
     <string name="libre2_scan">Сенсор: NFC и Bluetooth</string>
     <string name="libre2_scan_existing">Сканировать действующий сенсор</string>
     <string name="libre2_start_new">Запустить новый сенсор</string>

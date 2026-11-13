@@ -3,7 +3,7 @@
     <string name="source_libre2">Libre 2 (direct)</string>
     <string name="description_source_libre2">Connect Libre 2, including RU sensors, directly by NFC and Bluetooth.</string>
     <string name="libre2_stream_notification">Receiving Libre 2 readings over Bluetooth</string>
-    <string name="libre2_instructions">Enable Bluetooth and NFC. Scan an existing sensor or start a new one, keeping the phone against it until scanning completes. Bluetooth readings continue with this source selected. A new sensor needs its warm-up period.</string>
+    <string name="libre2_instructions">Enable Bluetooth and NFC. Start new sensor performs activation and enables Bluetooth streaming in one scan. For a sensor already running, choose Scan existing sensor. Keep the phone against the sensor until scanning completes. After warm-up, new valid readings are saved as they arrive, normally once a minute, while this source is selected.</string>
     <string name="libre2_scan">Sensor: NFC and Bluetooth</string>
     <string name="libre2_scan_existing">Scan existing sensor</string>
     <string name="libre2_start_new">Start new sensor</string>

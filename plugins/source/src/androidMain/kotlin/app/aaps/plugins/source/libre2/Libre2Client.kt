@@ -4,12 +4,15 @@ import android.content.*
 import android.os.*
 import app.aaps.core.data.model.GV
 import app.aaps.core.data.model.SourceSensor
+import app.aaps.core.data.model.TE
 import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.interfaces.Preferences
 import dev.zacsweers.metro.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +28,7 @@ class Libre2Client(
     private val persistenceLayer: PersistenceLayer,
     private val rxBus: RxBus,
     private val logger: AAPSLogger,
+    private val preferences: Preferences,
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -140,10 +144,14 @@ class Libre2Client(
             writes.withLock {
                 try {
                     if (!enabled || session.epoch != generation) return@withLock
+                    val sensorInsertion = if (preferences.get(BooleanKey.BgSourceCreateSensorChange)) {
+                        val previous = persistenceLayer.getLastTherapyRecordUpToNow(TE.Type.SENSOR_CHANGE)?.timestamp
+                        Libre2ReadingPolicy.sensorInsertionTime(reading.sensorStart, previous, System.currentTimeMillis())
+                    } else null
                     persistenceLayer.insertCgmSourceData(Sources.BG, listOf(GV(
                         timestamp = reading.timestamp, value = reading.mgdl.toDouble(), raw = null, noise = null,
                         trendArrow = Libre2ReadingPolicy.trend(reading.trend), sourceSensor = SourceSensor.LIBRE_2
-                    )), emptyList(), reading.sensorStart)
+                    )), emptyList(), sensorInsertion)
                     withContext(Dispatchers.Main.immediate) {
                         if (enabled && connection === session) {
                             // Confirm only after the transaction succeeds; retries keep the original timestamp.
@@ -168,6 +176,11 @@ class Libre2Client(
 }
 
 internal object Libre2ReadingPolicy {
+    // Same five-minute tolerance and older-event suppression as xDrip's sensor-change registration.
+    fun sensorInsertionTime(start: Long, previous: Long?, now: Long): Long? =
+        start.takeIf { it > 0 && it <= now && now - it <= 30L * 24 * 60 * 60 * 1000 &&
+            (previous == null || it > previous && it - previous > 300_000) }
+
     fun accepts(timestamp: Long, mgdl: Int, quality: Int, now: Long) =
         quality == 0 && mgdl in 1..1000 && timestamp > 0 &&
             timestamp <= now + 60_000 && timestamp >= now - 86_400_000

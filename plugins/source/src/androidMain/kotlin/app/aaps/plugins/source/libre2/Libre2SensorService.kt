@@ -11,7 +11,6 @@ import android.util.Log
 import app.aaps.plugins.source.R
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.min
 
 /** No Metro/Room/pump initialization in this process. APS owns all glucose persistence. */
 class Libre2SensorService : Service() {
@@ -28,7 +27,7 @@ class Libre2SensorService : Service() {
     private var bluetooth: Libre2Bluetooth? = null
     private var streaming = false
     private var nativeReady = false
-    private var retry = 0
+    private val reconnectBackoff = Libre2ReconnectBackoff()
     private var status = Libre2StatusCode.STOPPED
     private var lastReading = 0L
     private val reconnect = Runnable { connect() }
@@ -57,7 +56,7 @@ class Libre2SensorService : Service() {
                     Libre2Ipc.SCAN -> if (active.get()) scan(message) else
                         send(message.replyTo, Libre2Ipc.SCAN_DONE, Bundle().apply { putString("error", "Libre2 source is stopped") })
                     Libre2Ipc.RECONNECT -> if (active.get()) {
-                        retry = 0
+                        reconnectBackoff.reset()
                         worker.removeCallbacks(reconnect)
                         if (nativeReady) connect() else initialize()
                     }
@@ -149,7 +148,7 @@ class Libre2SensorService : Service() {
             val (newPairing, decoded) = Libre2NfcReader.read(tag, message.data.getBoolean("activate"), pairing)
             if (!active.get()) return
             commitDecoded(newPairing, decoded)
-            retry = 0
+            reconnectBackoff.reset()
             send(receiver, Libre2Ipc.SCAN_DONE)
             connect()
         } catch (error: Throwable) {
@@ -217,8 +216,7 @@ class Libre2SensorService : Service() {
         if (!permissionGranted()) { report(Libre2StatusCode.PERMISSION); return }
         report(Libre2StatusCode.ERROR, error.message.orEmpty())
         worker.removeCallbacks(reconnect)
-        val delay = min(60_000L, 5_000L shl min(retry++, 3))
-        worker.postDelayed(reconnect, delay)
+        worker.postDelayed(reconnect, reconnectBackoff.nextDelayMillis())
     }
 
     private fun decode(packet: ByteArray) {
@@ -255,7 +253,7 @@ class Libre2SensorService : Service() {
             // The outbox must reach disk BEFORE advancing the algorithm/deduplication checkpoint.
             val queued = delivery.add(reading, now)
             updated = candidate.copy(lastSampleId = queued.sampleId, lastReadingMillis = queued.timestamp)
-            retry = 0
+            reconnectBackoff.reset()
         }
         try {
             store.save(updated)

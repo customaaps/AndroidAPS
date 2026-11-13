@@ -191,6 +191,8 @@ internal class Libre2Bluetooth(
                 }
                 descriptor.characteristic.uuid == RAW && stage == Stage.RAW_NOTIFY -> {
                     stage = Stage.STREAMING
+                    // Parameter update applies to this sensor link, never to a pump's GATT connection.
+                    connection.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
                     arm(180_000)
                     onConnected()
                 }
