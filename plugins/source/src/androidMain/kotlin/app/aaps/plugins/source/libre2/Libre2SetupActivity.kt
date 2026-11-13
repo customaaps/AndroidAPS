@@ -15,6 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
 import app.aaps.plugins.source.R
 import java.util.concurrent.atomic.AtomicBoolean
@@ -27,7 +29,7 @@ class Libre2SetupActivity : ComponentActivity() {
     private val pending = AtomicBoolean(false)
     private var armed by mutableStateOf(false)
     private var busy by mutableStateOf(false)
-    private var activate = false
+    private var activate by mutableStateOf(false)
     private var resultText by mutableStateOf("")
     private var permitted by mutableStateOf(false)
     private var denied by mutableStateOf(false)
@@ -91,10 +93,23 @@ class Libre2SetupActivity : ComponentActivity() {
                             Text(stringResource(R.string.libre2_enable_nfc))
                             OutlinedButton(onClick = { startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) }) { Text("NFC") }
                         }
-                        Button(onClick = { arm(false) }, enabled = permitted && !busy && decoder != null && nfc?.isEnabled == true) {
+                        val existingSelected = (armed || busy) && !activate
+                        val startSelected = (armed || busy) && activate
+                        val canScan = permitted && !busy && decoder != null && nfc?.isEnabled == true
+                        OutlinedButton(
+                            onClick = { arm(false) },
+                            enabled = canScan,
+                            modifier = Modifier.semantics { selected = existingSelected },
+                            colors = if (existingSelected) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors()
+                        ) {
                             Text(stringResource(R.string.libre2_scan_existing))
                         }
-                        OutlinedButton(onClick = { arm(true) }, enabled = permitted && !busy && decoder != null && nfc?.isEnabled == true) {
+                        OutlinedButton(
+                            onClick = { arm(true) },
+                            enabled = canScan,
+                            modifier = Modifier.semantics { selected = startSelected },
+                            colors = if (startSelected) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors()
+                        ) {
                             Text(stringResource(R.string.libre2_start_new))
                         }
                         if (armed || busy) Text(stringResource(if (busy) R.string.libre2_scanning else R.string.libre2_hold_sensor))
