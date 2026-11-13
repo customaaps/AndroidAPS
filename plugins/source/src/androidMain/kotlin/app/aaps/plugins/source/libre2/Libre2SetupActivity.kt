@@ -37,6 +37,7 @@ class Libre2SetupActivity : ComponentActivity() {
 
     private fun decoderLost() {
         mainHandler.removeCallbacks(timeout)
+        runCatching { decoder?.binder?.unlinkToDeath(decoderDeath, 0) }
         decoder = null
         pending.set(false)
         busy = false
