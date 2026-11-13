@@ -71,8 +71,10 @@ kotlin {
                 // Feature plugins self-register into the plugin map. This list moved here from `:app`
                 // with the navigation graph that routes to them; `api` so `:app` still builds its
                 // graph against them. Adding or removing a plugin stays an edit in settings.gradle.
+                // The native Libre2 decoder is an Android implementation detail of :plugins:source.
+                // It has no shared plugin API and must not enter desktop/iOS dependency graphs.
                 rootProject.subprojects
-                    .filter { it.path.startsWith(":plugins:") && it.buildFile.exists() }
+                    .filter { it.path.startsWith(":plugins:") && it.buildFile.exists() && it.path != ":plugins:libre2-native" }
                     .forEach { api(project(it.path)) }
 
                 api(libs.jetbrains.compose.runtime)
