@@ -35,6 +35,7 @@ internal class Libre2Bluetooth(
     private var session = 0
     private var proofPrefix: ByteArray? = null
     private val assembler = Libre2PacketAssembler()
+    private val operations = Libre2GattQueue()
     private val deadline = Runnable { fail(IOException("Libre2 Bluetooth session timed out")) }
 
     private fun permitted() {
@@ -68,12 +69,21 @@ internal class Libre2Bluetooth(
         gatt?.getService(SERVICE)?.getCharacteristic(uuid) ?: throw IOException("Libre2 GATT characteristic is missing")
 
     private fun write(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+        operations.enqueue("write" to characteristic.uuid) { writeNow(characteristic, value) }
+    }
+
+    private fun writeNow(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
         permitted()
         val connection = gatt ?: throw IOException("Libre2 is disconnected")
+        val writeType = when {
+            characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0 -> BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0 -> BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+            else -> throw IOException("Libre2 authentication characteristic is not writable")
+        }
         val accepted = if (Build.VERSION.SDK_INT >= 33)
-            connection.writeCharacteristic(characteristic, value, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) == BluetoothStatusCodes.SUCCESS
+            connection.writeCharacteristic(characteristic, value, writeType) == BluetoothStatusCodes.SUCCESS
         else {
-            characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            characteristic.writeType = writeType
             characteristic.value = value
             connection.writeCharacteristic(characteristic)
         }
@@ -82,6 +92,10 @@ internal class Libre2Bluetooth(
     }
 
     private fun subscribe(uuid: UUID) {
+        operations.enqueue("descriptor" to uuid) { subscribeNow(uuid) }
+    }
+
+    private fun subscribeNow(uuid: UUID) {
         permitted()
         val connection = gatt ?: throw IOException("Libre2 is disconnected")
         val target = characteristic(uuid)
@@ -103,7 +117,7 @@ internal class Libre2Bluetooth(
         val nonce = if (pairing.auth.size == 12)
             (pairing.auth[10].toInt() and 255) or ((pairing.auth[11].toInt() and 255) shl 8) else -1
         session = Libre2NativeDecoder.v1(28960, nonce, pairing.uid, null)
-        if (session < 0) throw IOException("Libre2 BLE authentication failed")
+        if (session <= 0) throw IOException("Libre2 BLE authentication failed")
         val payload = Libre2NativeDecoder.v2(6505, session, byteArrayOf(1, 31), pairing.auth.copyOf(10) + challenge)
             ?: throw IOException("Libre2 BLE authentication returned no payload")
         require(payload.size == 19) { "Invalid Libre2 security response" }
@@ -169,6 +183,7 @@ internal class Libre2Bluetooth(
         }
         override fun onDescriptorWrite(connection: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) = dispatch(connection) {
             if (status != BluetoothGatt.GATT_SUCCESS) throw IOException("Libre2 notification setup failed")
+            if (!operations.complete("descriptor" to descriptor.characteristic.uuid)) return@dispatch
             when {
                 descriptor.characteristic.uuid == LOGIN && stage == Stage.LOGIN_NOTIFY -> {
                     stage = Stage.CHALLENGE
@@ -183,6 +198,7 @@ internal class Libre2Bluetooth(
         }
         override fun onCharacteristicWrite(connection: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) = dispatch(connection) {
             if (status != BluetoothGatt.GATT_SUCCESS) throw IOException("Libre2 GATT authentication write failed")
+            if (!operations.complete("write" to characteristic.uuid)) return@dispatch
             if (characteristic.uuid == LOGIN && stage == Stage.UNLOCK) {
                 stage = Stage.RAW_NOTIFY
                 subscribe(RAW)
@@ -209,6 +225,7 @@ internal class Libre2Bluetooth(
     fun close() {
         if (stopped) return
         stopped = true
+        operations.close()
         handler.removeCallbacks(deadline)
         assembler.reset()
         proofPrefix = null

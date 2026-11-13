@@ -1,7 +1,6 @@
 package app.aaps.plugins.source.libre2
 
 import android.content.Context
-import android.util.AtomicFile
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
@@ -10,11 +9,11 @@ import java.io.File
 
 /** Owned by the decoder process only. Persist before acknowledging pairing/unlock attempts. */
 internal class Libre2PairingStore(context: Context) {
-    private val file = AtomicFile(File(context.filesDir, "libre2/pairing.bin"))
+    private val file = Libre2AtomicFile(File(context.filesDir, "libre2/pairing.bin"))
 
     fun load(): Libre2Pairing? {
-        if (!file.baseFile.exists() && !File(file.baseFile.path + ".bak").exists()) return null
-        val bytes = file.readFully()
+        if (!file.exists()) return null
+        val bytes = file.read(MAX_STATE + 128)
         require(bytes.size <= MAX_STATE + 128)
         return DataInputStream(ByteArrayInputStream(bytes)).use { input ->
             require(input.readInt() == 0x4c324e31) { "Unsupported Libre2 pairing version" }
@@ -66,15 +65,7 @@ internal class Libre2PairingStore(context: Context) {
                 output.write(state)
             }
         }.toByteArray()
-        file.baseFile.parentFile?.mkdirs()
-        val output = file.startWrite()
-        try {
-            output.write(bytes)
-            file.finishWrite(output)
-        } catch (error: Exception) {
-            file.failWrite(output)
-            throw error
-        }
+        file.write(bytes)
     }
 
     companion object { private const val MAX_STATE = 3 * 1024 * 1024 + 56 }

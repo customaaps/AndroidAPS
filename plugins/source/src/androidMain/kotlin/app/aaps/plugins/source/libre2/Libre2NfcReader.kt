@@ -43,7 +43,7 @@ internal class Libre2NfcReader(private val exchange: (ByteArray) -> ByteArray) {
             if (handle < 0) return null
             try {
                 val payload = Libre2NativeDecoder.v2(6440, handle, byteArrayOf(0, operation.toByte()), challenge)
-                    ?: throw IOException("Libre2 NFC authorization returned no payload")
+                    ?: run { finish(handle); return null }
                 require(payload.size <= 19) { "Invalid Libre2 NFC authentication payload" }
                 val request = payload.copyOf(19)
                 byteArrayOf(2, 0xa1.toByte(), 7, operation.toByte()).copyInto(request)

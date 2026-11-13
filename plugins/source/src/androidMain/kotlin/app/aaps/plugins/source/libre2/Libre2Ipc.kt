@@ -1,10 +1,30 @@
 package app.aaps.plugins.source.libre2
 
+import android.os.Bundle
+
+internal fun Libre2Reading.toBundle() = Bundle().apply {
+    putString("sensorId", sensorId)
+    putInt("sampleId", sampleId)
+    putString("token", token)
+    putLong("timestamp", timestamp)
+    putLong("sensorStart", sensorStart)
+    putInt("mgdl", mgdl)
+    putInt("trend", trend)
+    putInt("quality", 0)
+}
+
+internal fun Bundle.libre2ReadingOrNull(): Libre2Reading? {
+    val reading = Libre2Reading(getString("sensorId") ?: return null, getInt("sampleId", -1),
+        getLong("timestamp"), getLong("sensorStart"), getInt("mgdl"), getInt("trend"))
+    return reading.takeIf { it.valid() && getString("token") == it.token }
+}
+
 internal object Libre2Ipc {
     const val REGISTER = 1
     const val SCAN = 2
     const val RECONNECT = 3
     const val STOP = 4
+    const val ACK_READING = 5
     const val STATUS = 10
     const val READING = 11
     const val SCAN_DONE = 12

@@ -129,8 +129,9 @@ Decoded decodeNfc(const Bytes& uid, const Bytes& info, const Bytes& fram,
         auto* activated = lib.finishActivation(call.env(), nullptr, id,
             sensorStart > 94694400 ? (sensorStart - 94694400) / 86400 : 0,
             sensorStart, mess, lib.token());
-        if (activated && reinterpret_cast<data_t*>(activated)->length() > 0) {
-            decoded.state.arrays[2] = call.bytes(activated);
+        auto activatedBytes = call.bytes(activated);
+        if (!activatedBytes.empty()) {
+            decoded.state.arrays[2] = std::move(activatedBytes);
             decoded.state.arrays[0].clear();
             decoded.state.arrays[1].clear();
         }

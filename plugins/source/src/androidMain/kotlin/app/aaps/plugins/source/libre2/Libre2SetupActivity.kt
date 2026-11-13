@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** NFC remains enabled until the decoder finishes transceiving, including sensor activation. */
 class Libre2SetupActivity : ComponentActivity() {
     private var decoder: Messenger? = null
+    private var sessionId: String? = null
     private var nfc: NfcAdapter? = null
     private val pending = AtomicBoolean(false)
     private var armed by mutableStateOf(false)
@@ -46,7 +47,9 @@ class Libre2SetupActivity : ComponentActivity() {
     private val permissionRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         permitted = granted
         denied = !granted
-        if (granted) decoder?.let { runCatching { it.send(Message.obtain(null, Libre2Ipc.RECONNECT)) } }
+        if (granted) decoder?.let { runCatching {
+            it.send(Message.obtain(null, Libre2Ipc.RECONNECT).apply { data = Bundle().apply { putString("session", sessionId) } })
+        } }
     }
     private val responses = Messenger(object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(message: Message) {
@@ -66,6 +69,7 @@ class Libre2SetupActivity : ComponentActivity() {
         decoder = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra("decoder", Messenger::class.java)
                   else intent.getParcelableExtra("decoder")
         runCatching { decoder?.binder?.linkToDeath(decoderDeath, 0) }.onFailure { decoderLost() }
+        sessionId = intent.getStringExtra("session")
         nfc = NfcAdapter.getDefaultAdapter(this)
         setContent {
             MaterialTheme {
@@ -118,7 +122,9 @@ class Libre2SetupActivity : ComponentActivity() {
                 try {
                     val target = decoder ?: throw IllegalStateException("Libre2 decoder disconnected")
                     target.send(Message.obtain(null, Libre2Ipc.SCAN).apply {
-                        data = Bundle().apply { putParcelable("tag", tag); putBoolean("activate", activate) }
+                        data = Bundle().apply {
+                            putParcelable("tag", tag); putBoolean("activate", activate); putString("session", sessionId)
+                        }
                         replyTo = responses
                     })
                 } catch (error: Exception) {
