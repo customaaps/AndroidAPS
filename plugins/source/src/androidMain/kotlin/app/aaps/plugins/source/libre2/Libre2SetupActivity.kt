@@ -30,6 +30,19 @@ class Libre2SetupActivity : ComponentActivity() {
     private var resultText by mutableStateOf("")
     private var permitted by mutableStateOf(false)
     private var denied by mutableStateOf(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val timeout = Runnable { decoderLost() }
+    private val decoderDeath = IBinder.DeathRecipient { runOnUiThread { decoderLost() } }
+
+    private fun decoderLost() {
+        mainHandler.removeCallbacks(timeout)
+        decoder = null
+        pending.set(false)
+        busy = false
+        armed = false
+        resultText = getString(R.string.libre2_decoder_lost)
+    }
+
     private val permissionRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         permitted = granted
         denied = !granted
@@ -38,6 +51,7 @@ class Libre2SetupActivity : ComponentActivity() {
     private val responses = Messenger(object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(message: Message) {
             if (message.sendingUid != android.os.Process.myUid() || message.what != Libre2Ipc.SCAN_DONE) return
+            mainHandler.removeCallbacks(timeout)
             pending.set(false)
             busy = false
             armed = false
@@ -51,6 +65,7 @@ class Libre2SetupActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         decoder = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra("decoder", Messenger::class.java)
                   else intent.getParcelableExtra("decoder")
+        runCatching { decoder?.binder?.linkToDeath(decoderDeath, 0) }.onFailure { decoderLost() }
         nfc = NfcAdapter.getDefaultAdapter(this)
         setContent {
             MaterialTheme {
@@ -99,6 +114,7 @@ class Libre2SetupActivity : ComponentActivity() {
             runOnUiThread {
                 if (!armed || !pending.compareAndSet(false, true)) return@runOnUiThread
                 busy = true
+                mainHandler.postDelayed(timeout, 60_000)
                 try {
                     val target = decoder ?: throw IllegalStateException("Libre2 decoder disconnected")
                     target.send(Message.obtain(null, Libre2Ipc.SCAN).apply {
@@ -106,6 +122,7 @@ class Libre2SetupActivity : ComponentActivity() {
                         replyTo = responses
                     })
                 } catch (error: Exception) {
+                    mainHandler.removeCallbacks(timeout)
                     pending.set(false)
                     busy = false
                     armed = false
@@ -113,6 +130,12 @@ class Libre2SetupActivity : ComponentActivity() {
                 }
             }
         }, NfcAdapter.FLAG_READER_NFC_V or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK, null)
+    }
+
+    override fun onDestroy() {
+        mainHandler.removeCallbacks(timeout)
+        runCatching { decoder?.binder?.unlinkToDeath(decoderDeath, 0) }
+        super.onDestroy()
     }
 
     override fun onPause() {

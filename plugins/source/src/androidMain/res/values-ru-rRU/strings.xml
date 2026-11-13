@@ -24,6 +24,7 @@
     <string name="libre2_scan_success">Сенсор сохранён. Начинается подключение Bluetooth.</string>
     <string name="libre2_scan_failed">Ошибка сканирования: %1$s</string>
     <string name="libre2_done">Вернуться в APS</string>
+    <string name="libre2_decoder_lost">Декодер недоступен или не ответил. Вернитесь в APS и снова откройте экран сенсора.</string>
     <!-- Source -->
     <string name="ns_client_bg">ГК с клиента Nightscout</string>
     <string name="description_source_ns_client">Получать данные гликемии с сайта Nightscout</string>

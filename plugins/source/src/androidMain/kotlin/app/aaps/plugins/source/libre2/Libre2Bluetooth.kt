@@ -103,7 +103,7 @@ internal class Libre2Bluetooth(
         val nonce = if (pairing.auth.size == 12)
             (pairing.auth[10].toInt() and 255) or ((pairing.auth[11].toInt() and 255) shl 8) else -1
         session = Libre2NativeDecoder.v1(28960, nonce, pairing.uid, null)
-        if (session <= 0) throw IOException("Libre2 BLE authentication failed")
+        if (session < 0) throw IOException("Libre2 BLE authentication failed")
         val payload = Libre2NativeDecoder.v2(6505, session, byteArrayOf(1, 31), pairing.auth.copyOf(10) + challenge)
             ?: throw IOException("Libre2 BLE authentication returned no payload")
         require(payload.size == 19) { "Invalid Libre2 security response" }

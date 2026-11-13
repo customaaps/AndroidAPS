@@ -24,6 +24,7 @@
     <string name="libre2_scan_success">Sensor saved. Bluetooth connection is starting.</string>
     <string name="libre2_scan_failed">Sensor scan failed: %1$s</string>
     <string name="libre2_done">Back to APS</string>
+    <string name="libre2_decoder_lost">The decoder is unavailable or did not respond. Return to APS and reopen the sensor screen.</string>
     <!-- Source -->
     <string name="ns_client_bg">NSClient BG</string>
     <string name="description_source_ns_client">Downloads BG data from Nightscout</string>

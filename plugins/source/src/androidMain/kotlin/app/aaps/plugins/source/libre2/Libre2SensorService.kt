@@ -43,7 +43,8 @@ class Libre2SensorService : Service() {
                         active.set(true)
                         initialize()
                     }
-                    Libre2Ipc.SCAN -> if (active.get()) scan(message)
+                    Libre2Ipc.SCAN -> if (active.get()) scan(message) else
+                        send(message.replyTo, Libre2Ipc.SCAN_DONE, Bundle().apply { putString("error", "Libre2 source is stopped") })
                     Libre2Ipc.RECONNECT -> if (active.get()) {
                         retry = 0
                         worker.removeCallbacks(reconnect)
