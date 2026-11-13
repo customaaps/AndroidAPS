@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="source_libre2">Либра 2 (прямое подключение)</string>
+    <string name="description_source_libre2">Прямое подключение Libre 2, включая RU, по NFC и Bluetooth.</string>
+    <string name="libre2_stream_notification">Получение показаний Libre 2 по Bluetooth</string>
+    <string name="libre2_instructions">Включите Bluetooth и NFC. Отсканируйте действующий сенсор или запустите новый. Держите телефон у сенсора до завершения сканирования. Показания поступают по Bluetooth, пока выбран этот источник. Новому сенсору нужен прогрев.</string>
+    <string name="libre2_scan">Сенсор: NFC и Bluetooth</string>
+    <string name="libre2_scan_existing">Сканировать действующий сенсор</string>
+    <string name="libre2_start_new">Запустить новый сенсор</string>
+    <string name="libre2_reconnect">Переподключить</string>
+    <string name="libre2_stopped">Источник остановлен</string>
+    <string name="libre2_initializing">Инициализация декодера…</string>
+    <string name="libre2_ready">Готов к сканированию NFC</string>
+    <string name="libre2_connecting">Подключение к сенсору…</string>
+    <string name="libre2_connected">Подключено; ожидание корректного показания</string>
+    <string name="libre2_receiving">Показания поступают</string>
+    <string name="libre2_error">Ошибка подключения или декодера</string>
+    <string name="libre2_permission">Разрешите доступ к устройствам поблизости для подключения к сенсору. Для NFC отдельное разрешение не требуется.</string>
+    <string name="libre2_grant_permission">Разрешить подключение Bluetooth</string>
+    <string name="libre2_app_settings">Разрешения приложения</string>
+    <string name="libre2_enable_nfc">Включите NFC в настройках Android.</string>
+    <string name="libre2_hold_sensor">Приложите телефон к сенсору.</string>
+    <string name="libre2_scanning">Чтение сенсора. Не убирайте телефон…</string>
+    <string name="libre2_scan_success">Сенсор сохранён. Начинается подключение Bluetooth.</string>
+    <string name="libre2_scan_failed">Ошибка сканирования: %1$s</string>
+    <string name="libre2_done">Вернуться в APS</string>
     <!-- Source -->
     <string name="ns_client_bg">ГК с клиента Nightscout</string>
     <string name="description_source_ns_client">Получать данные гликемии с сайта Nightscout</string>

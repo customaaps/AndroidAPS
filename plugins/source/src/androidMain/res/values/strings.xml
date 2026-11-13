@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="source_libre2">Libre 2 (direct)</string>
+    <string name="description_source_libre2">Connect Libre 2, including RU sensors, directly by NFC and Bluetooth.</string>
+    <string name="libre2_stream_notification">Receiving Libre 2 readings over Bluetooth</string>
+    <string name="libre2_instructions">Enable Bluetooth and NFC. Scan an existing sensor or start a new one, keeping the phone against it until scanning completes. Bluetooth readings continue with this source selected. A new sensor needs its warm-up period.</string>
+    <string name="libre2_scan">Sensor: NFC and Bluetooth</string>
+    <string name="libre2_scan_existing">Scan existing sensor</string>
+    <string name="libre2_start_new">Start new sensor</string>
+    <string name="libre2_reconnect">Reconnect</string>
+    <string name="libre2_stopped">Source stopped</string>
+    <string name="libre2_initializing">Initializing decoder…</string>
+    <string name="libre2_ready">Ready for NFC scan</string>
+    <string name="libre2_connecting">Connecting to sensor…</string>
+    <string name="libre2_connected">Connected; waiting for a valid reading</string>
+    <string name="libre2_receiving">Receiving readings</string>
+    <string name="libre2_error">Sensor connection or decoder error</string>
+    <string name="libre2_permission">Allow Nearby devices access to connect to the sensor. NFC does not need a runtime permission.</string>
+    <string name="libre2_grant_permission">Allow Bluetooth connection</string>
+    <string name="libre2_app_settings">Open app permissions</string>
+    <string name="libre2_enable_nfc">Enable NFC in Android settings.</string>
+    <string name="libre2_hold_sensor">Hold the phone against the sensor.</string>
+    <string name="libre2_scanning">Reading sensor. Keep the phone in place…</string>
+    <string name="libre2_scan_success">Sensor saved. Bluetooth connection is starting.</string>
+    <string name="libre2_scan_failed">Sensor scan failed: %1$s</string>
+    <string name="libre2_done">Back to APS</string>
     <!-- Source -->
     <string name="ns_client_bg">NSClient BG</string>
     <string name="description_source_ns_client">Downloads BG data from Nightscout</string>

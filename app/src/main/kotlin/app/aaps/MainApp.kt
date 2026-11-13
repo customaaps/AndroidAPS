@@ -95,7 +95,10 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
         private val PLUGIN_START_WAIT = 30.seconds
     }
 
-    override fun injectMembers(target: Any): Boolean = metroGraphs.injectMembers(target)
+    private val isLibre2Process: Boolean
+        get() = Application.getProcessName() == packageName + ":libre2"
+
+    override fun injectMembers(target: Any): Boolean = !isLibre2Process && metroGraphs.injectMembers(target)
 
     override val metroViewModelFactory: MetroViewModelFactory get() = metroGraphs.viewModelFactory
 
@@ -106,6 +109,7 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
      * `AppRootGraph.Factory`. Production wants the real database and no forced options.
      */
     private val metroGraphs by lazy {
+        check(!isLibre2Process) { "The sensor process must not initialize pumps or the APS database" }
         MetroGraphs(
             context = this,
             memberInjector = this,
@@ -118,7 +122,8 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
     // is what builds WorkManager's own internal workers. The default androidx.startup
     // WorkManagerInitializer is removed in AndroidManifest.xml so this config wins.
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
+        get() = if (isLibre2Process) Configuration.Builder().build()
+        else Configuration.Builder()
             .setWorkerFactory(MetroWorkerFactory(metroGraphs))
             .build()
 
@@ -194,6 +199,7 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
 
     override fun onCreate() {
         super.onCreate()
+        if (isLibre2Process) return
 
         GeneratedStringOwners.registerAll()
         resourceHelperImpl.start()
@@ -831,6 +837,10 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
     }
 
     override fun onTerminate() {
+        if (isLibre2Process) {
+            super.onTerminate()
+            return
+        }
         aapsLogger.debug(LTag.CORE, "onTerminate")
         handler.removeCallbacksAndMessages(null)
         handler.looper.quitSafely()

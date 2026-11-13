@@ -1,0 +1,7 @@
+LIBC {
+  global: getTimeofday; pthread_Detach;
+};
+LIBRE2 {
+  global: libre2_set_initializing;
+  local: *;
+} LIBC;

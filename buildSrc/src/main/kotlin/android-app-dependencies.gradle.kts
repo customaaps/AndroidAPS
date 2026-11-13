@@ -16,6 +16,13 @@ android {
         viewBinding = true
     }
 
+    packaging {
+        // The vendor is opened by absolute nativeLibraryDir path, including its helper image.
+        jniLibs.useLegacyPackaging = true
+        // The pinned Libre2 vendor image must retain its original bytes.
+        jniLibs.keepDebugSymbols += setOf("**/libcalibrat2.so", "**/libinit.so")
+    }
+
     buildTypes {
         named("release") {
             isMinifyEnabled = false

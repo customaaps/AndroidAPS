@@ -84,6 +84,7 @@ kotlin {
         androidMain {
             kotlin.srcDir(generateSourceStrings.flatMap { it.androidOutputDir })
             dependencies {
+                implementation(project(":plugins:libre2-native"))
                 implementation(project.dependencies.platform(libs.androidx.compose.bom))
                 implementation(libs.androidx.compose.material3)
                 implementation(libs.androidx.compose.runtime)
