@@ -37,9 +37,9 @@ class GraphSeriesBottomSheetTest {
     @Test
     fun theLastChipCanBeReachedAndSelectedInAShortWindow() {
         // The last chip of the real list, so the test follows the list when a series is added
-        assertThat(CONFIGURABLE_SERIES.last()).isEqualTo(SeriesType.ACTIVITY)
+        assertThat(CONFIGURABLE_SERIES.last()).isEqualTo(SeriesType.IOB_TH_EFFECTIVE)
         val ctx: Context = RuntimeEnvironment.getApplication()
-        val lastChip = ctx.getString(CoreUiR.string.graph_series_activity)
+        val lastChip = ctx.getString(CoreUiR.string.iobThEffective_shortname)
         var selected by mutableStateOf(emptyList<SeriesType>())
         compose.setContent {
             MaterialTheme {
