@@ -354,7 +354,7 @@ internal fun StatusLightsSettingsContent(settingsDef: PreferenceSubScreenDef) {
 
         // Multiple group subscreens → one expandable card each (collapsed by default), matching the
         // main Settings screen's look. Shared renderer; groups are the SSOT in BuiltInSearchables.
-        PreferenceSheetContent(settingsDef = settingsDef)
+        PreferenceSheetContent(settingsDef = settingsDef, scrollable = false)
     }
 }
 

@@ -1,12 +1,15 @@
 package app.aaps.core.ui.compose.preference
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import app.aaps.core.ui.compose.consumeOverscroll
 
 /**
  * Unified renderer for a preference subscreen shown in a bottom sheet / dialog.
@@ -24,13 +27,19 @@ import androidx.compose.ui.Modifier
 @Composable
 fun PreferenceSheetContent(
     settingsDef: PreferenceSubScreenDef,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    scrollable: Boolean = true
 ) {
     // Without it a key's own visibility rule is skipped, and the sheet showed rows the settings screen
     // hides (insulin age and battery age thresholds on a patch pump).
     val visibilityContext = LocalVisibilityContext.current
     ProvidePreferenceTheme {
-        Column(modifier) {
+        val scrollModifier = if (scrollable) {
+            modifier.consumeOverscroll().verticalScroll(rememberScrollState())
+        } else {
+            modifier
+        }
+        Column(modifier = scrollModifier) {
             val groups = settingsDef.items.filterIsInstance<PreferenceSubScreenDef>()
             if (groups.isEmpty()) {
                 // Single flat list → one always-expanded card titled by the def itself.

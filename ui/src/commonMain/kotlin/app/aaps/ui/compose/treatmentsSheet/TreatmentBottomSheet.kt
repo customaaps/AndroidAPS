@@ -311,7 +311,7 @@ internal fun TreatmentSettingsContent(
                 )
             }
         }
-        PreferenceSheetContent(settingsDef = settingsDef)
+        PreferenceSheetContent(settingsDef = settingsDef, scrollable = false)
     }
 }
 
