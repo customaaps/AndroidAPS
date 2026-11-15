@@ -32,13 +32,20 @@ class Libre2ClientDeliveryTest {
         val thread = HandlerThread("Libre2TestSensor").apply { start() }
         val registered = CountDownLatch(1)
         val registrations = java.util.concurrent.LinkedBlockingQueue<Messenger>()
+        val settingsMessages = java.util.concurrent.LinkedBlockingQueue<Libre2ConnectionOptions>()
         val acknowledged = CountDownLatch(1)
         val acknowledgements = java.util.concurrent.LinkedBlockingQueue<String>()
         @Volatile var parent: Messenger? = null
         val remote = Messenger(object : Handler(thread.looper) {
             override fun handleMessage(message: Message) {
                 when (message.what) {
-                    Libre2Ipc.REGISTER -> { parent = message.replyTo; registrations.add(message.replyTo); registered.countDown() }
+                    Libre2Ipc.REGISTER -> {
+                        parent = message.replyTo
+                        settingsMessages.add(Libre2ConnectionOptions.fromBundle(message.data))
+                        registrations.add(message.replyTo)
+                        registered.countDown()
+                    }
+                    Libre2Ipc.CONNECTION_OPTIONS -> settingsMessages.add(Libre2ConnectionOptions.fromBundle(message.data))
                     Libre2Ipc.ACK_READING -> {
                         acknowledgements.add(requireNotNull(message.data.getString("token")))
                         acknowledged.countDown()
@@ -81,9 +88,11 @@ class Libre2ClientDeliveryTest {
             sensor.reading()
             withTimeout(5_000) { client.status.first { it.code == Libre2StatusCode.ERROR } }
             assertFalse(sensor.acknowledged.await(100, TimeUnit.MILLISECONDS))
+            assertEquals(0L, client.lastStoredAt.value)
             sensor.reading()
             assertTrue(sensor.acknowledged.await(5, TimeUnit.SECONDS))
             assertEquals(2, attempts.get())
+            assertTrue(client.lastStoredAt.value > 0)
         } finally {
             client.stop()
             sensor.thread.quitSafely()
@@ -111,6 +120,32 @@ class Libre2ClientDeliveryTest {
         } finally {
             client.stop()
             file.delete()
+            sensor.thread.quitSafely()
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `connection options reach the decoder live and survive a new binding`() = runBlocking<Unit> {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val sensor = SensorContext()
+        val settings = sensor.applicationContext.getSharedPreferences("libre2_connection", Context.MODE_PRIVATE)
+        settings.edit().clear().commit()
+        val client = Libre2Client(sensor, mock<PersistenceLayer>(), mock<RxBus>(), AAPSLoggerTest(), mock<Preferences>())
+        try {
+            client.start()
+            assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))
+            assertEquals(Libre2ConnectionOptions(true, false), sensor.settingsMessages.poll(5, TimeUnit.SECONDS))
+            client.setKeepAwake(true).join()
+            assertEquals(Libre2ConnectionOptions(true, true), sensor.settingsMessages.poll(5, TimeUnit.SECONDS))
+            client.setAutoRecovery(false).join()
+            assertEquals(Libre2ConnectionOptions(false, true), sensor.settingsMessages.poll(5, TimeUnit.SECONDS))
+            client.stop()
+            client.start()
+            assertEquals(Libre2ConnectionOptions(false, true), sensor.settingsMessages.poll(5, TimeUnit.SECONDS))
+        } finally {
+            client.stop()
+            settings.edit().clear().commit()
             sensor.thread.quitSafely()
             Dispatchers.resetMain()
         }

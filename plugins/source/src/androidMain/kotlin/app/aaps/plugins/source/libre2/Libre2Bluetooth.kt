@@ -29,6 +29,8 @@ internal class Libre2Bluetooth(
     private val onConnected: () -> Unit,
     private val onPacket: (ByteArray) -> Unit,
     private val onFailure: (Exception) -> Unit,
+    private val onFragment: (Long) -> Unit = {},
+    private val onCompletePacket: (Long) -> Unit = {},
 ) {
     private enum class Stage { CONNECTING, DISCOVERING, LOGIN_NOTIFY, CHALLENGE, PROOF, UNLOCK, RAW_NOTIFY, STREAMING }
     private var stage = Stage.CONNECTING
@@ -38,7 +40,32 @@ internal class Libre2Bluetooth(
     private var proofPrefix: ByteArray? = null
     private val assembler = Libre2PacketAssembler()
     private val operations = Libre2GattQueue()
-    private val deadline = Runnable { fail(IOException("Libre2 Bluetooth session timed out")) }
+    private val watchdog = Libre2SilenceWatchdog(SystemClock::elapsedRealtime)
+    private val deadline = Runnable { checkDeadline() }
+
+    fun setAutoRecovery(enabled: Boolean) {
+        watchdog.enabled = enabled
+        if (stage == Stage.STREAMING) armStreamDeadline()
+    }
+
+    /** Re-evaluate elapsed silence when the host wakes; a Handler delay alone excludes deep sleep. */
+    fun checkSilence() {
+        if (!stopped && stage == Stage.STREAMING) checkDeadline()
+    }
+
+    private fun checkDeadline() {
+        if (stopped) return
+        if (stage == Stage.STREAMING) {
+            val remaining = watchdog.remainingMillis() ?: return
+            if (remaining == 0L) fail(IOException("Libre2 watchdog: no complete BLE packet for 3 minutes"))
+            else armStreamDeadline()
+        } else fail(IOException("Libre2 Bluetooth handshake timed out"))
+    }
+
+    private fun armStreamDeadline() {
+        handler.removeCallbacks(deadline)
+        watchdog.remainingMillis()?.let { handler.postDelayed(deadline, it) }
+    }
 
     private fun permitted() {
         if (Build.VERSION.SDK_INT >= 31 && context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
@@ -143,7 +170,7 @@ internal class Libre2Bluetooth(
         write(characteristic(LOGIN), payload)
     }
 
-    private fun notify(uuid: UUID, value: ByteArray, receivedAt: Long) {
+    private fun notify(uuid: UUID, value: ByteArray, receivedAt: Long, receivedWallTime: Long) {
         if (uuid == LOGIN && pairing.generation2) {
             when (stage) {
                 Stage.CHALLENGE -> authenticate(value)
@@ -164,12 +191,15 @@ internal class Libre2Bluetooth(
                 else -> Unit
             }
         } else if (uuid == RAW && stage == Stage.STREAMING) {
+            onFragment(receivedWallTime)
             val packet = assembler.accept(value, receivedAt) ?: return
+            watchdog.packet(receivedAt)
+            onCompletePacket(receivedWallTime)
             Log.d("Libre2", "Complete BLE packet received at elapsedMs=$receivedAt")
             val decoded = if (pairing.generation2)
                 Libre2NativeDecoder.v2(773, session, packet, null) ?: throw IOException("Libre2 BLE decryption failed")
             else packet
-            arm(180_000)
+            armStreamDeadline()
             onPacket(decoded)
         }
     }
@@ -211,7 +241,8 @@ internal class Libre2Bluetooth(
                     stage = Stage.STREAMING
                     // Parameter update applies to this sensor link, never to a pump's GATT connection.
                     connection.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
-                    arm(180_000)
+                    watchdog.connected()
+                    armStreamDeadline()
                     onConnected()
                 }
             }
@@ -228,13 +259,15 @@ internal class Libre2Bluetooth(
             val uuid = characteristic.uuid
             val value = characteristic.value?.copyOf() ?: return
             val receivedAt = SystemClock.elapsedRealtime()
-            dispatch(connection) { notify(uuid, value, receivedAt) }
+            val receivedWallTime = System.currentTimeMillis()
+            dispatch(connection) { notify(uuid, value, receivedAt, receivedWallTime) }
         }
         override fun onCharacteristicChanged(connection: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
             val uuid = characteristic.uuid
             val copy = value.copyOf()
             val receivedAt = SystemClock.elapsedRealtime()
-            dispatch(connection) { notify(uuid, copy, receivedAt) }
+            val receivedWallTime = System.currentTimeMillis()
+            dispatch(connection) { notify(uuid, copy, receivedAt, receivedWallTime) }
         }
     }
 
@@ -250,6 +283,7 @@ internal class Libre2Bluetooth(
         operations.close()
         handler.removeCallbacks(deadline)
         assembler.reset()
+        watchdog.reset()
         proofPrefix = null
         if (session > 0) runCatching { Libre2NativeDecoder.v1(37400, session, null, null) }
         session = 0

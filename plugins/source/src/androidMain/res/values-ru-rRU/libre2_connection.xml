@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="libre2_connection_settings">Связь и восстановление</string>
+    <string name="libre2_auto_recovery">Автовосстановление связи с сенсором</string>
+    <string name="libre2_auto_recovery_summary">Переподключать только сенсор после 3 минут без полного BLE-пакета или при ошибке связи. Отклонение показаний декодером не вызывает переподключение.</string>
+    <string name="libre2_keep_awake">Защита от засыпания — повышенный расход батареи</string>
+    <string name="libre2_keep_awake_summary">Удерживать CPU, пока этот источник подключается к сопряжённому сенсору или принимает от него данные. Расход батареи увеличится. Ограничения энергосбережения Android могут сохраняться; поминутная передача не гарантируется.</string>
+    <string name="libre2_diagnostics">Диагностика приёма</string>
+    <string name="libre2_diagnostics_session">Счётчики относятся к текущему запуску службы сенсора. Время записи в APS фиксирует основное приложение.</string>
+    <string name="libre2_diag_not_yet">ещё не было</string>
+    <string name="libre2_diag_fragment">Последний BLE-фрагмент: %1$s</string>
+    <string name="libre2_diag_packet">Последний полный BLE-пакет: %1$s</string>
+    <string name="libre2_diag_decoded">Последнее допустимое декодирование: %1$s</string>
+    <string name="libre2_diag_stored">Последняя успешная запись в APS: %1$s</string>
+    <string name="libre2_diag_counts">Фрагментов: %1$d; полных пакетов: %2$d; допустимых декодирований: %3$d</string>
+    <string name="libre2_diag_decoder">Статус декодера: %1$d; качество: %2$d; ID отсчёта: %3$d</string>
+    <string name="libre2_diag_reconnects">Попыток переподключения: %1$d</string>
+    <string name="libre2_diag_reconnect_time">Последняя попытка переподключения: %1$s</string>
+    <string name="libre2_diag_reconnect_reason">Причина: %1$s</string>
+    <string name="libre2_diag_manual">Переподключение вручную</string>
+    <string name="libre2_diag_settings">Изменение настроек связи</string>
+    <string name="libre2_diag_wake_active">Защита от сна: запрос удержания CPU активен</string>
+    <string name="libre2_diag_wake_inactive">Защита от сна: запрос удержания CPU не активен</string>
+</resources>

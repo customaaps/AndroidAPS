@@ -2,7 +2,11 @@ package app.aaps.plugins.source.libre2
 
 import android.Manifest
 import android.app.*
+import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.nfc.Tag
@@ -27,10 +31,31 @@ class Libre2SensorService : Service() {
     private var bluetooth: Libre2Bluetooth? = null
     private var streaming = false
     private var nativeReady = false
+    private var foregroundStarted = false
+    private var sensorEnded = false
+    private var options = Libre2ConnectionOptions()
+    private var diagnostics = Libre2Diagnostics()
+    private lateinit var wakeProtection: Libre2WakeProtection
+    private var wakeReceiverRegistered = false
+    private var statusDetail = ""
+    private var reconnectReason = ""
+    private val hostWakeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (!active.get()) return
+            updateProtection()
+            bluetooth?.checkSilence()
+            sendStatus()
+        }
+    }
     private val reconnectBackoff = Libre2ReconnectBackoff()
     private var status = Libre2StatusCode.STOPPED
     private var lastReading = 0L
-    private val reconnect = Runnable { connect() }
+    private val reconnect = Runnable {
+        if (active.get() && options.autoRecovery && !sensorEnded) {
+            recordReconnect(reconnectReason)
+            connect()
+        }
+    }
     private val deliveryRetry = Runnable { deliverPending() }
 
     override fun onCreate() {
@@ -51,11 +76,14 @@ class Libre2SensorService : Service() {
                         parent = message.replyTo ?: return
                         parentSession = message.data.getString("session") ?: return
                         active.set(true)
+                        options = Libre2ConnectionOptions.fromBundle(message.data)
                         initialize()
                     }
                     Libre2Ipc.SCAN -> if (active.get()) scan(message) else
                         send(message.replyTo, Libre2Ipc.SCAN_DONE, Bundle().apply { putString("error", "Libre2 source is stopped") })
+                    Libre2Ipc.CONNECTION_OPTIONS -> if (active.get()) applyOptions(Libre2ConnectionOptions.fromBundle(message.data))
                     Libre2Ipc.RECONNECT -> if (active.get()) {
+                        recordReconnect("manual")
                         reconnectBackoff.reset()
                         worker.removeCallbacks(reconnect)
                         if (nativeReady) connect() else initialize()
@@ -80,6 +108,20 @@ class Libre2SensorService : Service() {
             }
         }
         messenger = Messenger(worker)
+        wakeProtection = Libre2WakeProtection(this, worker) {
+            Log.w("Libre2", "CPU protection could not be enabled")
+            report(status, "Libre2 CPU protection could not be enabled")
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+            addAction(Intent.ACTION_TIME_TICK)
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(hostWakeReceiver, filter, null, worker, RECEIVER_NOT_EXPORTED)
+            else registerReceiver(hostWakeReceiver, filter, null, worker)
+            wakeReceiverRegistered = true
+        } catch (_: Exception) { Log.w("Libre2", "Host wake diagnostics receiver could not be registered") }
     }
 
     override fun onBind(intent: Intent?): IBinder {
@@ -101,11 +143,17 @@ class Libre2SensorService : Service() {
 
     private fun report(code: Libre2StatusCode, detail: String = "") {
         status = code
+        statusDetail = detail
+        sendStatus()
+    }
+
+    private fun sendStatus() {
         send(parent, Libre2Ipc.STATUS, Bundle().apply {
-            putInt("code", code.ordinal)
+            putInt("code", status.ordinal)
             putBoolean("nativeReady", nativeReady)
-            putString("detail", detail)
+            putString("detail", statusDetail)
             putLong("lastReading", lastReading)
+            diagnostics.copy(wakeProtectionHeld = wakeProtection.isHeld()).writeTo(this)
         })
     }
 
@@ -122,9 +170,11 @@ class Libre2SensorService : Service() {
                 null
             }
             lastReading = pairing?.lastReadingMillis ?: 0
+            updateProtection()
             if (!active.get()) return
             if (pairing == null) report(Libre2StatusCode.READY) else connect()
         } catch (error: Throwable) {
+            wakeProtection.close()
             Log.e("Libre2", "Decoder initialization failed", error)
             report(Libre2StatusCode.ERROR, error.message.orEmpty())
         }
@@ -147,6 +197,8 @@ class Libre2SensorService : Service() {
             report(Libre2StatusCode.CONNECTING)
             val (newPairing, decoded) = Libre2NfcReader.read(tag, message.data.getBoolean("activate"), pairing)
             if (!active.get()) return
+            sensorEnded = false
+            recordDecode(decoded)
             commitDecoded(newPairing, decoded)
             reconnectBackoff.reset()
             send(receiver, Libre2Ipc.SCAN_DONE)
@@ -156,12 +208,49 @@ class Libre2SensorService : Service() {
             report(Libre2StatusCode.ERROR, error.message.orEmpty())
             send(receiver, Libre2Ipc.SCAN_DONE, Bundle().apply { putString("error", error.message.orEmpty()) })
             // A failed scan must not leave the previously paired sensor disconnected.
-            if (active.get() && pairing != null) worker.postDelayed(reconnect, 5_000)
+            if (active.get() && pairing != null) {
+                if (options.autoRecovery) scheduleReconnect("nfc_scan_failed", 5_000) else connect()
+            }
         }
     }
 
     private fun permissionGranted() =
         Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+
+    private fun applyOptions(updated: Libre2ConnectionOptions) {
+        val recoveryEnabled = !options.autoRecovery && updated.autoRecovery
+        options = updated
+        worker.removeCallbacks(reconnect)
+        bluetooth?.setAutoRecovery(options.autoRecovery)
+        updateProtection()
+        sendStatus()
+        if (options.autoRecovery && bluetooth == null && pairing != null && !sensorEnded) {
+            if (recoveryEnabled) reconnectBackoff.reset()
+            scheduleReconnect("settings", reconnectBackoff.nextDelayMillis())
+        }
+    }
+
+    private fun updateProtection() {
+        val adapterEnabled = runCatching {
+            permissionGranted() && getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled == true
+        }.getOrDefault(false)
+        wakeProtection.setEnabled(options.keepAwake && active.get() && foregroundStarted && nativeReady && pairing != null &&
+            !sensorEnded && adapterEnabled && (bluetooth != null || options.autoRecovery))
+    }
+
+    private fun recordReconnect(reason: String) {
+        diagnostics = diagnostics.copy(reconnects = diagnostics.reconnects + 1,
+            lastReconnect = System.currentTimeMillis(), reconnectReason = reason)
+        Log.i("Libre2", "Sensor reconnect #${diagnostics.reconnects}: $reason")
+        sendStatus()
+    }
+
+    private fun scheduleReconnect(reason: String, delay: Long) {
+        worker.removeCallbacks(reconnect)
+        if (!active.get() || !options.autoRecovery || sensorEnded) return
+        reconnectReason = reason
+        worker.postDelayed(reconnect, delay)
+    }
 
     private fun foreground() {
         val manager = getSystemService(NotificationManager::class.java)
@@ -175,15 +264,16 @@ class Libre2SensorService : Service() {
         if (Build.VERSION.SDK_INT >= 29)
             startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         else startForeground(NOTIFICATION, notification)
+        foregroundStarted = true
     }
 
     private fun connect() {
-        if (!active.get() || !nativeReady) return
+        if (!active.get() || !nativeReady || sensorEnded) return
         val saved = pairing ?: run { report(Libre2StatusCode.READY); return }
         bluetooth?.close()
         bluetooth = null
         streaming = false
-        if (!permissionGranted()) { report(Libre2StatusCode.PERMISSION); return }
+        if (!permissionGranted()) { updateProtection(); report(Libre2StatusCode.PERMISSION); return }
         try {
             foreground()
             report(Libre2StatusCode.CONNECTING)
@@ -201,8 +291,18 @@ class Libre2SensorService : Service() {
                 onConnected = { streaming = true; report(Libre2StatusCode.CONNECTED) },
                 onPacket = { packet -> decode(packet) },
                 onFailure = { error -> failedConnection(error) },
+                onFragment = { arrivedAt ->
+                    diagnostics = diagnostics.copy(lastFragment = arrivedAt, fragments = diagnostics.fragments + 1)
+                    sendStatus()
+                },
+                onCompletePacket = { arrivedAt ->
+                    diagnostics = diagnostics.copy(lastPacket = arrivedAt, packets = diagnostics.packets + 1)
+                    sendStatus()
+                },
             )
             bluetooth = connection
+            connection.setAutoRecovery(options.autoRecovery)
+            updateProtection()
             connection.connect()
         } catch (error: Exception) { failedConnection(error) }
     }
@@ -212,11 +312,11 @@ class Libre2SensorService : Service() {
         bluetooth = null
         streaming = false
         Log.w("Libre2", "Bluetooth connection failed", error)
+        updateProtection()
         if (!active.get()) return
         if (!permissionGranted()) { report(Libre2StatusCode.PERMISSION); return }
         report(Libre2StatusCode.ERROR, error.message.orEmpty())
-        worker.removeCallbacks(reconnect)
-        worker.postDelayed(reconnect, reconnectBackoff.nextDelayMillis())
+        scheduleReconnect(error.message ?: error.javaClass.simpleName, reconnectBackoff.nextDelayMillis())
     }
 
     private fun decode(packet: ByteArray) {
@@ -226,6 +326,7 @@ class Libre2SensorService : Service() {
             saved.uid, saved.patchInfo, packet, System.currentTimeMillis() / 1000,
             saved.state.metadata(), saved.state.arrays
         ))
+        recordDecode(result)
         Log.d("Libre2", "Decoded BLE sample: status=${result.status}, quality=${result.quality}, sampleId=${result.sampleId}, previousId=${saved.lastSampleId}, publishable=${result.canPublish}")
         if (result.status != 0) {
             report(Libre2StatusCode.ERROR, "Libre2 decoder status: ${result.status}")
@@ -234,12 +335,23 @@ class Libre2SensorService : Service() {
         if (!active.get()) return
         commitDecoded(saved.copy(state = result.state), result)
         if (result.removed) {
+            sensorEnded = true
             bluetooth?.close()
             bluetooth = null
             streaming = false
+            updateProtection()
+            worker.removeCallbacks(reconnect)
             report(Libre2StatusCode.ERROR, "Libre2 sensor has ended or was removed")
             return
         }
+    }
+
+    private fun recordDecode(result: Libre2DecodeResult) {
+        diagnostics = diagnostics.copy(
+            lastDecoded = if (result.canPublish) System.currentTimeMillis() else diagnostics.lastDecoded,
+            decoded = diagnostics.decoded + if (result.canPublish) 1 else 0,
+            decoderStatus = result.status, quality = result.quality, sampleId = result.sampleId)
+        sendStatus()
     }
 
     private fun commitDecoded(candidate: Libre2Pairing, result: Libre2DecodeResult) {
@@ -279,6 +391,7 @@ class Libre2SensorService : Service() {
 
     private fun stopSensor() {
         active.set(false)
+        wakeProtection.close()
         worker.removeCallbacks(reconnect)
         worker.removeCallbacks(deliveryRetry)
         bluetooth?.close()
@@ -288,12 +401,18 @@ class Libre2SensorService : Service() {
         parent = null
         parentSession = null
         stopForeground(STOP_FOREGROUND_REMOVE)
+        foregroundStarted = false
         stopSelf()
     }
 
     override fun onDestroy() {
         active.set(false)
+        if (wakeReceiverRegistered) {
+            wakeReceiverRegistered = false
+            runCatching { unregisterReceiver(hostWakeReceiver) }
+        }
         if (::worker.isInitialized) worker.post {
+            if (::wakeProtection.isInitialized) wakeProtection.close()
             bluetooth?.close()
             bluetooth = null
             streaming = false

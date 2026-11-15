@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="libre2_connection_settings">Connection and recovery</string>
+    <string name="libre2_auto_recovery">Automatically restore sensor connection</string>
+    <string name="libre2_auto_recovery_summary">Reconnect only the sensor after 3 minutes without a complete BLE packet or after a connection error. Decoder quality failures do not trigger a reconnect.</string>
+    <string name="libre2_keep_awake">Sleep protection — higher battery use</string>
+    <string name="libre2_keep_awake_summary">Keep the CPU awake while this source connects to or receives from a paired sensor. Uses more battery. Android power-saving restrictions may still apply; one-minute delivery is not guaranteed.</string>
+    <string name="libre2_diagnostics">Reception diagnostics</string>
+    <string name="libre2_diagnostics_session">Counters are for the current sensor service run. The APS write time is recorded by the main app.</string>
+    <string name="libre2_diag_not_yet">not yet</string>
+    <string name="libre2_diag_fragment">Last BLE fragment: %1$s</string>
+    <string name="libre2_diag_packet">Last complete BLE packet: %1$s</string>
+    <string name="libre2_diag_decoded">Last valid decoding: %1$s</string>
+    <string name="libre2_diag_stored">Last successful APS write: %1$s</string>
+    <string name="libre2_diag_counts">Fragments: %1$d; complete packets: %2$d; valid decodings: %3$d</string>
+    <string name="libre2_diag_decoder">Decoder status: %1$d; quality: %2$d; sample ID: %3$d</string>
+    <string name="libre2_diag_reconnects">Reconnect attempts: %1$d</string>
+    <string name="libre2_diag_reconnect_time">Last reconnect attempt: %1$s</string>
+    <string name="libre2_diag_reconnect_reason">Reason: %1$s</string>
+    <string name="libre2_diag_manual">Manual reconnect</string>
+    <string name="libre2_diag_settings">Connection settings changed</string>
+    <string name="libre2_diag_wake_active">Sleep protection: wake-lock request is active</string>
+    <string name="libre2_diag_wake_inactive">Sleep protection: wake-lock request is inactive</string>
+</resources>

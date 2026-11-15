@@ -9,6 +9,7 @@ import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.keys.BooleanKey
@@ -34,6 +35,12 @@ class Libre2Client(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val writes = Mutex()
     private val exchange by lazy { Libre2Exchange(context.applicationContext) }
+    private val connectionSettings by lazy { Libre2ConnectionSettings(context.applicationContext) }
+    private val settingsWrites = Mutex()
+    private val mutableOptions = MutableStateFlow(Libre2ConnectionOptions())
+    internal val connectionOptions = mutableOptions.asStateFlow()
+    private val mutableLastStored = MutableStateFlow(0L)
+    internal val lastStoredAt = mutableLastStored.asStateFlow()
     private val mutableReadings = MutableStateFlow<List<Libre2Reading>>(emptyList())
     internal val recentReadings = mutableReadings.asStateFlow()
     private val mutableStatus = MutableStateFlow(Libre2Status())
@@ -56,8 +63,15 @@ class Libre2Client(
                 when (message.what) {
                     Libre2Ipc.STATUS -> {
                         val code = Libre2StatusCode.entries.getOrNull(message.data.getInt("code")) ?: return
+                        val previous = mutableStatus.value.diagnostics
+                        val diagnostics = Libre2Diagnostics.fromBundle(message.data)
                         mutableStatus.value = Libre2Status(code, message.data.getBoolean("nativeReady"),
-                            message.data.getString("detail").orEmpty(), message.data.getLong("lastReading"))
+                            message.data.getString("detail").orEmpty(), message.data.getLong("lastReading"), diagnostics)
+                        if (diagnostics.packets != previous.packets || diagnostics.decoded != previous.decoded ||
+                            diagnostics.reconnects != previous.reconnects || diagnostics.sampleId != previous.sampleId ||
+                            diagnostics.decoderStatus != previous.decoderStatus || diagnostics.quality != previous.quality ||
+                            diagnostics.wakeProtectionHeld != previous.wakeProtectionHeld)
+                            logger.debug(LTag.BGSOURCE, "Libre2 diagnostics: $diagnostics")
                         if (code == Libre2StatusCode.RECEIVING) crashes = 0
                     }
                     Libre2Ipc.READING -> accept(message.data, this@DecoderConnection)
@@ -67,7 +81,7 @@ class Libre2Client(
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
             if (!enabled || connection !== this) return
             remote = Messenger(service)
-            send(Libre2Ipc.REGISTER)
+            send(Libre2Ipc.REGISTER, mutableOptions.value.toBundle())
         }
         override fun onServiceDisconnected(name: ComponentName) = disconnected(this)
         override fun onBindingDied(name: ComponentName) = disconnected(this)
@@ -86,7 +100,20 @@ class Libre2Client(
 
     internal suspend fun start() = withContext(Dispatchers.Main.immediate) {
         if (!enabled) {
-            enabled = true; crashes = 0; bind()
+            enabled = true
+            val epoch = ++generation
+            settingsWrites.withLock {
+                val options = withContext(Dispatchers.IO) {
+                    runCatching { connectionSettings.load() }.getOrElse {
+                        logger.error("Libre2 connection settings could not be loaded")
+                        Libre2ConnectionOptions()
+                    }
+                }
+                if (!enabled || generation != epoch) return@withContext
+                mutableOptions.value = options
+                crashes = 0
+                bind()
+            }
             scope.launch {
                 runCatching { Libre2Exchange.schedule(context, exchange.settings().libreView) }
                     .onFailure { logger.error("Libre2 export scheduling failed") }
@@ -104,6 +131,7 @@ class Libre2Client(
             old?.send(Libre2Ipc.STOP)
             old?.unbind()
             mutableStatus.value = Libre2Status()
+            mutableLastStored.value = 0
         }
         // Plugin switching waits for an already-started DB transaction. Queued writes fail the epoch check.
         writes.withLock { }
@@ -125,6 +153,7 @@ class Libre2Client(
         connection = null
         generation++
         session.unbind()
+        logger.error("Libre2 decoder process disconnected; rebind attempt ${crashes + 1}")
         mutableStatus.value = Libre2Status(Libre2StatusCode.ERROR, detail = "Libre2 decoder process disconnected")
         handler.removeCallbacks(rebind)
         // A native failure must not create an endless process-crash loop.
@@ -136,6 +165,24 @@ class Libre2Client(
         crashes = 0
         if (connection == null) { handler.removeCallbacks(rebind); bind() }
         else connection?.send(Libre2Ipc.RECONNECT)
+    }
+
+    internal fun setAutoRecovery(enabled: Boolean) = updateConnectionOptions { it.copy(autoRecovery = enabled) }
+    internal fun setKeepAwake(enabled: Boolean) = updateConnectionOptions { it.copy(keepAwake = enabled) }
+
+    private fun updateConnectionOptions(change: (Libre2ConnectionOptions) -> Libre2ConnectionOptions) = scope.launch {
+        settingsWrites.withLock {
+            try {
+                val updated = change(mutableOptions.value)
+                connectionSettings.save(updated)
+                withContext(Dispatchers.Main.immediate) {
+                    mutableOptions.value = updated
+                    logger.debug(LTag.BGSOURCE, "Libre2 connection options: $updated")
+                    if (enabled) connection?.send(Libre2Ipc.CONNECTION_OPTIONS, updated.toBundle())
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { logger.error("Libre2 connection settings could not be saved") }
+        }
     }
 
     internal fun setupIntent(): Intent? = connection?.takeIf { enabled && status.value.nativeReady }?.let { session ->
@@ -161,11 +208,14 @@ class Libre2Client(
                         timestamp = reading.timestamp, value = reading.mgdl.toDouble(), raw = null, noise = null,
                         trendArrow = Libre2ReadingPolicy.trend(reading.trend), sourceSensor = SourceSensor.LIBRE_2
                     )), emptyList(), sensorInsertion)
+                    val committedAt = System.currentTimeMillis()
+                    logger.debug(LTag.BGSOURCE, "Libre2 APS write succeeded: sampleId=${reading.sampleId}, sampleTime=${reading.timestamp}, committedAt=$committedAt")
                     // Export failures must never block ACK/CGM delivery or cause a pump reconnect.
                     try { exchange.onReading(reading) }
                     catch (_: Exception) { logger.error("Libre2 optional export failed") }
                     withContext(Dispatchers.Main.immediate) {
                         if (enabled && connection === session) {
+                            mutableLastStored.value = committedAt
                             mutableReadings.value = (listOf(reading) + mutableReadings.value)
                                 .distinctBy { it.identity }.take(10)
                             // Confirm only after the transaction succeeds; retries keep the original timestamp.

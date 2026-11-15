@@ -25,6 +25,7 @@ internal object Libre2Ipc {
     const val RECONNECT = 3
     const val STOP = 4
     const val ACK_READING = 5
+    const val CONNECTION_OPTIONS = 6
     const val STATUS = 10
     const val READING = 11
     const val SCAN_DONE = 12
@@ -36,4 +37,5 @@ internal data class Libre2Status(
     val nativeReady: Boolean = false,
     val detail: String = "",
     val lastReadingMillis: Long = 0,
+    val diagnostics: Libre2Diagnostics = Libre2Diagnostics(),
 )

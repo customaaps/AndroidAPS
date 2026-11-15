@@ -28,6 +28,7 @@ internal class Libre2Content(private val client: Libre2Client, private val conte
                 Text(stringResource(R.string.libre2_scan))
             }
             OutlinedButton(onClick = { client.reconnect() }) { Text(stringResource(R.string.libre2_reconnect)) }
+            Libre2ConnectionContent(client, status)
             val recent by client.recentReadings.collectAsState()
             if (recent.isNotEmpty()) {
                 Text(stringResource(R.string.libre2_recent_readings))
