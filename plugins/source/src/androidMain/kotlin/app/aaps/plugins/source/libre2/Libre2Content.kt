@@ -28,6 +28,14 @@ internal class Libre2Content(private val client: Libre2Client, private val conte
                 Text(stringResource(R.string.libre2_scan))
             }
             OutlinedButton(onClick = { client.reconnect() }) { Text(stringResource(R.string.libre2_reconnect)) }
+            val recent by client.recentReadings.collectAsState()
+            if (recent.isNotEmpty()) {
+                Text(stringResource(R.string.libre2_recent_readings))
+                Text(recent.joinToString(" · ") {
+                    java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(it.timestamp))
+                })
+            }
+            Libre2ExchangeContent(context)
         }
     }
 }

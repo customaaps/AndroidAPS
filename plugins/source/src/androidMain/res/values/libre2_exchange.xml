@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="libre2_exchange">Data exchange</string>
+    <string name="libre2_xdrip_export">Send to xDrip+ on this phone</string>
+    <string name="libre2_xdrip_instructions">In xDrip+, select xDrip+ Sync Follower as the data source. Use one glucose exporter: this switch or the AAPS xDrip+ sync plugin.</string>
+    <string name="libre2_libreview_export">Send to LibreView</string>
+    <string name="libre2_libreview_region">LibreView region: Russia</string>
+    <string name="libre2_libreview_email">Email</string>
+    <string name="libre2_libreview_password">Password</string>
+    <string name="libre2_libreview_credentials_note">Account ID is retrieved automatically. Credentials are encrypted on this phone and excluded from settings exports. Only Libre 2 glucose and sensor start are uploaded.</string>
+    <string name="libre2_libreview_account">Account ID: %1$s</string>
+    <string name="libre2_libreview_authenticated">Signed in</string>
+    <string name="libre2_libreview_uploaded">Upload confirmed by LibreView</string>
+    <string name="libre2_libreview_auth_error">Sign-in failed. Check your credentials, then save with the corrected password.</string>
+    <string name="libre2_libreview_rate_limit">Too many requests. Waiting at least 15 minutes before retrying.</string>
+    <string name="libre2_libreview_not_checked">Not checked yet</string>
+    <string name="libre2_libreview_network_error">Upload failed; readings remain queued. Check internet access and try later.</string>
+    <string name="libre2_exchange_storage_error">Could not read or save data exchange settings.</string>
+    <string name="libre2_exchange_save">Save</string>
+    <string name="libre2_exchange_close">Close</string>
+    <string name="libre2_recent_readings">Last readings saved in APS (time):</string>
+</resources>

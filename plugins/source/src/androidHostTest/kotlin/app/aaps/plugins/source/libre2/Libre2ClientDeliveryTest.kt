@@ -92,6 +92,31 @@ class Libre2ClientDeliveryTest {
     }
 
     @Test
+    fun `corrupt optional export settings cannot block database delivery and ACK`() = runBlocking<Unit> {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val sensor = SensorContext()
+        val database: PersistenceLayer = mock()
+        whenever(database.insertCgmSourceData(any(), any(), any(), anyOrNull())).thenReturn(PersistenceLayer.TransactionResult<GV>())
+        val file = java.io.File(sensor.applicationContext.noBackupFilesDir, "libre2-exchange/settings.enc")
+        file.parentFile!!.mkdirs()
+        file.writeBytes(byteArrayOf(1, 2, 3))
+        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), mock<Preferences>())
+        try {
+            client.start()
+            assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))
+            val sent = sensor.reading()
+            assertTrue(sensor.acknowledged.await(5, TimeUnit.SECONDS))
+            assertEquals(sent.token, sensor.acknowledgements.poll(5, TimeUnit.SECONDS))
+            verify(database).insertCgmSourceData(any(), any(), any(), anyOrNull())
+        } finally {
+            client.stop()
+            file.delete()
+            sensor.thread.quitSafely()
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
     fun `sensor registration disabled still delivers every minute without an insertion event`() = verifySensorRegistration(false)
 
     @Test

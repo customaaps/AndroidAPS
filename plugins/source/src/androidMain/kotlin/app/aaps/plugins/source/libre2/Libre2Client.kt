@@ -33,6 +33,9 @@ class Libre2Client(
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val writes = Mutex()
+    private val exchange by lazy { Libre2Exchange(context.applicationContext) }
+    private val mutableReadings = MutableStateFlow<List<Libre2Reading>>(emptyList())
+    internal val recentReadings = mutableReadings.asStateFlow()
     private val mutableStatus = MutableStateFlow(Libre2Status())
     internal val status = mutableStatus.asStateFlow()
     @Volatile private var enabled = false
@@ -82,7 +85,13 @@ class Libre2Client(
     }
 
     internal suspend fun start() = withContext(Dispatchers.Main.immediate) {
-        if (!enabled) { enabled = true; crashes = 0; bind() }
+        if (!enabled) {
+            enabled = true; crashes = 0; bind()
+            scope.launch {
+                runCatching { Libre2Exchange.schedule(context, exchange.settings().libreView) }
+                    .onFailure { logger.error("Libre2 export scheduling failed") }
+            }
+        }
     }
 
     internal suspend fun stop() {
@@ -152,8 +161,13 @@ class Libre2Client(
                         timestamp = reading.timestamp, value = reading.mgdl.toDouble(), raw = null, noise = null,
                         trendArrow = Libre2ReadingPolicy.trend(reading.trend), sourceSensor = SourceSensor.LIBRE_2
                     )), emptyList(), sensorInsertion)
+                    // Export failures must never block ACK/CGM delivery or cause a pump reconnect.
+                    try { exchange.onReading(reading) }
+                    catch (_: Exception) { logger.error("Libre2 optional export failed") }
                     withContext(Dispatchers.Main.immediate) {
                         if (enabled && connection === session) {
+                            mutableReadings.value = (listOf(reading) + mutableReadings.value)
+                                .distinctBy { it.identity }.take(10)
                             // Confirm only after the transaction succeeds; retries keep the original timestamp.
                             session.send(Libre2Ipc.ACK_READING, Bundle().apply { putString("token", reading.token) })
                             rxBus.send(EventRefreshOverview("Libre2"))

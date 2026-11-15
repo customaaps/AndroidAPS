@@ -226,6 +226,7 @@ class Libre2SensorService : Service() {
             saved.uid, saved.patchInfo, packet, System.currentTimeMillis() / 1000,
             saved.state.metadata(), saved.state.arrays
         ))
+        Log.d("Libre2", "Decoded BLE sample: status=${result.status}, quality=${result.quality}, sampleId=${result.sampleId}, previousId=${saved.lastSampleId}, publishable=${result.canPublish}")
         if (result.status != 0) {
             report(Libre2StatusCode.ERROR, "Libre2 decoder status: ${result.status}")
             return

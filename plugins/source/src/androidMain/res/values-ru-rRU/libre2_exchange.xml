@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="libre2_exchange">Обмен данными</string>
+    <string name="libre2_xdrip_export">Отправлять в xDrip+ на этом телефоне</string>
+    <string name="libre2_xdrip_instructions">В xDrip+ выберите источник данных «xDrip+ Sync Follower». Используйте один способ отправки сахара: этот переключатель или модуль синхронизации xDrip+ в APS.</string>
+    <string name="libre2_libreview_export">Отправлять в LibreView</string>
+    <string name="libre2_libreview_region">Регион LibreView: Россия</string>
+    <string name="libre2_libreview_email">Электронная почта</string>
+    <string name="libre2_libreview_password">Пароль</string>
+    <string name="libre2_libreview_credentials_note">ID аккаунта получается автоматически. Учётные данные зашифрованы на телефоне и не включаются в экспорт настроек. Выгружаются только сахар Libre 2 и время запуска сенсора.</string>
+    <string name="libre2_libreview_account">ID аккаунта: %1$s</string>
+    <string name="libre2_libreview_authenticated">Вход выполнен</string>
+    <string name="libre2_libreview_uploaded">LibreView подтвердил загрузку</string>
+    <string name="libre2_libreview_auth_error">Ошибка входа. Проверьте учётные данные и сохраните исправленный пароль.</string>
+    <string name="libre2_libreview_rate_limit">Слишком много запросов. Повторная попытка не раньше чем через 15 минут.</string>
+    <string name="libre2_libreview_not_checked">Ещё не проверено</string>
+    <string name="libre2_libreview_network_error">Ошибка выгрузки; показания остаются в очереди. Проверьте интернет и повторите позже.</string>
+    <string name="libre2_exchange_storage_error">Не удалось прочитать или сохранить настройки обмена.</string>
+    <string name="libre2_exchange_save">Сохранить</string>
+    <string name="libre2_exchange_close">Закрыть</string>
+    <string name="libre2_recent_readings">Последние показания, сохранённые в APS (время):</string>
+</resources>

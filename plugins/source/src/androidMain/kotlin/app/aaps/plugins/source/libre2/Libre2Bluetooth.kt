@@ -14,6 +14,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.SystemClock
+import android.os.PowerManager
+import android.util.Log
 import java.io.IOException
 import java.util.UUID
 
@@ -47,10 +49,25 @@ internal class Libre2Bluetooth(
         handler.postDelayed(deadline, ms)
     }
     private fun dispatch(connection: BluetoothGatt, block: () -> Unit) {
-        handler.post {
-            if (stopped || connection !== gatt) return@post
-            try { permitted(); block() } catch (error: Exception) { fail(error) }
+        // Hold only while queued callbacks and packet processing execute, never between readings.
+        val wakeLock = try {
+            context.getSystemService(PowerManager::class.java)
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AAPS:Libre2Packet").apply {
+                    setReferenceCounted(false)
+                    acquire(30_000)
+                }
+        } catch (_: Exception) {
+            // A platform power-management error must not crash a Bluetooth callback thread.
+            Log.w("Libre2", "Could not acquire packet wake lock")
+            null
         }
+        val accepted = handler.post {
+            try {
+                if (stopped || connection !== gatt) return@post
+                try { permitted(); block() } catch (error: Exception) { fail(error) }
+            } finally { if (wakeLock?.isHeld == true) wakeLock.release() }
+        }
+        if (!accepted && wakeLock?.isHeld == true) wakeLock.release()
     }
 
     fun connect() {
@@ -126,7 +143,7 @@ internal class Libre2Bluetooth(
         write(characteristic(LOGIN), payload)
     }
 
-    private fun notify(uuid: UUID, value: ByteArray) {
+    private fun notify(uuid: UUID, value: ByteArray, receivedAt: Long) {
         if (uuid == LOGIN && pairing.generation2) {
             when (stage) {
                 Stage.CHALLENGE -> authenticate(value)
@@ -147,7 +164,8 @@ internal class Libre2Bluetooth(
                 else -> Unit
             }
         } else if (uuid == RAW && stage == Stage.STREAMING) {
-            val packet = assembler.accept(value, SystemClock.elapsedRealtime()) ?: return
+            val packet = assembler.accept(value, receivedAt) ?: return
+            Log.d("Libre2", "Complete BLE packet received at elapsedMs=$receivedAt")
             val decoded = if (pairing.generation2)
                 Libre2NativeDecoder.v2(773, session, packet, null) ?: throw IOException("Libre2 BLE decryption failed")
             else packet
@@ -209,12 +227,14 @@ internal class Libre2Bluetooth(
         override fun onCharacteristicChanged(connection: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             val uuid = characteristic.uuid
             val value = characteristic.value?.copyOf() ?: return
-            dispatch(connection) { notify(uuid, value) }
+            val receivedAt = SystemClock.elapsedRealtime()
+            dispatch(connection) { notify(uuid, value, receivedAt) }
         }
         override fun onCharacteristicChanged(connection: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
             val uuid = characteristic.uuid
             val copy = value.copyOf()
-            dispatch(connection) { notify(uuid, copy) }
+            val receivedAt = SystemClock.elapsedRealtime()
+            dispatch(connection) { notify(uuid, copy, receivedAt) }
         }
     }
 
