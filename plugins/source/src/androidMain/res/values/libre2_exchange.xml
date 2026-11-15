@@ -7,7 +7,7 @@
     <string name="libre2_libreview_region">LibreView region: Russia</string>
     <string name="libre2_libreview_email">Email</string>
     <string name="libre2_libreview_password">Password</string>
-    <string name="libre2_libreview_credentials_note">Account ID is retrieved automatically. Credentials are encrypted on this phone and excluded from settings exports. Only Libre 2 glucose and sensor start are uploaded.</string>
+    <string name="libre2_libreview_credentials_note">Account ID is retrieved automatically. Credentials are encrypted on this phone and excluded from settings exports. Only Libre 2 glucose and sensor start are uploaded. Changing the email clears the previous account upload queue; readings in the APS database are kept.</string>
     <string name="libre2_libreview_account">Account ID: %1$s</string>
     <string name="libre2_libreview_authenticated">Signed in</string>
     <string name="libre2_libreview_uploaded">Upload confirmed by LibreView</string>

@@ -76,6 +76,74 @@ class Libre2ExchangeTest {
         assertTrue(queue.batch(newer.timestamp).single().currentRecordNumber > firstId)
     }
 
+    @Test fun `changing account scope clears old backlog while preserving record counter`() {
+        val path = File(directory, "upload.json")
+        val queue = Libre2UploadQueue(path)
+        queue.forAccount("a".repeat(64))
+        queue.add(reading(8), now)
+        val old = queue.batch(now).single().currentRecordNumber
+        val restored = Libre2UploadQueue(path)
+        restored.forAccount("a".repeat(64))
+        assertEquals(1, restored.batch(now).size)
+        restored.forAccount("b".repeat(64))
+        assertTrue(restored.batch(now).isEmpty())
+        restored.add(reading(9), now)
+        assertTrue(restored.batch(now).single().currentRecordNumber > old)
+    }
+
+    @Test fun `legacy queue can be bound to its existing account without losing data`() {
+        val queue = Libre2UploadQueue(File(directory, "upload.json"))
+        queue.add(reading(8), now)
+        val original = queue.batch(now)
+        queue.forAccount("a".repeat(64))
+        assertEquals(original, queue.batch(now))
+    }
+
+    @Test fun `initial samples outside a history window are removed after confirmed upload`() {
+        val queue = Libre2UploadQueue(File(directory, "upload.json"))
+        (0..7).forEach { queue.add(reading(it), now) }
+        queue.acknowledge(queue.batch(now))
+        assertTrue(queue.batch(now).isEmpty())
+    }
+
+    @Test fun `HTTP retry after supports seconds and dates without shortening server cooldown`() {
+        assertEquals(3_600_000L, LibreViewFailure.retryAfter("3600", now))
+        val date = java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME.format(
+            java.time.Instant.ofEpochMilli(now + 3_600_000).atZone(java.time.ZoneOffset.UTC))
+        assertEquals(3_600_000L, LibreViewFailure.retryAfter(date, now))
+        assertEquals(LibreViewFailure.MIN_RETRY_DELAY, LibreViewFailure.retryAfter("invalid", now))
+        assertEquals(LibreViewFailure.MIN_RETRY_DELAY, LibreViewFailure.retryAfter("-1", now))
+    }
+
+    @Test fun `saving settings cannot bypass a cooldown for the same account`() {
+        val original = Libre2ExchangeSettings(libreView = true, email = "test@example.invalid", password = "old",
+            retryAfter = now + 3_600_000, status = "rate_limited")
+        val disabled = original.withUserSettings(false, false, original.email, original.password, now)
+        val enabled = disabled.withUserSettings(false, true, original.email, "corrected", now)
+        assertEquals(original.retryAfter, enabled.retryAfter)
+        assertEquals("rate_limited", enabled.status)
+    }
+
+    @Test fun `switching account resets its status and password correction preserves same account upload time`() {
+        val original = Libre2ExchangeSettings(libreView = true, email = "test@example.invalid", password = "old",
+            token = "old-token", authBlocked = true, lastUpload = now - 60_000, retryAfter = now + 3_600_000)
+        val corrected = original.withUserSettings(false, true, original.email, "corrected", now)
+        assertEquals(original.lastUpload, corrected.lastUpload)
+        assertFalse(corrected.authBlocked)
+        val switched = original.withUserSettings(false, true, "new@example.invalid", "new", now)
+        assertEquals(0L, switched.lastUpload)
+        assertEquals(0L, switched.retryAfter)
+        assertEquals("", switched.token)
+        assertNotEquals(original.revision, switched.revision)
+    }
+
+    @Test fun `changing local export leaves the cloud token and revision intact`() {
+        val original = Libre2ExchangeSettings(libreView = true, email = "test@example.invalid", password = "old", token = "token")
+        val changed = original.withUserSettings(true, true, original.email, original.password, now)
+        assertEquals(original.token, changed.token)
+        assertEquals(original.revision, changed.revision)
+    }
+
     @Test fun `authentication resolves RU config and retries device registration once`() {
         val calls = mutableListOf<Triple<String, String, JSONObject?>>()
         val password = "quotes\" and slash\\"

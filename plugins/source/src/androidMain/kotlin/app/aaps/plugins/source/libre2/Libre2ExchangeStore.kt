@@ -31,24 +31,63 @@ internal data class Libre2ExchangeSettings(
     val status: String = "",
     val tokenRefreshes: Int = 0,
 ) {
+    fun withUserSettings(xdrip: Boolean, libreView: Boolean, email: String, password: String, now: Long): Libre2ExchangeSettings {
+        val normalizedEmail = email.trim()
+        require(!libreView || normalizedEmail.isNotEmpty() && password.isNotEmpty())
+        val accountChanged = !this.email.equals(normalizedEmail, ignoreCase = true)
+        val changed = accountChanged || this.password != password || this.libreView != libreView
+        return copy(xdrip = xdrip, libreView = libreView, email = normalizedEmail, password = password,
+            revision = if (changed) UUID.randomUUID().toString() else revision,
+            token = if (changed) "" else token, baseUrl = if (changed) "" else baseUrl,
+            accountId = if (changed) "" else accountId, registeredSensor = if (changed) "" else registeredSensor,
+            authBlocked = if (changed) false else authBlocked,
+            // An on/off toggle or password edit cannot bypass a server lockout for the same account.
+            retryAfter = if (accountChanged) 0 else retryAfter,
+            tokenRefreshes = if (changed) 0 else tokenRefreshes,
+            lastUpload = if (accountChanged) 0 else lastUpload,
+            status = when {
+                !accountChanged && retryAfter > now -> "rate_limited"
+                changed -> ""
+                else -> status
+            })
+    }
+
     // Deliberately no generated toString containing credentials.
     override fun toString() = "Libre2ExchangeSettings(redacted)"
 }
 
-internal class Libre2ExchangeStore(context: Context) {
+internal class Libre2ExchangeStore(context: Context) : Libre2UploadStore {
     private val directory = File(context.noBackupFilesDir, "libre2-exchange")
     private val settingsFile = Libre2AtomicFile(File(directory, "settings.enc"))
     private val queue = Libre2UploadQueue(File(directory, "upload.json"))
 
-    fun settings(): Libre2ExchangeSettings = synchronized(lock) { readSettings() }
+    override fun settings(): Libre2ExchangeSettings = synchronized(lock) { readSettings() }
 
-    fun update(change: (Libre2ExchangeSettings) -> Libre2ExchangeSettings) = synchronized(lock) {
-        change(readSettings()).also { writeSettings(it) }
+    override fun update(change: (Libre2ExchangeSettings) -> Libre2ExchangeSettings) = synchronized(lock) {
+        val old = readSettings()
+        val updated = change(old)
+        // Bind legacy queues before an email change; never send the old account's backlog to a new one.
+        if (!old.email.equals(updated.email, ignoreCase = true) && old.email.isNotBlank())
+            queue.forAccount(accountScope(old.email))
+        writeSettings(updated)
+        updated
     }
 
-    fun enqueue(reading: Libre2Reading, now: Long) = synchronized(lock) { queue.add(reading, now) }
-    fun batch(now: Long): List<Libre2UploadRecord> = synchronized(lock) { queue.batch(now) }
-    fun acknowledge(batch: List<Libre2UploadRecord>, revision: String, now: Long) = synchronized(lock) {
+    fun enqueue(reading: Libre2Reading, now: Long) = synchronized(lock) {
+        val s = readSettings()
+        if (s.libreView) {
+            queue.forAccount(accountScope(s.email))
+            queue.add(reading, now)
+        }
+    }
+    override fun batch(now: Long): List<Libre2UploadRecord> = synchronized(lock) {
+        val s = readSettings()
+        if (!s.libreView) emptyList() else {
+            queue.forAccount(accountScope(s.email))
+            queue.batch(now)
+        }
+    }
+    override fun acknowledge(batch: List<Libre2UploadRecord>, revision: String, now: Long) = synchronized(lock) {
         val s = readSettings()
         if (s.revision == revision && s.libreView) {
             queue.acknowledge(batch)
@@ -93,6 +132,9 @@ internal class Libre2ExchangeStore(context: Context) {
     companion object {
         private val lock = Any()
         private const val KEY_ALIAS = "AAPS.Libre2.LibreView.v1"
+        private fun accountScope(email: String) = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(email.trim().lowercase(java.util.Locale.ROOT).toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
     }
 }
 
@@ -101,7 +143,7 @@ internal data class Libre2UploadRecord(val reading: Libre2Reading, val currentRe
 /** Keeps uncompleted history windows after successful current-glucose uploads. */
 internal class Libre2UploadQueue(path: File) {
     private val file = Libre2AtomicFile(path)
-    private data class State(val nextId: Int = 1, val records: List<Libre2UploadRecord> = emptyList())
+    private data class State(val nextId: Int = 1, val records: List<Libre2UploadRecord> = emptyList(), val accountScope: String = "")
     private fun read(): State {
         if (!file.exists()) return State()
         val json = JSONObject(String(file.read(4 * 1024 * 1024), Charsets.UTF_8))
@@ -118,7 +160,7 @@ internal class Libre2UploadQueue(path: File) {
         }
         require(records.map { it.reading.identity }.distinct().size == records.size)
         require(records.map { it.currentRecordNumber }.distinct().size == records.size)
-        return State(next, records)
+        return State(next, records, json.optString("accountScope"))
     }
     private fun write(state: State) {
         val array = JSONArray()
@@ -127,8 +169,15 @@ internal class Libre2UploadQueue(path: File) {
             array.put(JSONArray(listOf(r.sensorId, r.sampleId, r.timestamp, r.sensorStart, r.mgdl, r.trend, record.currentRecordNumber)))
         }
         file.write(JSONObject().put("version", 1).put("nextId", state.nextId)
-            .put("readings", array).toString().toByteArray(Charsets.UTF_8))
+            .put("readings", array).put("accountScope", state.accountScope).toString().toByteArray(Charsets.UTF_8))
     }
+    fun forAccount(scope: String) {
+        require(scope.matches(Regex("[a-f0-9]{64}")))
+        val state = read()
+        if (state.accountScope == scope) return
+        write(state.copy(accountScope = scope, records = if (state.accountScope.isEmpty()) state.records else emptyList()))
+    }
+
     fun add(reading: Libre2Reading, now: Long) {
         require(reading.valid())
         val state = read()
@@ -136,7 +185,7 @@ internal class Libre2UploadQueue(path: File) {
         if (retained.any { it.reading.identity == reading.identity }) return
         check(retained.size < MAX_READINGS) { "LibreView upload queue is full" }
         check(state.nextId <= 8_388_607) { "LibreView current record counter exhausted" }
-        write(State(state.nextId + 1, (retained + Libre2UploadRecord(reading, state.nextId * 256)).sortedBy { it.reading.timestamp }))
+        write(state.copy(nextId = state.nextId + 1, records = (retained + Libre2UploadRecord(reading, state.nextId * 256)).sortedBy { it.reading.timestamp }))
     }
     fun batch(now: Long): List<Libre2UploadRecord> {
         val state = read()
@@ -150,7 +199,7 @@ internal class Libre2UploadQueue(path: File) {
         val oldSensor = batch.firstOrNull()?.reading?.sensorId?.let { it != state.records.lastOrNull()?.reading?.sensorId } == true
         // Old sensors cannot complete their final window; their genuine current values were uploaded.
         val readings = batch.map { it.reading }
-        val completed = (if (oldSensor) readings else Libre2LibreViewPayload.completed(readings).flatten())
+        val completed = (if (oldSensor) readings else Libre2LibreViewPayload.completed(readings).flatten() + readings.filter { Libre2LibreViewPayload.bucket(it.sampleId) == 0 })
             .map { it.identity }.toSet()
         if (completed.isNotEmpty()) write(state.copy(records = state.records.filterNot { it.reading.identity in completed }))
     }

@@ -7,7 +7,7 @@
     <string name="libre2_libreview_region">Регион LibreView: Россия</string>
     <string name="libre2_libreview_email">Электронная почта</string>
     <string name="libre2_libreview_password">Пароль</string>
-    <string name="libre2_libreview_credentials_note">ID аккаунта получается автоматически. Учётные данные зашифрованы на телефоне и не включаются в экспорт настроек. Выгружаются только сахар Libre 2 и время запуска сенсора.</string>
+    <string name="libre2_libreview_credentials_note">ID аккаунта получается автоматически. Учётные данные зашифрованы на телефоне и не включаются в экспорт настроек. Выгружаются только сахар Libre 2 и время запуска сенсора. Смена электронной почты очищает очередь выгрузки прежнего аккаунта; показания в базе APS сохраняются.</string>
     <string name="libre2_libreview_account">ID аккаунта: %1$s</string>
     <string name="libre2_libreview_authenticated">Вход выполнен</string>
     <string name="libre2_libreview_uploaded">LibreView подтвердил загрузку</string>

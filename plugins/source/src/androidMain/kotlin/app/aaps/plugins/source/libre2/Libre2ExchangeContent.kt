@@ -13,6 +13,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.aaps.plugins.source.R
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -31,6 +32,7 @@ internal fun Libre2ExchangeContent(context: Context) {
         error = false
         scope.launch {
             try { settings = withContext(Dispatchers.IO) { exchange.settings() }; show = true }
+            catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { error = true }
         }
     }) { Text(stringResource(R.string.libre2_exchange)) }
@@ -47,7 +49,9 @@ internal fun Libre2ExchangeContent(context: Context) {
         LaunchedEffect(Unit) {
             while (true) {
                 delay(5_000)
-                runCatching { withContext(Dispatchers.IO) { exchange.settings() } }.getOrNull()?.let { status = it }
+                try { status = withContext(Dispatchers.IO) { exchange.settings() } }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { error = true }
             }
         }
         AlertDialog(
@@ -96,7 +100,8 @@ internal fun Libre2ExchangeContent(context: Context) {
                         try {
                             withContext(Dispatchers.IO) { exchange.save(xdrip, libreView, email, password) }
                             status = withContext(Dispatchers.IO) { exchange.settings() }
-                        } catch (_: Exception) { error = true }
+                        } catch (cancelled: CancellationException) { throw cancelled }
+                        catch (_: Exception) { error = true }
                         finally { saving = false }
                     }
                 }) { Text(stringResource(R.string.libre2_exchange_save)) }

@@ -10,17 +10,37 @@ import java.io.IOException
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 
-internal class LibreViewFailure(val code: String, val retryable: Boolean, val reauthenticate: Boolean = false) : IOException(code)
+internal class LibreViewFailure(
+    val code: String,
+    val retryable: Boolean,
+    val reauthenticate: Boolean = false,
+    val retryDelayMillis: Long = MIN_RETRY_DELAY,
+) : IOException(code) {
+    companion object {
+        const val MIN_RETRY_DELAY = 15 * 60_000L
+        fun retryDelay(seconds: Long?): Long = maxOf(MIN_RETRY_DELAY,
+            (seconds ?: 0).coerceIn(0, java.util.concurrent.TimeUnit.DAYS.toSeconds(30)) * 1000)
+        fun retryAfter(header: String?, now: Long): Long {
+            val seconds = header?.trim()?.toLongOrNull() ?: runCatching {
+                (java.time.ZonedDateTime.parse(header?.trim(), java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME)
+                    .toInstant().toEpochMilli() - now).coerceAtLeast(0) / 1000
+            }.getOrNull()
+            return retryDelay(seconds)
+        }
+    }
+}
 
 internal class Libre2LibreViewApi(
     private val transport: (String, String, JSONObject?) -> JSONObject = ::httpsRequest,
 ) {
-    fun authenticate(settings: Libre2ExchangeSettings): Libre2ExchangeSettings {
+    fun authenticate(settings: Libre2ExchangeSettings, beforeRequest: () -> Unit = {}): Libre2ExchangeSettings {
+        beforeRequest()
         require(settings.email.isNotBlank() && settings.password.isNotEmpty())
         val config = transport(CONFIG_RU, "GET", null)
         val base = config.getString("newYuUrl").trimEnd('/')
         validateBaseUrl(base)
         for (setDevice in listOf(false, true)) {
+            beforeRequest()
             val response = transport("$base/api/nisperson/getauthentication", "POST",
                 JSONObject().put("Culture", "ru-RU").put("DeviceId", settings.deviceId)
                     .put("Password", settings.password).put("SetDevice", setDevice).put("UserName", settings.email)
@@ -60,7 +80,8 @@ internal class Libre2LibreViewApi(
     private fun checkResponse(response: JSONObject, authenticating: Boolean = false) {
         when (val status = response.optInt("status", -1)) {
             0 -> return
-            429 -> throw LibreViewFailure("rate_limited", true)
+            429 -> throw LibreViewFailure("rate_limited", true, retryDelayMillis = LibreViewFailure.retryDelay(
+                response.optJSONObject("data")?.optJSONObject("data")?.optLong("lockout")))
             20 -> {
                 if (!authenticating && response.optString("reason") == "wrongDeviceInToken")
                     throw LibreViewFailure("token_expired", true, true)
@@ -103,7 +124,8 @@ private fun httpsRequest(address: String, method: String, body: JSONObject?): JS
         }
         when (val code = connection.responseCode) {
             200 -> Unit
-            429 -> throw LibreViewFailure("rate_limited", true)
+            429 -> throw LibreViewFailure("rate_limited", true, retryDelayMillis =
+                LibreViewFailure.retryAfter(connection.getHeaderField("Retry-After"), System.currentTimeMillis()))
             401, 403 -> throw LibreViewFailure("auth", false)
             else -> throw LibreViewFailure("http_$code", code >= 500 || code == 408)
         }
