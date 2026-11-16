@@ -412,7 +412,7 @@ class OpenAPSBoostPlugin(
         title = ApsStrings.openapsboost,
         items = BoostApsPreferenceKeys.sections() + listOf(
             PreferenceSubScreenDef("boost_settings_common", ApsStrings.boost_settings_common,
-                listOf(BooleanKey.ApsLoopAtNativeCadence, DoubleKey.ApsMaxBasal, DoubleKey.ApsSmbMaxIob, BooleanKey.ApsUseSmb,
+                listOf(DoubleKey.ApsMaxBasal, DoubleKey.ApsSmbMaxIob, BooleanKey.ApsUseSmb,
                     BooleanKey.ApsUseSmbAlways, BooleanKey.ApsUseSmbWithCob, BooleanKey.ApsUseSmbWithLowTt,
                     BooleanKey.ApsUseSmbWithHighTt, BooleanKey.ApsUseSmbAfterCarbs, BooleanKey.ApsUseUam,
                     IntKey.ApsMaxSmbFrequency, IntKey.ApsMaxMinutesOfBasalToLimitSmb,
