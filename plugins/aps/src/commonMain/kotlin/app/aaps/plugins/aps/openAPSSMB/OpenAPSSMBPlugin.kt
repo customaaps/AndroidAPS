@@ -375,7 +375,9 @@ open class OpenAPSSMBPlugin(
         // var insulinDivisor = 0
         val epsProfile = profile as ProfileSealed.EPS
         val dynIsfResult = calculateRawDynIsf(epsProfile, epsProfile.value.originalPercentage / 100.0)
-        if (dynIsfMode && !dynIsfResult.tddPartsCalculated()) {
+        val useProfileSensitivity = preferences.get(BooleanKey.ApsDynIsfUseProfileSens)
+        val missingRequiredTdd = dynIsfMode && !useProfileSensitivity && !dynIsfResult.tddPartsCalculated()
+        if (missingRequiredTdd) {
             notificationManager.post(
                 NotificationId.SMB_FALLBACK,
                 ApsStrings.fallback_smb_no_tdd,
@@ -392,8 +394,8 @@ open class OpenAPSSMBPlugin(
                 }
             )
         }
+        if (!missingRequiredTdd) notificationManager.dismiss(NotificationId.SMB_FALLBACK)
         if (dynIsfMode && dynIsfResult.tddPartsCalculated()) {
-            notificationManager.dismiss(NotificationId.SMB_FALLBACK)
             // Compare insulin consumption of last 24h with last 7 days average
             val tddRatio = if (preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)) dynIsfResult.tddLast24H!! / dynIsfResult.tdd7D!! else 1.0
             // Because consumed carbs affects total amount of insulin compensate final ratio by consumed carbs ratio
@@ -481,6 +483,8 @@ open class OpenAPSSMBPlugin(
         )
         val microBolusAllowed = constraintsChecker.isSMBModeEnabled(ConstraintObject(tempBasalFallback.not(), aapsLogger)).also { inputConstraints.copyReasons(it) }.value()
         val flatBGsDetected = bgQualityCheck.state == BgQualityCheck.State.FLAT
+        // This enables TDD-based prediction formulas. Profile-based ISF already enters via
+        // profileIsfForCr above and must not enable formulas that divide by a missing TDD.
         val effectiveDynIsfMode = dynIsfMode && dynIsfResult.tddPartsCalculated()
 
         // Refuse to run the algorithm with degenerate ISF inputs — division by these would produce NaN/Infinity in the result.
