@@ -2,7 +2,9 @@ package app.aaps.plugins.source.libre2
 
 import java.io.IOException
 
-/** The fallback covers reading and decoding, not just enabling streaming after a successful read. */
+internal class Libre2SensorEndedException : IOException("Libre2 sensor has ended or was removed")
+
+/** Retry the whole read/decode/streaming setup only for unknown-generation protocol failures. */
 internal fun <T> readLibre2Generation(
     generation: Libre2Generation?,
     first: () -> T,
@@ -13,6 +15,7 @@ internal fun <T> readLibre2Generation(
     null -> try {
         Libre2Generation.FIRST to first()
     } catch (firstFailure: IOException) {
+        if (firstFailure is Libre2SensorEndedException) throw firstFailure
         try {
             Libre2Generation.SECOND to second()
         } catch (secondFailure: IOException) {

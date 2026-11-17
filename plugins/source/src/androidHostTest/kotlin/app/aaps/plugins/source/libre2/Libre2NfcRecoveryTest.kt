@@ -48,6 +48,33 @@ class Libre2NfcRecoveryTest {
         assertEquals(0, commands)
     }
 
+    @Test
+    fun `streaming setup failure retries the complete second protocol`() {
+        val calls = mutableListOf<String>()
+        val result = readLibre2Generation(null, first = {
+            calls += "read first"
+            calls += "decode first"
+            calls += "enable first"
+            throw IOException("streaming rejected")
+        }, second = {
+            calls += "read second"
+            calls += "decode second"
+            calls += "enable second"
+            "new credentials"
+        })
+        assertEquals(Libre2Generation.SECOND to "new credentials", result)
+        assertEquals(listOf("read first", "decode first", "enable first",
+            "read second", "decode second", "enable second"), calls)
+    }
+
+    @Test
+    fun `ended sensor never retries another protocol`() {
+        val ended = Libre2SensorEndedException()
+        assertSame(ended, assertThrows(Libre2SensorEndedException::class.java) {
+            readLibre2Generation(null, { throw ended }, { error("Unexpected fallback") })
+        })
+    }
+
     private fun pairing(uid: Byte = 1) = Libre2Pairing(
         ByteArray(8) { uid }, ByteArray(6), "old", byteArrayOf(1),
         100, true, Libre2DecoderState(), unlockCounter = 42, lastSampleId = 123, lastReadingMillis = 456_000)

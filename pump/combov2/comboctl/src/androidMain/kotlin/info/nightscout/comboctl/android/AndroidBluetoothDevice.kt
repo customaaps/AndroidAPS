@@ -35,6 +35,7 @@ class AndroidBluetoothDevice(
 
     // Volatile because disconnect() may run on another thread while connect() blocks,
     // to stop that connect (see PumpIO.connectBTDeviceStoppableByCancel).
+    private val socketLock = Any()
     @Volatile private var systemBluetoothSocket: SystemBluetoothSocket? = null
     @Volatile private var inputStream: InputStream? = null
     @Volatile private var outputStream: OutputStream? = null
@@ -49,11 +50,12 @@ class AndroidBluetoothDevice(
     // Base class overrides.
 
     override fun connect() {
-        check(systemBluetoothSocket == null) { "Connection already established" }
+        synchronized(socketLock) {
+            check(systemBluetoothSocket == null) { "Connection already established" }
+            abortConnectAttempt = false
+        }
 
         logger(LogLevel.DEBUG) { "Attempting to get object representing device with address $address" }
-
-        abortConnectAttempt = false
 
         lateinit var device: SystemBluetoothDevice
 
@@ -87,10 +89,6 @@ class AndroidBluetoothDevice(
                     }
                 }
 
-                // Give the GC the chance to collect an older BluetoothSocket instance
-                // while this thread sleep (see below).
-                systemBluetoothSocket = null
-
                 device = systemBluetoothAdapter.getRemoteDevice(androidBtAddressString)
 
                 // Wait for 500 ms until we actually try to connect. This seems to
@@ -106,7 +104,17 @@ class AndroidBluetoothDevice(
                     return@retryBlocking
 
                 checkForConnectPermission(androidContext) {
-                    systemBluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(Constants.sdpSerialPortUUID)
+                    val socket = device.createInsecureRfcommSocketToServiceRecord(Constants.sdpSerialPortUUID)
+                    val accepted = synchronized(socketLock) {
+                        if (abortConnectAttempt) false else {
+                            systemBluetoothSocket = socket
+                            true
+                        }
+                    }
+                    if (!accepted) {
+                        socket.close()
+                        return@checkForConnectPermission
+                    }
 
                     // connect() must be explicitly called. Just creating the socket via
                     // createInsecureRfcommSocketToServiceRecord() does not implicitly
@@ -119,7 +127,16 @@ class AndroidBluetoothDevice(
                     // if the connection wasn't established. See also:
                     // https://stackoverflow.com/questions/24267671/inputstream-read-causes-nullpointerexception-after-having-checked-inputstream#comment37491136_24267671
                     // and: https://stackoverflow.com/a/24269255/560774
-                    systemBluetoothSocket!!.connect()
+                    try {
+                        // Never hold socketLock across connect: disconnect must be able to close it.
+                        socket.connect()
+                    } catch (error: Throwable) {
+                        synchronized(socketLock) {
+                            if (systemBluetoothSocket === socket) systemBluetoothSocket = null
+                        }
+                        try { socket.close() } catch (closeError: IOException) { error.addSuppressed(closeError) }
+                        throw error
+                    }
                 }
             }
         } catch (t: Throwable) {
@@ -132,26 +149,29 @@ class AndroidBluetoothDevice(
             return
         }
 
-        try {
-            inputStream = systemBluetoothSocket!!.inputStream
-        } catch (e: IOException) {
-            disconnectImpl()
-            throw ComboIOException("Could not get input stream to device with address $address", e)
-        }
+        synchronized(socketLock) {
+            if (abortConnectAttempt) return
+            try {
+                inputStream = systemBluetoothSocket!!.inputStream
+            } catch (e: IOException) {
+                disconnectImpl()
+                throw ComboIOException("Could not get input stream to device with address $address", e)
+            }
 
-        try {
-            outputStream = systemBluetoothSocket!!.outputStream
-        } catch (e: IOException) {
-            disconnectImpl()
-            throw ComboIOException("Could not get output stream to device with address $address", e)
-        }
+            try {
+                outputStream = systemBluetoothSocket!!.outputStream
+            } catch (e: IOException) {
+                disconnectImpl()
+                throw ComboIOException("Could not get output stream to device with address $address", e)
+            }
 
-        canDoIO = true
+            canDoIO = true
+        }
 
         logger(LogLevel.INFO) { "RFCOMM connection with device with address $address established" }
     }
 
-    override fun disconnect() {
+    override fun disconnect(): Unit = synchronized(socketLock) {
         if (systemBluetoothSocket == null) {
             // connect() may be between two attempts, when there is no socket. Stop it from
             // starting the next attempt.
@@ -231,7 +251,7 @@ class AndroidBluetoothDevice(
         }
     }
 
-    private fun disconnectImpl() {
+    private fun disconnectImpl() = synchronized(socketLock) {
         canDoIO = false
         abortConnectAttempt = true
 

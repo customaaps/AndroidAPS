@@ -130,20 +130,22 @@ internal class Libre2NfcReader(private val exchange: (ByteArray) -> ByteArray) {
             if (result.status != 0) throw IOException("Libre2 NFC decoder status: ${result.status}")
             return result
         }
-        val (resolvedGeneration, decoded) = readLibre2Generation(generation,
-            first = { decode(gen1Read()) }, second = { decode(gen2Read(uid)) })
-        if (decoded.removed) throw IOException("Libre2 sensor has ended or was removed")
-        // A routine scan must not replace an established streaming key or reset its unlock counter.
-        if (old != null && !activate && !repairPairing) return old.copy(state = decoded.state) to decoded
-        val gen2 = resolvedGeneration == Libre2Generation.SECOND
-        val pairing = if (gen2) gen2Enable(uid) else {
-            val payload = Libre2NativeDecoder.streamingPayload(uid, info, nowSeconds)
-            val address = command(byteArrayOf(2, 0xa1.toByte(), 7) + payload, 6)
-            require(address.size == 6)
-            mac(address) to byteArrayOf()
+        fun attempt(gen2: Boolean): Pair<Libre2Pairing, Libre2DecodeResult> {
+            val decoded = decode(if (gen2) gen2Read(uid) else gen1Read())
+            if (decoded.removed) throw Libre2SensorEndedException()
+            // Routine scans preserve working credentials. Explicit repair renews them.
+            if (old != null && !activate && !repairPairing) return old.copy(state = decoded.state) to decoded
+            val pairing = if (gen2) gen2Enable(uid) else {
+                val payload = Libre2NativeDecoder.streamingPayload(uid, info, nowSeconds)
+                val address = command(byteArrayOf(2, 0xa1.toByte(), 7) + payload, 6)
+                if (address.size != 6) throw IOException("Invalid Libre2 Bluetooth address length")
+                mac(address) to byteArrayOf()
+            }
+            return Libre2Pairing(uid.copyOf(), info, pairing.first, pairing.second, nowSeconds, gen2, decoded.state)
+                .withDeliveryCheckpoint(old) to decoded
         }
-        return Libre2Pairing(uid.copyOf(), info, pairing.first, pairing.second, nowSeconds, gen2, decoded.state)
-            .withDeliveryCheckpoint(old) to decoded
+        // Activation above is never repeated. An unknown-generation retry includes streaming setup.
+        return readLibre2Generation(generation, first = { attempt(false) }, second = { attempt(true) }).second
     }
 
     companion object {
