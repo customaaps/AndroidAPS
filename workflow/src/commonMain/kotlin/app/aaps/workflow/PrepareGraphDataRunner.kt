@@ -183,13 +183,26 @@ class PrepareGraphDataRunner(
     }
 
     private suspend fun AutosensDataStore.smoothData() {
-        val workingCopy = dataLock.withLock {
-            bucketedData?.map { it.copy(smoothed = null, calibrated = null) }?.toMutableList()
-        } ?: return
-        val calibrated = activePlugin.activeCalibration.calibrate(workingCopy, CalibrationContext.NONE)
+        val (standardCopy, nativeCopy) = dataLock.withLock {
+            val standard = bucketedData
+            val native = bucketedDataNative
+            standard?.map { it.copy(smoothed = null, calibrated = null) }?.toMutableList() to
+                native?.takeUnless { it === standard }?.map { it.copy(smoothed = null, calibrated = null) }?.toMutableList()
+        }
+        if (standardCopy == null) return
+
+        val calibration = activePlugin.activeCalibration
+        val calibrated = calibration.calibrate(standardCopy, CalibrationContext.NONE)
+        val calibratedNative = if (nativeCopy != null) {
+            calibration.calibrate(nativeCopy, CalibrationContext(checkForSensorGaps = false))
+        } else {
+            // The native consumer previously read the shared buckets before smoothing.
+            calibrated.map { it.copy() }.toMutableList()
+        }
         val smoothed = activePlugin.activeSmoothing.smooth(calibrated)
         dataLock.withLock {
             bucketedData = smoothed
+            bucketedDataNative = calibratedNative
         }
     }
 

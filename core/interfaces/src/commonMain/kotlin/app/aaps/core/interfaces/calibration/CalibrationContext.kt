@@ -10,7 +10,9 @@ data class CalibrationContext(
      * `null` means the plugin should detect the session boundary itself
      * (e.g. by walking the input data for gaps).
      */
-    val sensorSessionStart: Long? = null
+    val sensorSessionStart: Long? = null,
+    /** Disable duplicate gap notifications when calibrating a second series from the same readings. */
+    val checkForSensorGaps: Boolean = true
 ) {
 
     companion object {

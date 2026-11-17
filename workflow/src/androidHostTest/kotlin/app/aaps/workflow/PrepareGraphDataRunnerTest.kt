@@ -1,5 +1,6 @@
 package app.aaps.workflow
 
+import app.aaps.core.data.iob.InMemoryGlucoseValue
 import app.aaps.core.data.model.CA
 import app.aaps.core.data.model.GV
 import app.aaps.core.data.time.T
@@ -7,6 +8,7 @@ import app.aaps.core.interfaces.aps.AutosensData
 import app.aaps.core.interfaces.aps.AutosensDataStore
 import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.Sensitivity
+import app.aaps.core.interfaces.calibration.Calibration
 import app.aaps.core.interfaces.concurrent.AapsLock
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
@@ -19,6 +21,7 @@ import app.aaps.core.interfaces.overview.graph.TimeRange
 import app.aaps.core.interfaces.profiling.Profiler
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventBucketedDataCreated
+import app.aaps.core.interfaces.smoothing.Smoothing
 import app.aaps.core.interfaces.workflow.CalculationSignalsEmitter
 import app.aaps.core.interfaces.workflow.CalculationWorkflow.ProgressData
 import app.aaps.core.objects.workflow.WorkOutcome
@@ -106,6 +109,33 @@ class PrepareGraphDataRunnerTest : TestBaseWithProfile() {
     }
 
     private fun carbsAt(vararg timestamps: Long) = timestamps.map { CA(timestamp = it, amount = 10.0, duration = 0) }
+
+    @Test
+    fun `calibration reaches both standard and sensor cadence readings`() = runTest {
+        val standard = mutableListOf(InMemoryGlucoseValue(T.mins(60).msecs(), 100.0))
+        val native = mutableListOf(InMemoryGlucoseValue(T.mins(61).msecs(), 105.0))
+        val calibration = mock<Calibration>()
+        val smoothing = mock<Smoothing>()
+        whenever(activePlugin.activeCalibration).thenReturn(calibration)
+        whenever(activePlugin.activeSmoothing).thenReturn(smoothing)
+        whenever(calibration.calibrate(any(), any())).thenAnswer { call ->
+            call.getArgument<MutableList<InMemoryGlucoseValue>>(0).onEach { it.calibrated = it.value + 10.0 }
+        }
+        whenever(smoothing.smooth(any())).thenAnswer { call -> call.getArgument(0) }
+        whenever(dataAds.bucketedData).thenReturn(standard)
+        whenever(dataAds.bucketedDataNative).thenReturn(native)
+        whenever(workflowChainData.prepareFor(any(), any())).thenReturn(buildData(bgDataReload = true, emitFinalProgress = false))
+        stubSuspendCalls()
+
+        runner().run(job = "main", generation = 1L, isStopped = { true })
+
+        val readings = argumentCaptor<MutableList<InMemoryGlucoseValue>>()
+        verify(dataAds).bucketedData = readings.capture()
+        assertThat(readings.lastValue.single().recalculated).isEqualTo(110.0)
+        verify(dataAds).bucketedDataNative = readings.capture()
+        assertThat(readings.lastValue.single().recalculated).isEqualTo(115.0)
+        assertThat(native.single().recalculated).isEqualTo(105.0)
+    }
 
     @Test
     fun `a bucket takes the carbs of its own five minutes`() {

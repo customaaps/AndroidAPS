@@ -577,8 +577,12 @@ class OverviewDataCacheImpl(
 
         // Prefer the newest actual sensor record so the circle follows every incoming GV.
         // Use bucketed data only while the database has no reading yet.
-        val lastGv = persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
-            ?: iobCobCalculator.ads.bucketedData?.firstOrNull()
+        val latestReading = persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
+        val lastGv = if (latestReading != null && config.initProgressFlow.value.done) {
+            activePlugin.activeCalibration.calibrate(mutableListOf(latestReading)).firstOrNull() ?: latestReading
+        } else {
+            latestReading ?: iobCobCalculator.ads.bucketedData?.firstOrNull()
+        }
         if (lastGv == null) {
             _bgInfoFlow.value = null
             return

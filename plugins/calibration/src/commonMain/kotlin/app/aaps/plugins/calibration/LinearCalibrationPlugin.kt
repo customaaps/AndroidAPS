@@ -111,7 +111,7 @@ class LinearCalibrationPlugin(
             return data
         }
 
-        detectAndNotifyGap(data, sessionStart)
+        if (context.checkForSensorGaps) detectAndNotifyGap(data, sessionStart)
 
         // Without a recorded SENSOR_CHANGE, entries can span multiple sensors with
         // different bias — fitting across them is unsafe. Gap detection above will
