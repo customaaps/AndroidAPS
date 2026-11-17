@@ -30,6 +30,7 @@ class Libre2SetupActivity : ComponentActivity() {
     private var armed by mutableStateOf(false)
     private var busy by mutableStateOf(false)
     private var activate by mutableStateOf(false)
+    private var repairPairing by mutableStateOf(false)
     private var resultText by mutableStateOf("")
     private var permitted by mutableStateOf(false)
     private var denied by mutableStateOf(false)
@@ -93,7 +94,7 @@ class Libre2SetupActivity : ComponentActivity() {
                             Text(stringResource(R.string.libre2_enable_nfc))
                             OutlinedButton(onClick = { startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) }) { Text("NFC") }
                         }
-                        val existingSelected = (armed || busy) && !activate
+                        val existingSelected = (armed || busy) && !activate && !repairPairing
                         val startSelected = (armed || busy) && activate
                         val canScan = permitted && !busy && decoder != null && nfc?.isEnabled == true
                         OutlinedButton(
@@ -112,6 +113,14 @@ class Libre2SetupActivity : ComponentActivity() {
                         ) {
                             Text(stringResource(R.string.libre2_start_new))
                         }
+                        OutlinedButton(
+                            onClick = { arm(false, repair = true) },
+                            enabled = canScan,
+                            modifier = Modifier.semantics { selected = (armed || busy) && repairPairing }
+                        ) {
+                            Text(stringResource(R.string.libre2_repair_pairing))
+                        }
+                        Text(stringResource(R.string.libre2_repair_pairing_summary))
                         if (armed || busy) Text(stringResource(if (busy) R.string.libre2_scanning else R.string.libre2_hold_sensor))
                         if (resultText.isNotEmpty()) Text(resultText)
                         OutlinedButton(onClick = { finish() }, enabled = !busy) { Text(stringResource(R.string.libre2_done)) }
@@ -121,8 +130,9 @@ class Libre2SetupActivity : ComponentActivity() {
         }
     }
 
-    private fun arm(start: Boolean) {
+    private fun arm(start: Boolean, repair: Boolean = false) {
         activate = start
+        repairPairing = repair
         armed = true
         resultText = ""
     }
@@ -140,6 +150,7 @@ class Libre2SetupActivity : ComponentActivity() {
                     target.send(Message.obtain(null, Libre2Ipc.SCAN).apply {
                         data = Bundle().apply {
                             putParcelable("tag", tag); putBoolean("activate", activate); putString("session", sessionId)
+                            putBoolean("repairPairing", repairPairing)
                         }
                         replyTo = responses
                     })

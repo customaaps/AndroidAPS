@@ -21,4 +21,6 @@
     <string name="libre2_diag_settings">Connection settings changed</string>
     <string name="libre2_diag_wake_active">Sleep protection: wake-lock request is active</string>
     <string name="libre2_diag_wake_inactive">Sleep protection: wake-lock request is inactive</string>
+    <string name="libre2_repair_pairing">Restore sensor Bluetooth pairing</string>
+    <string name="libre2_repair_pairing_summary">Scan the running sensor to renew its Bluetooth credentials without starting it again. Stop the previous sensor collector first.</string>
 </resources>

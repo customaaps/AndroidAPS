@@ -21,4 +21,6 @@
     <string name="libre2_diag_settings">Изменение настроек связи</string>
     <string name="libre2_diag_wake_active">Защита от сна: запрос удержания CPU активен</string>
     <string name="libre2_diag_wake_inactive">Защита от сна: запрос удержания CPU не активен</string>
+    <string name="libre2_repair_pairing">Восстановить Bluetooth-привязку сенсора</string>
+    <string name="libre2_repair_pairing_summary">Сканируйте работающий сенсор для обновления Bluetooth-ключей без повторного запуска. Сначала остановите прежний сборщик данных сенсора.</string>
 </resources>

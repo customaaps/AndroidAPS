@@ -195,7 +195,8 @@ class Libre2SensorService : Service() {
         worker.removeCallbacks(reconnect)
         try {
             report(Libre2StatusCode.CONNECTING)
-            val (newPairing, decoded) = Libre2NfcReader.read(tag, message.data.getBoolean("activate"), pairing)
+            val (newPairing, decoded) = Libre2NfcReader.read(tag, message.data.getBoolean("activate"), pairing,
+                repairPairing = message.data.getBoolean("repairPairing"))
             if (!active.get()) return
             sensorEnded = false
             recordDecode(decoded)

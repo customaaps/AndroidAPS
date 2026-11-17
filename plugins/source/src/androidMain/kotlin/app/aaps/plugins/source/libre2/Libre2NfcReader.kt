@@ -112,7 +112,8 @@ internal class Libre2NfcReader(private val exchange: (ByteArray) -> ByteArray) {
         } finally { finish(handle) }
     }
 
-    fun read(uid: ByteArray, activate: Boolean, nowSeconds: Long, previous: Libre2Pairing?): Pair<Libre2Pairing, Libre2DecodeResult> {
+    fun read(uid: ByteArray, activate: Boolean, nowSeconds: Long, previous: Libre2Pairing?, repairPairing: Boolean = false): Pair<Libre2Pairing, Libre2DecodeResult> {
+        require(!activate || !repairPairing) { "Pairing recovery must not activate a sensor" }
         require(uid.size == 8 && uid[6].toInt() and 255 == 7 && uid[7].toInt() and 255 == 0xe0) { "Not an Abbott ISO15693 sensor" }
         val info = command(byteArrayOf(2, 0xa1.toByte(), 7), 6).also { require(it.size == 6) }
         val generation = Libre2Generation.fromPatchInfo(info)
@@ -120,30 +121,29 @@ internal class Libre2NfcReader(private val exchange: (ByteArray) -> ByteArray) {
             if (generation == Libre2Generation.SECOND) gen2Operation(uid, 27, 5)
             else command(Libre2NativeDecoder.activationPayload(uid, info))
         }
-        val frame = if (generation == Libre2Generation.SECOND) gen2Read(uid) else gen1Read()
         val old = previous?.takeIf { it.uid.contentEquals(uid) && it.patchInfo.contentEquals(info) }
-        val state = old?.state ?: Libre2DecoderState()
-        val decoded = Libre2DecodeResult.fromNative(Libre2NativeDecoder.decodeNfc(uid, info, frame, nowSeconds, state.metadata(), state.arrays))
-        if (decoded.status != 0) throw IOException("Libre2 NFC decoder status: ${decoded.status}")
+        fun decode(frame: ByteArray): Libre2DecodeResult {
+            // Each attempt owns its arrays: failed decoding must not mutate the saved state.
+            val state = old?.state ?: Libre2DecoderState()
+            val arrays = state.arrays.map { it.copyOf() }.toTypedArray()
+            val result = Libre2DecodeResult.fromNative(Libre2NativeDecoder.decodeNfc(uid, info, frame, nowSeconds, state.metadata(), arrays))
+            if (result.status != 0) throw IOException("Libre2 NFC decoder status: ${result.status}")
+            return result
+        }
+        val (resolvedGeneration, decoded) = readLibre2Generation(generation,
+            first = { decode(gen1Read()) }, second = { decode(gen2Read(uid)) })
         if (decoded.removed) throw IOException("Libre2 sensor has ended or was removed")
         // A routine scan must not replace an established streaming key or reset its unlock counter.
-        if (old != null && !activate) return old.copy(state = decoded.state) to decoded
-        val pairing: Pair<String, ByteArray>
-        var gen2 = generation == Libre2Generation.SECOND
-        if (gen2) pairing = gen2Enable(uid)
-        else {
-            pairing = try {
-                val payload = Libre2NativeDecoder.streamingPayload(uid, info, nowSeconds)
-                val address = command(byteArrayOf(2, 0xa1.toByte(), 7) + payload, 6)
-                require(address.size == 6)
-                mac(address) to byteArrayOf()
-            } catch (error: Exception) {
-                if (generation != null) throw error
-                gen2 = true
-                gen2Enable(uid)
-            }
+        if (old != null && !activate && !repairPairing) return old.copy(state = decoded.state) to decoded
+        val gen2 = resolvedGeneration == Libre2Generation.SECOND
+        val pairing = if (gen2) gen2Enable(uid) else {
+            val payload = Libre2NativeDecoder.streamingPayload(uid, info, nowSeconds)
+            val address = command(byteArrayOf(2, 0xa1.toByte(), 7) + payload, 6)
+            require(address.size == 6)
+            mac(address) to byteArrayOf()
         }
-        return Libre2Pairing(uid.copyOf(), info, pairing.first, pairing.second, nowSeconds, gen2, decoded.state) to decoded
+        return Libre2Pairing(uid.copyOf(), info, pairing.first, pairing.second, nowSeconds, gen2, decoded.state)
+            .withDeliveryCheckpoint(old) to decoded
     }
 
     companion object {
@@ -151,11 +151,11 @@ internal class Libre2NfcReader(private val exchange: (ByteArray) -> ByteArray) {
             require(bytes.size == 6)
             return bytes.reversed().joinToString(":") { "%02X".format(it.toInt() and 255) }
         }
-        fun read(tag: Tag, activate: Boolean, previous: Libre2Pairing?): Pair<Libre2Pairing, Libre2DecodeResult> {
+        fun read(tag: Tag, activate: Boolean, previous: Libre2Pairing?, repairPairing: Boolean = false): Pair<Libre2Pairing, Libre2DecodeResult> {
             val nfc = NfcV.get(tag) ?: throw IOException("Sensor does not support NFC-V")
             try {
                 nfc.connect()
-                return Libre2NfcReader(nfc::transceive).read(tag.id, activate, System.currentTimeMillis() / 1000, previous)
+                return Libre2NfcReader(nfc::transceive).read(tag.id, activate, System.currentTimeMillis() / 1000, previous, repairPairing)
             } finally { runCatching { nfc.close() } }
         }
     }
