@@ -70,7 +70,8 @@ class Libre2Client(
                         if (diagnostics.packets != previous.packets || diagnostics.decoded != previous.decoded ||
                             diagnostics.reconnects != previous.reconnects || diagnostics.sampleId != previous.sampleId ||
                             diagnostics.decoderStatus != previous.decoderStatus || diagnostics.quality != previous.quality ||
-                            diagnostics.wakeProtectionHeld != previous.wakeProtectionHeld)
+                            diagnostics.wakeProtectionHeld != previous.wakeProtectionHeld ||
+                            diagnostics.connectionStage != previous.connectionStage || diagnostics.lastGattEvent != previous.lastGattEvent)
                             logger.debug(LTag.BGSOURCE, "Libre2 diagnostics: $diagnostics")
                         if (code == Libre2StatusCode.RECEIVING) crashes = 0
                     }

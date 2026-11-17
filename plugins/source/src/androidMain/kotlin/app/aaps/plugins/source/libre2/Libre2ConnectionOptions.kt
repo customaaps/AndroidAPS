@@ -43,6 +43,9 @@ internal data class Libre2Diagnostics(
     val lastReconnect: Long = 0,
     val reconnectReason: String = "",
     val wakeProtectionHeld: Boolean = false,
+    val connectionStage: String = "",
+    val lastGattStatus: Int = Int.MIN_VALUE,
+    val lastGattEvent: Long = 0,
 ) {
     fun writeTo(data: Bundle) {
         data.putLong("lastFragment", lastFragment)
@@ -58,6 +61,9 @@ internal data class Libre2Diagnostics(
         data.putLong("lastReconnect", lastReconnect)
         data.putString("reconnectReason", reconnectReason)
         data.putBoolean("wakeProtectionHeld", wakeProtectionHeld)
+        data.putString("connectionStage", connectionStage)
+        data.putInt("lastGattStatus", lastGattStatus)
+        data.putLong("lastGattEvent", lastGattEvent)
     }
 
     companion object {
@@ -66,6 +72,7 @@ internal data class Libre2Diagnostics(
             data.getLong("fragments"), data.getLong("packets"), data.getLong("decoded"),
             data.getInt("decoderStatus", Int.MIN_VALUE), data.getInt("quality", Int.MIN_VALUE),
             data.getInt("sampleId", -1), data.getInt("reconnects"), data.getLong("lastReconnect"),
-            data.getString("reconnectReason").orEmpty(), data.getBoolean("wakeProtectionHeld"))
+            data.getString("reconnectReason").orEmpty(), data.getBoolean("wakeProtectionHeld"),
+            data.getString("connectionStage").orEmpty(), data.getInt("lastGattStatus", Int.MIN_VALUE), data.getLong("lastGattEvent"))
     }
 }

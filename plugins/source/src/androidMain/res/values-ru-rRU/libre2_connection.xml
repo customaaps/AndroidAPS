@@ -23,4 +23,12 @@
     <string name="libre2_diag_wake_inactive">Защита от сна: запрос удержания CPU не активен</string>
     <string name="libre2_repair_pairing">Восстановить Bluetooth-привязку сенсора</string>
     <string name="libre2_repair_pairing_summary">Сканируйте работающий сенсор для обновления Bluetooth-ключей без повторного запуска. Сначала остановите прежний сборщик данных сенсора.</string>
+    <string name="libre2_diag_stage">Этап подключения: %1$s</string>
+    <string name="libre2_diag_gatt">Последнее событие GATT: %1$s; статус: %2$d</string>
+    <string name="libre2_stage_waiting">Ожидание сенсора (автоподключение Android)</string>
+    <string name="libre2_stage_connecting">Прямое подключение</string>
+    <string name="libre2_stage_discovering">Поиск сервисов</string>
+    <string name="libre2_stage_authenticating">Аутентификация</string>
+    <string name="libre2_stage_subscribing">Включение уведомлений</string>
+    <string name="libre2_stage_streaming">Приём потока</string>
 </resources>

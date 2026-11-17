@@ -30,6 +30,7 @@ class Libre2SensorService : Service() {
     private var pairing: Libre2Pairing? = null
     private var bluetooth: Libre2Bluetooth? = null
     private var streaming = false
+    private var preferAutoConnect = false
     private var nativeReady = false
     private var foregroundStarted = false
     private var sensorEnded = false
@@ -83,6 +84,7 @@ class Libre2SensorService : Service() {
                         send(message.replyTo, Libre2Ipc.SCAN_DONE, Bundle().apply { putString("error", "Libre2 source is stopped") })
                     Libre2Ipc.CONNECTION_OPTIONS -> if (active.get()) applyOptions(Libre2ConnectionOptions.fromBundle(message.data))
                     Libre2Ipc.RECONNECT -> if (active.get()) {
+                        preferAutoConnect = false
                         recordReconnect("manual")
                         reconnectBackoff.reset()
                         worker.removeCallbacks(reconnect)
@@ -199,6 +201,7 @@ class Libre2SensorService : Service() {
                 repairPairing = message.data.getBoolean("repairPairing"))
             if (!active.get()) return
             sensorEnded = false
+            preferAutoConnect = false
             recordDecode(decoded)
             commitDecoded(newPairing, decoded)
             reconnectBackoff.reset()
@@ -223,6 +226,12 @@ class Libre2SensorService : Service() {
         options = updated
         worker.removeCallbacks(reconnect)
         bluetooth?.setAutoRecovery(options.autoRecovery)
+        if (!options.autoRecovery && bluetooth?.isWaiting == true) {
+            bluetooth?.close()
+            bluetooth = null
+            streaming = false
+            report(Libre2StatusCode.READY)
+        }
         updateProtection()
         sendStatus()
         if (options.autoRecovery && bluetooth == null && pairing != null && !sensorEnded) {
@@ -289,6 +298,14 @@ class Libre2SensorService : Service() {
                     pairing = next
                     current.unlockCounter
                 },
+                autoConnect = options.autoRecovery && preferAutoConnect,
+                onStage = { stage, gattStatus ->
+                    diagnostics = diagnostics.copy(connectionStage = stage,
+                        lastGattStatus = gattStatus ?: diagnostics.lastGattStatus,
+                        lastGattEvent = if (gattStatus != null) System.currentTimeMillis() else diagnostics.lastGattEvent)
+                    sendStatus()
+                },
+                onWaiting = { streaming = false; report(Libre2StatusCode.CONNECTING) },
                 onConnected = { streaming = true; report(Libre2StatusCode.CONNECTED) },
                 onPacket = { packet -> decode(packet) },
                 onFailure = { error -> failedConnection(error) },
@@ -312,6 +329,7 @@ class Libre2SensorService : Service() {
         bluetooth?.close()
         bluetooth = null
         streaming = false
+        preferAutoConnect = true
         Log.w("Libre2", "Bluetooth connection failed", error)
         updateProtection()
         if (!active.get()) return

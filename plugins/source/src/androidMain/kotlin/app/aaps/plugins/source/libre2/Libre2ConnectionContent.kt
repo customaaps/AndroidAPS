@@ -31,6 +31,18 @@ internal fun Libre2ConnectionContent(client: Libre2Client, status: Libre2Status)
     val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     fun time(value: Long) = if (value > 0) formatter.format(Date(value)) else notYet
     val d = status.diagnostics
+    val stageLabel = when (d.connectionStage) {
+        "WAITING" -> R.string.libre2_stage_waiting
+        "CONNECTING" -> R.string.libre2_stage_connecting
+        "DISCOVERING" -> R.string.libre2_stage_discovering
+        "LOGIN_NOTIFY", "CHALLENGE", "PROOF", "UNLOCK" -> R.string.libre2_stage_authenticating
+        "RAW_NOTIFY" -> R.string.libre2_stage_subscribing
+        "STREAMING" -> R.string.libre2_stage_streaming
+        else -> null
+    }
+    stageLabel?.let { Text(stringResource(R.string.libre2_diag_stage, stringResource(it))) }
+    if (d.lastGattEvent > 0)
+        Text(stringResource(R.string.libre2_diag_gatt, time(d.lastGattEvent), d.lastGattStatus))
     Text(stringResource(R.string.libre2_diag_fragment, time(d.lastFragment)))
     Text(stringResource(R.string.libre2_diag_packet, time(d.lastPacket)))
     Text(stringResource(R.string.libre2_diag_decoded, time(d.lastDecoded)))

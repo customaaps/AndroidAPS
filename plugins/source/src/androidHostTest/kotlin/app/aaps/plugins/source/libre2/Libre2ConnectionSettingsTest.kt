@@ -35,7 +35,8 @@ class Libre2ConnectionSettingsTest {
         assertEquals(options, Libre2ConnectionOptions.fromBundle(options.toBundle()))
         val diagnostics = Libre2Diagnostics(lastFragment = 1000, lastPacket = 1100, lastDecoded = 1200,
             fragments = 3, packets = 1, decoded = 1, decoderStatus = 0, quality = 0, sampleId = 61,
-            reconnects = 2, lastReconnect = 900, reconnectReason = "watchdog", wakeProtectionHeld = true)
+            reconnects = 2, lastReconnect = 900, reconnectReason = "watchdog", wakeProtectionHeld = true,
+            connectionStage = "DISCOVERING", lastGattStatus = 8, lastGattEvent = 1300)
         val bundle = Bundle().also(diagnostics::writeTo)
         assertEquals(diagnostics, Libre2Diagnostics.fromBundle(bundle))
         assertEquals(Libre2Diagnostics(), Libre2Diagnostics.fromBundle(Bundle()))

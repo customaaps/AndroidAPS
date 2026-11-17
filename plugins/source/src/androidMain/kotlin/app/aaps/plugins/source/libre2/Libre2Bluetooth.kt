@@ -31,15 +31,20 @@ internal class Libre2Bluetooth(
     private val onFailure: (Exception) -> Unit,
     private val onFragment: (Long) -> Unit = {},
     private val onCompletePacket: (Long) -> Unit = {},
+    private val autoConnect: Boolean = false,
+    private val onStage: (String, Int?) -> Unit = { _, _ -> },
+    private val onWaiting: () -> Unit = {},
 ) {
-    private enum class Stage { CONNECTING, DISCOVERING, LOGIN_NOTIFY, CHALLENGE, PROOF, UNLOCK, RAW_NOTIFY, STREAMING }
+    private enum class Stage { WAITING, CONNECTING, DISCOVERING, LOGIN_NOTIFY, CHALLENGE, PROOF, UNLOCK, RAW_NOTIFY, STREAMING }
     private var stage = Stage.CONNECTING
+        set(value) { field = value; onStage(value.name, null) }
+    val isWaiting: Boolean get() = stage == Stage.WAITING
     private var gatt: BluetoothGatt? = null
     private var stopped = false
     private var session = 0
     private var proofPrefix: ByteArray? = null
     private val assembler = Libre2PacketAssembler()
-    private val operations = Libre2GattQueue()
+    private var operations = Libre2GattQueue()
     private val watchdog = Libre2SilenceWatchdog(SystemClock::elapsedRealtime)
     private val deadline = Runnable { checkDeadline() }
 
@@ -54,12 +59,12 @@ internal class Libre2Bluetooth(
     }
 
     private fun checkDeadline() {
-        if (stopped) return
+        if (stopped || stage == Stage.WAITING) return
         if (stage == Stage.STREAMING) {
             val remaining = watchdog.remainingMillis() ?: return
             if (remaining == 0L) fail(IOException("Libre2 watchdog: no complete BLE packet for 3 minutes"))
             else armStreamDeadline()
-        } else fail(IOException("Libre2 Bluetooth handshake timed out"))
+        } else fail(IOException("Libre2 Bluetooth handshake timed out (stage=${stage.name})"))
     }
 
     private fun armStreamDeadline() {
@@ -103,9 +108,9 @@ internal class Libre2Bluetooth(
         val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
             ?: throw IOException("Bluetooth is unavailable")
         if (!adapter.isEnabled) throw IOException("Bluetooth is switched off")
-        arm()
+        if (autoConnect) stage = Stage.WAITING else { stage = Stage.CONNECTING; arm() }
         gatt = adapter.getRemoteDevice(pairing.address)
-            .connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
+            .connectGatt(context, autoConnect, callback, BluetoothDevice.TRANSPORT_LE)
             ?: throw IOException("Cannot open Libre2 GATT connection")
     }
 
@@ -206,15 +211,25 @@ internal class Libre2Bluetooth(
 
     private val callback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(connection: BluetoothGatt, status: Int, newState: Int) = dispatch(connection) {
+            onStage(stage.name, status)
+            if (newState == BluetoothProfile.STATE_DISCONNECTED && autoConnect && watchdog.enabled &&
+                status in listOf(BluetoothGatt.GATT_SUCCESS, 8, 19, 22)) {
+                // Keep this GATT registered: Android will reconnect when the sensor advertises.
+                resetLink()
+                stage = Stage.WAITING
+                onWaiting()
+                return@dispatch
+            }
             if (status != BluetoothGatt.GATT_SUCCESS || newState == BluetoothProfile.STATE_DISCONNECTED)
-                throw IOException("Libre2 Bluetooth disconnected (status=$status)")
-            if (newState == BluetoothProfile.STATE_CONNECTED && stage == Stage.CONNECTING) {
+                throw IOException("Libre2 Bluetooth disconnected (status=$status, stage=${stage.name})")
+            if (newState == BluetoothProfile.STATE_CONNECTED && stage in listOf(Stage.CONNECTING, Stage.WAITING)) {
                 stage = Stage.DISCOVERING
                 if (!connection.discoverServices()) throw IOException("Cannot discover Libre2 services")
                 arm()
             }
         }
         override fun onServicesDiscovered(connection: BluetoothGatt, status: Int) = dispatch(connection) {
+            onStage(stage.name, status)
             if (stage != Stage.DISCOVERING) return@dispatch
             if (status != BluetoothGatt.GATT_SUCCESS) throw IOException("Libre2 service discovery failed")
             characteristic(LOGIN)
@@ -230,6 +245,7 @@ internal class Libre2Bluetooth(
             }
         }
         override fun onDescriptorWrite(connection: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) = dispatch(connection) {
+            onStage(stage.name, status)
             if (status != BluetoothGatt.GATT_SUCCESS) throw IOException("Libre2 notification setup failed")
             if (!operations.complete("descriptor" to descriptor.characteristic.uuid)) return@dispatch
             when {
@@ -248,6 +264,7 @@ internal class Libre2Bluetooth(
             }
         }
         override fun onCharacteristicWrite(connection: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) = dispatch(connection) {
+            onStage(stage.name, status)
             if (status != BluetoothGatt.GATT_SUCCESS) throw IOException("Libre2 GATT authentication write failed")
             if (!operations.complete("write" to characteristic.uuid)) return@dispatch
             if (characteristic.uuid == LOGIN && stage == Stage.UNLOCK) {
@@ -277,16 +294,21 @@ internal class Libre2Bluetooth(
         onFailure(error)
     }
 
-    fun close() {
-        if (stopped) return
-        stopped = true
+    private fun resetLink() {
         operations.close()
+        operations = Libre2GattQueue()
         handler.removeCallbacks(deadline)
         assembler.reset()
         watchdog.reset()
         proofPrefix = null
         if (session > 0) runCatching { Libre2NativeDecoder.v1(37400, session, null, null) }
         session = 0
+    }
+
+    fun close() {
+        if (stopped) return
+        stopped = true
+        resetLink()
         val connection = gatt
         gatt = null
         if (connection != null) {

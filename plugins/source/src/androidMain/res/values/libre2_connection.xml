@@ -23,4 +23,12 @@
     <string name="libre2_diag_wake_inactive">Sleep protection: wake-lock request is inactive</string>
     <string name="libre2_repair_pairing">Restore sensor Bluetooth pairing</string>
     <string name="libre2_repair_pairing_summary">Scan the running sensor to renew its Bluetooth credentials without starting it again. Stop the previous sensor collector first.</string>
+    <string name="libre2_diag_stage">Connection stage: %1$s</string>
+    <string name="libre2_diag_gatt">Last GATT event: %1$s; status: %2$d</string>
+    <string name="libre2_stage_waiting">Waiting for sensor (Android auto-connect)</string>
+    <string name="libre2_stage_connecting">Connecting directly</string>
+    <string name="libre2_stage_discovering">Discovering services</string>
+    <string name="libre2_stage_authenticating">Authenticating</string>
+    <string name="libre2_stage_subscribing">Enabling notifications</string>
+    <string name="libre2_stage_streaming">Receiving stream</string>
 </resources>
