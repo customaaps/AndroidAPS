@@ -43,7 +43,7 @@ class Libre2LibreViewUploaderTest {
             if (value.libreView && value.revision == revision) {
                 acknowledgements++
                 queue.acknowledge(batch)
-                value = value.copy(lastUpload = now, tokenRefreshes = 0, status = "uploaded")
+                value = value.withAcceptedUpload(batch, now)
             }
         }
     }
@@ -79,8 +79,103 @@ class Libre2LibreViewUploaderTest {
         }
         assertEquals(Libre2LibreViewUploader.Outcome.SUCCESS, Libre2LibreViewUploader(store, api) { now }.run())
         assertEquals(1, uploads)
-        assertEquals("uploaded", store.value.status)
+        assertEquals("uploaded_current", store.value.status)
         assertEquals(now, store.value.lastUpload)
+        assertEquals(1, store.value.lastCurrentCount)
+        assertEquals(0, store.value.lastHistoryCount)
+        assertEquals(0L, store.value.lastHistoryUpload)
+    }
+
+    @Test fun `accepted history counts match the actual payload and remain visible after current only upload`() = runBlocking<Unit> {
+        val store = Store()
+        (8..22).forEach { store.queue.add(reading(it), now) }
+        val logs = mutableListOf<String>()
+        val api = Libre2LibreViewApi { _, _, body ->
+            val entries = body!!.getJSONObject("DeviceData").getJSONObject("measurementLog")
+            assertEquals(15, entries.getJSONArray("currentGlucoseEntries").length())
+            assertEquals(1, entries.getJSONArray("scheduledContinuousGlucoseEntries").length())
+            JSONObject().put("status", 0)
+        }
+        assertEquals(Libre2LibreViewUploader.Outcome.SUCCESS,
+            Libre2LibreViewUploader(store, api, log = { logs += it }) { now }.run())
+        assertEquals("uploaded_history", store.value.status)
+        assertEquals(15, store.value.lastCurrentCount)
+        assertEquals(1, store.value.lastHistoryCount)
+        assertEquals(now, store.value.lastHistoryUpload)
+        assertEquals("accepted", store.value.lastUploadResult)
+        assertTrue(logs.any { it.contains("request: current=15, history=1") })
+        assertTrue(logs.any { it.contains("response: status=0") })
+
+        store.value = store.value.withAcceptedUpload(listOf(Libre2UploadRecord(reading(23), 23)), now + 60_000)
+        assertEquals("uploaded_current", store.value.status)
+        assertEquals(now, store.value.lastHistoryUpload)
+    }
+
+    @Test fun `minute uploads retain the window until history is accepted and retry it after rejection`() = runBlocking<Unit> {
+        val store = Store()
+        var historyRequests = 0
+        var rejectHistory = true
+        val api = Libre2LibreViewApi { _, _, body ->
+            val history = body!!.getJSONObject("DeviceData").getJSONObject("measurementLog")
+                .getJSONArray("scheduledContinuousGlucoseEntries")
+            if (history.length() > 0) {
+                historyRequests++
+                assertEquals(1, history.length())
+                if (rejectHistory) throw LibreViewFailure("http_500", true)
+            }
+            JSONObject().put("status", 0)
+        }
+        val uploader = Libre2LibreViewUploader(store, api) { now }
+        (8..21).forEach { id ->
+            store.queue.add(reading(id), now)
+            assertEquals(Libre2LibreViewUploader.Outcome.SUCCESS, uploader.run())
+            assertEquals(0, store.value.lastHistoryCount)
+            assertEquals(id - 7, store.queue.batch(now).size)
+        }
+        store.queue.add(reading(22), now)
+        assertEquals(Libre2LibreViewUploader.Outcome.RETRY, uploader.run())
+        assertEquals(15, store.queue.batch(now).size)
+        assertEquals(0L, store.value.lastHistoryUpload)
+        rejectHistory = false
+        assertEquals(Libre2LibreViewUploader.Outcome.SUCCESS, uploader.run())
+        assertEquals(2, historyRequests)
+        assertEquals(now, store.value.lastHistoryUpload)
+        assertEquals(1, store.value.lastHistoryCount)
+        assertTrue(store.queue.batch(now).isEmpty())
+    }
+
+    @Test fun `failed measurements preserve successful counters and record attempted counts`() = runBlocking<Unit> {
+        val store = Store()
+        store.value = store.value.copy(lastUpload = now - 60_000, lastCurrentCount = 15,
+            lastHistoryCount = 1, lastHistoryUpload = now - 60_000)
+        store.queue.add(reading(8), now)
+        val api = Libre2LibreViewApi { _, _, _ -> throw LibreViewFailure("http_500", true) }
+        assertEquals(Libre2LibreViewUploader.Outcome.RETRY, Libre2LibreViewUploader(store, api) { now }.run())
+        assertEquals(now, store.value.lastAttemptAt)
+        assertEquals(1, store.value.lastAttemptCurrent)
+        assertEquals(0, store.value.lastAttemptHistory)
+        assertEquals("http_500", store.value.lastUploadResult)
+        assertEquals(now - 60_000, store.value.lastUpload)
+        assertEquals(15, store.value.lastCurrentCount)
+        assertEquals(1, store.value.lastHistoryCount)
+        assertEquals(0, store.acknowledgements)
+    }
+
+    @Test fun `account change clears upload diagnostics while password correction retains them`() {
+        val original = Store().value.copy(lastCurrentCount = 15, lastHistoryCount = 1,
+            lastHistoryUpload = now, lastAttemptAt = now, lastAttemptCurrent = 15,
+            lastAttemptHistory = 1, lastUploadResult = "accepted")
+        val corrected = original.withUserSettings(false, true, original.email, "corrected", now)
+        assertEquals(now, corrected.lastHistoryUpload)
+        assertEquals(15, corrected.lastCurrentCount)
+        val switched = original.withUserSettings(false, true, "new@example.invalid", "new", now)
+        assertEquals(-1, switched.lastCurrentCount)
+        assertEquals(-1, switched.lastHistoryCount)
+        assertEquals(0L, switched.lastHistoryUpload)
+        assertEquals(0L, switched.lastAttemptAt)
+        assertEquals(-1, switched.lastAttemptCurrent)
+        assertEquals(-1, switched.lastAttemptHistory)
+        assertEquals("", switched.lastUploadResult)
     }
 
     @Test fun `disabled or blocked exports never contact the server`() = runBlocking<Unit> {
@@ -142,6 +237,8 @@ class Libre2LibreViewUploaderTest {
         assertEquals(Libre2LibreViewUploader.Outcome.SUCCESS, Libre2LibreViewUploader(store, api) { now }.run())
         assertEquals(0, store.acknowledgements)
         assertEquals(15, store.queue.batch(now).size)
+        assertEquals(-1, store.value.lastCurrentCount)
+        assertEquals(0L, store.value.lastHistoryUpload)
     }
 
     @Test fun `cancellation during config fetch stops subsequent requests`() = runBlocking<Unit> {

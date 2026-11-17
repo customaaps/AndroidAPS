@@ -15,6 +15,7 @@ internal interface Libre2UploadStore {
 internal class Libre2LibreViewUploader(
     private val store: Libre2UploadStore,
     private val api: Libre2LibreViewApi,
+    private val log: (String) -> Unit = {},
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     enum class Outcome { SUCCESS, RETRY }
@@ -26,6 +27,7 @@ internal class Libre2LibreViewUploader(
 
     suspend fun run(): Outcome {
         var revision = ""
+        var measurementsAttempted = false
         try {
             var s = store.settings()
             revision = s.revision
@@ -69,7 +71,15 @@ internal class Libre2LibreViewUploader(
                 }
                 // Includes the already-registered path: a switch during batch() must stop this request too.
                 s = active(revision) ?: return Outcome.SUCCESS
+                val summary = Libre2UploadSummary.from(batch)
+                store.update { current -> if (current.revision == revision && current.libreView)
+                    current.copy(lastAttemptAt = now(), lastAttemptCurrent = summary.current,
+                        lastAttemptHistory = summary.history, lastUploadResult = "sending") else current }
+                s = active(revision) ?: return Outcome.SUCCESS
+                measurementsAttempted = true
+                log("LibreView measurements request: current=${summary.current}, history=${summary.history}")
                 api.upload(s, batch, now())
+                log("LibreView measurements response: status=0, current=${summary.current}, history=${summary.history}")
                 currentCoroutineContext().ensureActive()
                 // Store checks the revision under its lock before acknowledging.
                 store.acknowledge(batch, revision, now())
@@ -85,9 +95,11 @@ internal class Libre2LibreViewUploader(
         catch (cancelled: CancellationException) { throw cancelled }
         catch (failure: Exception) {
             val known = failure as? LibreViewFailure
+            log("LibreView request failed: code=${known?.code ?: "network"}")
             // Neither exception text nor server bodies (which may contain credentials) are persisted.
             store.update { current ->
                 if (current.revision != revision || !current.libreView) current else current.copy(
+                    lastUploadResult = if (measurementsAttempted) known?.code ?: "network" else current.lastUploadResult,
                     token = if (known?.reauthenticate == true) "" else current.token,
                     tokenRefreshes = if (known?.reauthenticate == true) current.tokenRefreshes + 1 else current.tokenRefreshes,
                     authBlocked = known != null && (!known.retryable || known.reauthenticate && current.tokenRefreshes >= 1),

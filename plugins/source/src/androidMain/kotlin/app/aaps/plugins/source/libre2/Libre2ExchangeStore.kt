@@ -30,6 +30,13 @@ internal data class Libre2ExchangeSettings(
     val lastUpload: Long = 0,
     val status: String = "",
     val tokenRefreshes: Int = 0,
+    val lastCurrentCount: Int = -1,
+    val lastHistoryCount: Int = -1,
+    val lastHistoryUpload: Long = 0,
+    val lastAttemptAt: Long = 0,
+    val lastAttemptCurrent: Int = -1,
+    val lastAttemptHistory: Int = -1,
+    val lastUploadResult: String = "",
 ) {
     fun withUserSettings(xdrip: Boolean, libreView: Boolean, email: String, password: String, now: Long): Libre2ExchangeSettings {
         val normalizedEmail = email.trim()
@@ -45,6 +52,13 @@ internal data class Libre2ExchangeSettings(
             retryAfter = if (accountChanged) 0 else retryAfter,
             tokenRefreshes = if (changed) 0 else tokenRefreshes,
             lastUpload = if (accountChanged) 0 else lastUpload,
+            lastCurrentCount = if (accountChanged) -1 else lastCurrentCount,
+            lastHistoryCount = if (accountChanged) -1 else lastHistoryCount,
+            lastHistoryUpload = if (accountChanged) 0 else lastHistoryUpload,
+            lastAttemptAt = if (accountChanged) 0 else lastAttemptAt,
+            lastAttemptCurrent = if (accountChanged) -1 else lastAttemptCurrent,
+            lastAttemptHistory = if (accountChanged) -1 else lastAttemptHistory,
+            lastUploadResult = if (accountChanged) "" else lastUploadResult,
             status = when {
                 !accountChanged && retryAfter > now -> "rate_limited"
                 changed -> ""
@@ -94,7 +108,7 @@ internal class Libre2ExchangeStore(context: Context) : Libre2UploadStore {
         val s = readSettings()
         if (s.revision == revision && s.libreView) {
             queue.acknowledge(batch)
-            writeSettings(s.copy(lastUpload = now, retryAfter = 0, tokenRefreshes = 0, status = "uploaded"))
+            writeSettings(s.withAcceptedUpload(batch, now))
         }
     }
 
@@ -117,7 +131,10 @@ internal class Libre2ExchangeStore(context: Context) : Libre2UploadStore {
         return Libre2ExchangeSettings(json.optBoolean("xdrip"), json.optBoolean("libreView"),
             json.getString("email"), json.getString("password"), json.getString("deviceId"), json.getString("revision"),
             json.optString("baseUrl"), json.optString("token"), json.optString("accountId"), json.optString("registeredSensor"),
-            json.optBoolean("authBlocked"), json.optLong("retryAfter"), json.optLong("lastUpload"), json.optString("status"), json.optInt("tokenRefreshes"))
+            json.optBoolean("authBlocked"), json.optLong("retryAfter"), json.optLong("lastUpload"), json.optString("status"), json.optInt("tokenRefreshes"),
+            json.optInt("lastCurrentCount", -1), json.optInt("lastHistoryCount", -1), json.optLong("lastHistoryUpload"),
+            json.optLong("lastAttemptAt"), json.optInt("lastAttemptCurrent", -1), json.optInt("lastAttemptHistory", -1),
+            json.optString("lastUploadResult"))
     }
 
     private fun writeSettings(s: Libre2ExchangeSettings) {
@@ -126,6 +143,10 @@ internal class Libre2ExchangeStore(context: Context) : Libre2UploadStore {
             .put("baseUrl", s.baseUrl).put("token", s.token).put("accountId", s.accountId)
             .put("registeredSensor", s.registeredSensor).put("authBlocked", s.authBlocked)
             .put("retryAfter", s.retryAfter).put("lastUpload", s.lastUpload).put("status", s.status).put("tokenRefreshes", s.tokenRefreshes)
+        json.put("lastCurrentCount", s.lastCurrentCount).put("lastHistoryCount", s.lastHistoryCount)
+            .put("lastHistoryUpload", s.lastHistoryUpload).put("lastAttemptAt", s.lastAttemptAt)
+            .put("lastAttemptCurrent", s.lastAttemptCurrent).put("lastAttemptHistory", s.lastAttemptHistory)
+            .put("lastUploadResult", s.lastUploadResult)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key())
         check(cipher.iv.size == 12)

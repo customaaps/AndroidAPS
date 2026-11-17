@@ -23,4 +23,12 @@
     <string name="libre2_libreview_waiting_sensor">No matching NFC sensor identity. Scan the running Libre 2 sensor in AAPS, then return to your external data source.</string>
     <string name="libre2_libreview_waiting_readings">Signed in. Waiting for new Libre 2 readings.</string>
     <string name="libre2_libreview_credentials_required">Enter and save your LibreView email and password.</string>
+    <string name="libre2_libreview_uploaded_current">Server accepted current readings; no history in this request.</string>
+    <string name="libre2_libreview_uploaded_history">Server accepted a request containing glucose history. This does not confirm its appearance in reports.</string>
+    <string name="libre2_libreview_accepted_counts">Last accepted request: current readings: %1$d; history entries: %2$d</string>
+    <string name="libre2_libreview_history_time">Last accepted history request: %1$s</string>
+    <string name="libre2_libreview_attempt_counts">Last attempt (%1$s): current readings: %2$d; history entries: %3$d</string>
+    <string name="libre2_libreview_attempt_result">Request result: %1$s</string>
+    <string name="libre2_libreview_result_accepted">Server returned status=0</string>
+    <string name="libre2_libreview_result_sending">Sending; no server confirmation recorded yet</string>
 </resources>

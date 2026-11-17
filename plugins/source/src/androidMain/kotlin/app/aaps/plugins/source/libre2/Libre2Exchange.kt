@@ -109,7 +109,8 @@ class Libre2LibreViewWorker(context: Context, params: WorkerParameters) : Corout
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         uploadLock.withLock {
             try {
-                when (Libre2LibreViewUploader(Libre2ExchangeStore(applicationContext), Libre2LibreViewApi()).run()) {
+                when (Libre2LibreViewUploader(Libre2ExchangeStore(applicationContext), Libre2LibreViewApi(),
+                    log = { org.slf4j.LoggerFactory.getLogger("BGSOURCE").info(it) }).run()) {
                     Libre2LibreViewUploader.Outcome.SUCCESS -> Result.success()
                     Libre2LibreViewUploader.Outcome.RETRY -> Result.retry()
                 }

@@ -90,6 +90,7 @@ kotlin {
                 implementation(libs.androidx.compose.runtime)
                 implementation(libs.androidx.lifecycle.runtime.compose)
                 implementation(libs.androidx.work.runtime)
+                implementation(libs.org.slf4j.api)
             }
         }
 

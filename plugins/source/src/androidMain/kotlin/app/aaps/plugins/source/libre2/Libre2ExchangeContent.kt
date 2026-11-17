@@ -83,6 +83,8 @@ internal fun Libre2ExchangeContent(context: Context, libreViewOnly: Boolean = fa
                             "credentials" -> R.string.libre2_libreview_credentials_required
                             "authenticated" -> R.string.libre2_libreview_authenticated
                             "uploaded" -> R.string.libre2_libreview_uploaded
+                            "uploaded_current" -> R.string.libre2_libreview_uploaded_current
+                            "uploaded_history" -> R.string.libre2_libreview_uploaded_history
                             "auth" -> R.string.libre2_libreview_auth_error
                             "rate_limited" -> R.string.libre2_libreview_rate_limit
                             "" -> R.string.libre2_libreview_not_checked
@@ -90,6 +92,21 @@ internal fun Libre2ExchangeContent(context: Context, libreViewOnly: Boolean = fa
                         }
                         Text(stringResource(statusText))
                         if (status.lastUpload > 0) Text(DateFormat.getDateTimeInstance().format(Date(status.lastUpload)))
+                        if (status.lastCurrentCount >= 0)
+                            Text(stringResource(R.string.libre2_libreview_accepted_counts, status.lastCurrentCount, status.lastHistoryCount))
+                        if (status.lastHistoryUpload > 0)
+                            Text(stringResource(R.string.libre2_libreview_history_time,
+                                DateFormat.getDateTimeInstance().format(Date(status.lastHistoryUpload))))
+                        if (status.lastAttemptAt > 0) {
+                            Text(stringResource(R.string.libre2_libreview_attempt_counts,
+                                DateFormat.getDateTimeInstance().format(Date(status.lastAttemptAt)),
+                                status.lastAttemptCurrent, status.lastAttemptHistory))
+                            Text(stringResource(R.string.libre2_libreview_attempt_result, when (status.lastUploadResult) {
+                                "accepted" -> stringResource(R.string.libre2_libreview_result_accepted)
+                                "sending" -> stringResource(R.string.libre2_libreview_result_sending)
+                                else -> status.lastUploadResult
+                            }))
+                        }
                     }
                     if (error) Text(stringResource(R.string.libre2_exchange_storage_error))
                 }

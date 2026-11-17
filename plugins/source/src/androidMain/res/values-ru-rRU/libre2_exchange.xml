@@ -23,4 +23,12 @@
     <string name="libre2_libreview_waiting_sensor">Нет подходящей NFC-привязки. Сканируйте действующий сенсор Libre 2 в AAPS, затем вернитесь к внешнему источнику данных.</string>
     <string name="libre2_libreview_waiting_readings">Вход выполнен. Ожидание новых показаний Libre 2.</string>
     <string name="libre2_libreview_credentials_required">Введите и сохраните почту и пароль LibreView.</string>
+    <string name="libre2_libreview_uploaded_current">Сервер принял текущие показания; истории в этом запросе нет.</string>
+    <string name="libre2_libreview_uploaded_history">Сервер принял запрос с историей глюкозы. Это не подтверждает её появление в отчётах.</string>
+    <string name="libre2_libreview_accepted_counts">Последний принятый запрос: текущих показаний: %1$d; записей истории: %2$d</string>
+    <string name="libre2_libreview_history_time">Последний принятый запрос с историей: %1$s</string>
+    <string name="libre2_libreview_attempt_counts">Последняя попытка (%1$s): текущих показаний: %2$d; записей истории: %3$d</string>
+    <string name="libre2_libreview_attempt_result">Результат запроса: %1$s</string>
+    <string name="libre2_libreview_result_accepted">Сервер вернул status=0</string>
+    <string name="libre2_libreview_result_sending">Отправка; подтверждение сервера пока не записано</string>
 </resources>
