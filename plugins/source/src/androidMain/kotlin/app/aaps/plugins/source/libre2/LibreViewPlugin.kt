@@ -9,10 +9,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.aaps.core.data.plugin.PluginType
+import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.source.NSClientSource
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.keys.BooleanComposedKey
 import app.aaps.core.keys.interfaces.Preferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import app.aaps.core.interfaces.plugin.PluginBase
@@ -36,6 +41,8 @@ class LibreViewPlugin(
     rh: ResourceHelper,
     aapsLogger: AAPSLogger,
     notificationManager: NotificationManager,
+    private val persistenceLayer: PersistenceLayer,
+    private val nsClientSource: NSClientSource,
 ) : PluginBase(
     PluginDescription()
         .mainType(PluginType.SYNC)
@@ -45,6 +52,9 @@ class LibreViewPlugin(
         .description(TextRef.AndroidRes(R.string.libre2_libreview_region)),
     aapsLogger, rh, notificationManager
 ) {
+    private val exportLogger = aapsLogger
+    private var nightscoutScope: CoroutineScope? = null
+
     init {
         // The old entry was enforced and had no ConfigBuilder selection. Preserve its upload consent once.
         val key = "SYNC_LibreViewPlugin"
@@ -58,10 +68,22 @@ class LibreViewPlugin(
     }
 
     override suspend fun onStart() {
-        withContext(Dispatchers.IO) { Libre2Exchange(context).setLibreViewEnabled(true) }
+        withContext(Dispatchers.IO) {
+            nightscoutScope?.cancel()
+            val exchange = Libre2Exchange(context)
+            exchange.setLibreViewEnabled(true)
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            nightscoutScope = scope
+            Libre2NightscoutExport(persistenceLayer, nsClientSource, exportLogger,
+                enabled = { exchange.settings().libreView },
+                export = exchange::onExternalReading
+            ).start(scope)
+        }
     }
 
     override suspend fun onStop() {
+        nightscoutScope?.cancel()
+        nightscoutScope = null
         withContext(Dispatchers.IO) { Libre2Exchange(context).setLibreViewEnabled(false) }
     }
 }
