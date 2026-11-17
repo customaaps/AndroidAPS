@@ -86,12 +86,17 @@ Decoded decodeNfc(const Bytes& uid, const Bytes& info, const Bytes& fram,
     validate(uid, info, now);
     if (fram.size() != 344) throw std::invalid_argument("Libre2 FRAM must contain 344 bytes");
     auto& lib = vendorLibrary();
+    const int sensorAge = nfcSensorAgeMinutes(fram);
+    if (!validSensorAge(sensorAge)) throw std::runtime_error("Invalid Libre2 NFC sensor age");
+    const bool reinitialize = !sensorStartMatchesNfcAge(previous.sensorStartSeconds, now, sensorAge) ||
+                              previous.arrays[2].empty();
+    // Do not feed a future/mismatched start or its opaque arrays back to the vendor.
+    DecoderState metadata = reinitialize ? DecoderState{} : previous;
     Call call;
     OwnedArray id(uid), patch(info), input(fram);
-    OwnedArray oldComp(previous.arrays[0]), oldAtten(previous.arrays[1]), oldMess(previous.arrays[2]);
+    OwnedArray oldComp(metadata.arrays[0]), oldAtten(metadata.arrays[1]), oldMess(metadata.arrays[2]);
     algobj alarm(&AlarmC), nonAction(&NonActiona), range(&GluRange), attenuation(&attconf);
     outobj start, end, inserted, removed, comp, atten, measurement, result, events, person;
-    DecoderState metadata = previous;
     if (metadata.wearMinutes <= 0) {
         outobj warmup, wear;
         if (!lib.patchTimeValues(call.env(), nullptr, parser, patch, warmup, wear, lib.token()))
@@ -108,12 +113,12 @@ Decoded decodeNfc(const Bytes& uid, const Bytes& info, const Bytes& fram,
     jobject response = nullptr;
     if (lib.scan210)
         response = lib.scan210(call.env(), nullptr, parser, alarm, nonAction, range, attenuation, JNI_FALSE,
-            id, patch, input, timeSinceBase(previous.sensorStartSeconds, true), timeSinceBase(now),
+            id, patch, input, timeSinceBase(metadata.sensorStartSeconds, true), timeSinceBase(now),
             metadata.warmupMinutes, metadata.wearMinutes, JNI_TRUE, offsetMillis,
             oldComp, oldAtten, oldMess, start, end, inserted, removed, comp, atten, measurement, result, events, person, lib.token());
     else if (lib.scan27)
         response = lib.scan27(call.env(), nullptr, parser, alarm, nonAction, range, attenuation,
-            id, patch, input, timeSinceBase(previous.sensorStartSeconds, true), timeSinceBase(now),
+            id, patch, input, timeSinceBase(metadata.sensorStartSeconds, true), timeSinceBase(now),
             metadata.warmupMinutes, metadata.wearMinutes, offsetMillis,
             oldComp, oldAtten, oldMess, start, end, inserted, removed, comp, atten, measurement, result, events, person, lib.token());
     else throw std::runtime_error("NFC decoder ABI is unavailable");
@@ -123,7 +128,13 @@ Decoded decodeNfc(const Bytes& uid, const Bytes& info, const Bytes& fram,
     auto decoded = collect(call, reinterpret_cast<intptr_t>(response), metadata,
                            start, end, removed, comp, atten, measurement, result);
     if (person.ptr) decoded.state.person = static_cast<jbyte>(person.toint());
-    if (decoded.status == 0 && previous.sensorStartSeconds == 0) {
+    if (decoded.status == 0) {
+        decoded.state.sensorStartSeconds = nfcSensorStartSeconds(
+            now, sensorAge, previous.sensorStartSeconds, decoded.state.sensorStartSeconds);
+        if (decoded.state.sensorStartSeconds == 0)
+            throw std::runtime_error("Invalid Libre2 NFC sensor start time");
+    }
+    if (decoded.status == 0 && reinitialize) {
         const int sensorStart = timeSinceBase(decoded.state.sensorStartSeconds);
         OwnedArray mess(decoded.state.arrays[2]);
         auto* activated = lib.finishActivation(call.env(), nullptr, id,

@@ -16,6 +16,35 @@ class Libre2NfcRecoveryTest {
     }
 
     @Test
+    fun `JNI age or state failure permits the second NFC protocol for unknown generation`() {
+        val nativeFailure = IllegalStateException("Invalid Libre2 NFC sensor age")
+        var attempts = 0
+        val result = readLibre2Generation(null, first = {
+            attempts++
+            decodeLibre2NfcResult { throw nativeFailure }
+            "unexpected"
+        }, second = {
+            attempts++
+            "decoded"
+        })
+        assertEquals(Libre2Generation.SECOND to "decoded", result)
+        assertEquals(2, attempts)
+        val failure = assertThrows(IOException::class.java) {
+            decodeLibre2NfcResult { throw nativeFailure }
+        }
+        assertSame(nativeFailure, failure.cause)
+    }
+
+    @Test
+    fun `NFC decoder status errors still reject results before any pairing is saved`() {
+        val reply: Array<Any> = arrayOf(
+            longArrayOf(1, 1_700_000_000, 1_700_000_060, 60, 20_160, 0, 110, 0, 1, 3, 0),
+            floatArrayOf(0f), arrayOf(byteArrayOf(1), byteArrayOf(2), byteArrayOf(3)))
+        val failure = assertThrows(IOException::class.java) { decodeLibre2NfcResult { reply } }
+        assertEquals("Libre2 NFC decoder status: 1", failure.message)
+    }
+
+    @Test
     fun `unknown generation keeps successful first protocol and both failures remain visible`() {
         assertEquals(Libre2Generation.FIRST to "decoded",
             readLibre2Generation(null, { "decoded" }, { error("Unexpected fallback") }))

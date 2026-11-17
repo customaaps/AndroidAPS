@@ -4,6 +4,18 @@ import java.io.IOException
 
 internal class Libre2SensorEndedException : IOException("Libre2 sensor has ended or was removed")
 
+/** JNI reports decoder failures as IllegalStateException; NFC protocol fallback handles IO failures. */
+internal fun decodeLibre2NfcResult(decode: () -> Array<Any>): Libre2DecodeResult {
+    val reply = try {
+        decode()
+    } catch (failure: IllegalStateException) {
+        throw IOException("Libre2 NFC decoding failed", failure)
+    }
+    return Libre2DecodeResult.fromNative(reply).also {
+        if (it.status != 0) throw IOException("Libre2 NFC decoder status: ${it.status}")
+    }
+}
+
 /** Retry the whole read/decode/streaming setup only for unknown-generation protocol failures. */
 internal fun <T> readLibre2Generation(
     generation: Libre2Generation?,

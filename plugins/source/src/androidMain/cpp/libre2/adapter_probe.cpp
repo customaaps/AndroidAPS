@@ -33,6 +33,28 @@ constexpr bool decoderStateRules() {
     return decoded.state.algorithmEndSeconds == 1'700'000'060;
 }
 static_assert(decoderStateRules());
+
+constexpr bool nfcTimeRecoveryRules() {
+    // Exact future start seen in AndroidAPS_LOG_1794934323318.
+    constexpr int64_t now = 1794934249;
+    constexpr int age = 3357;
+    constexpr int64_t corrupt = 2224976429;
+    constexpr int64_t recovered = (now / 60 - age) * 60;
+    if (libre2::sensorStartMatchesNfcAge(corrupt, now, age)) return false;
+    if (libre2::nfcSensorStartSeconds(now, age, corrupt, corrupt) != recovered) return false;
+    if (!libre2::sensorStartMatchesNfcAge(recovered, now, age)) return false;
+    // Preserve a valid existing start across subsequent scans, rather than rounding it again.
+    if (libre2::nfcSensorStartSeconds(now + 61, age + 1, recovered + 17, corrupt) != recovered + 17) return false;
+    if (libre2::nfcSensorStartSeconds(now, age, 0, recovered + 21) != recovered + 21) return false;
+    if (libre2::nfcSensorStartSeconds(now, -1, corrupt, corrupt) != 0) return false;
+    if (libre2::nfcSensorStartSeconds(now, 65535, corrupt, corrupt) != 0) return false;
+    if (libre2::nfcSensorStartSeconds(now, 0, corrupt, corrupt) != now / 60 * 60) return false;
+    libre2::Bytes fram(344);
+    fram[316] = static_cast<jbyte>(age & 255);
+    fram[317] = static_cast<jbyte>(age >> 8);
+    return libre2::nfcSensorAgeMinutes(fram) == age && libre2::nfcSensorAgeMinutes({}) == -1;
+}
+static_assert(nfcTimeRecoveryRules());
 }
 
 // Vendor RegisterNatives is collected in the isolated class registry.

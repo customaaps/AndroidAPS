@@ -126,9 +126,9 @@ internal class Libre2NfcReader(private val exchange: (ByteArray) -> ByteArray) {
             // Each attempt owns its arrays: failed decoding must not mutate the saved state.
             val state = old?.state ?: Libre2DecoderState()
             val arrays = state.arrays.map { it.copyOf() }.toTypedArray()
-            val result = Libre2DecodeResult.fromNative(Libre2NativeDecoder.decodeNfc(uid, info, frame, nowSeconds, state.metadata(), arrays))
-            if (result.status != 0) throw IOException("Libre2 NFC decoder status: ${result.status}")
-            return result
+            return decodeLibre2NfcResult {
+                Libre2NativeDecoder.decodeNfc(uid, info, frame, nowSeconds, state.metadata(), arrays)
+            }
         }
         fun attempt(gen2: Boolean): Pair<Libre2Pairing, Libre2DecodeResult> {
             val decoded = decode(if (gen2) gen2Read(uid) else gen1Read())
