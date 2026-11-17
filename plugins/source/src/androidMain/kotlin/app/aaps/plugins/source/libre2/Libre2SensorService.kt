@@ -329,7 +329,8 @@ class Libre2SensorService : Service() {
         bluetooth?.close()
         bluetooth = null
         streaming = false
-        preferAutoConnect = true
+        // Alternate back to an active attempt if Android auto-connect made no progress.
+        preferAutoConnect = error !is Libre2Bluetooth.AutoConnectTimeout
         Log.w("Libre2", "Bluetooth connection failed", error)
         updateProtection()
         if (!active.get()) return

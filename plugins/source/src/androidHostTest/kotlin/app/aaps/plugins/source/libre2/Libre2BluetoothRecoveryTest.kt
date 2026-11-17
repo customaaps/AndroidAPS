@@ -45,11 +45,11 @@ class Libre2BluetoothRecoveryTest {
         shadowOf(Looper.getMainLooper()).idle()
     }
 
-    @Test fun `auto connect waits without a handshake deadline until connected`() {
+    @Test fun `auto connect allows more than thirty seconds and switches to handshake deadline after connecting`() {
         val connection = connection(true)
         connection.connect()
         assertTrue(connection.isWaiting)
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(5))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(2))
         assertTrue(failures.isEmpty())
         verify(gatt, never()).close()
         event(0, BluetoothProfile.STATE_CONNECTED)
@@ -57,6 +57,53 @@ class Libre2BluetoothRecoveryTest {
         verify(gatt).discoverServices()
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(31))
         assertTrue(failures.single().message!!.contains("DISCOVERING"))
+    }
+
+    @Test fun `initial auto connect expires after three minutes and ignores late callbacks`() {
+        val connection = connection(true)
+        connection.connect()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(179))
+        assertTrue(failures.isEmpty())
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))
+        assertTrue(failures.single() is Libre2Bluetooth.AutoConnectTimeout)
+        verify(gatt).disconnect()
+        verify(gatt).close()
+        event(0, BluetoothProfile.STATE_CONNECTED)
+        verify(gatt, never()).discoverServices()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(5))
+        assertEquals(1, failures.size)
+    }
+
+    @Test fun `retained auto connect expires after disconnect even with repeated status callbacks`() {
+        val connection = connection(true)
+        connection.connect()
+        event(0, BluetoothProfile.STATE_CONNECTED)
+        event(8, BluetoothProfile.STATE_DISCONNECTED)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(2))
+        event(8, BluetoothProfile.STATE_DISCONNECTED)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(1))
+        assertTrue(failures.single() is Libre2Bluetooth.AutoConnectTimeout)
+        verify(gatt).close()
+    }
+
+    @Test fun `host wake checks elapsed auto connect waiting without waiting for the handler timer`() {
+        val connection = connection(true)
+        connection.connect()
+        org.robolectric.shadows.ShadowSystemClock.advanceBy(Duration.ofMinutes(4))
+        connection.checkSilence()
+        assertTrue(failures.single() is Libre2Bluetooth.AutoConnectTimeout)
+        verify(gatt).close()
+    }
+
+    @Test fun `disabling auto recovery cancels its waiting deadline`() {
+        val connection = connection(true)
+        connection.connect()
+        connection.setAutoRecovery(false)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(5))
+        connection.checkSilence()
+        assertTrue(failures.isEmpty())
+        verify(gatt, never()).close()
+        connection.close()
     }
 
     @Test fun `direct connection still times out`() {
@@ -74,7 +121,7 @@ class Libre2BluetoothRecoveryTest {
         event(8, BluetoothProfile.STATE_DISCONNECTED)
         assertTrue(connection.isWaiting)
         assertEquals(1, waits)
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(5))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(2))
         assertTrue(failures.isEmpty())
         verify(gatt, never()).close()
         event(0, BluetoothProfile.STATE_CONNECTED)

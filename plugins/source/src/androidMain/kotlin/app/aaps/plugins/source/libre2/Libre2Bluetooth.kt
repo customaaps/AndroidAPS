@@ -47,24 +47,42 @@ internal class Libre2Bluetooth(
     private var operations = Libre2GattQueue()
     private val watchdog = Libre2SilenceWatchdog(SystemClock::elapsedRealtime)
     private val deadline = Runnable { checkDeadline() }
+    private var waitingUntil = 0L
+
+    internal class AutoConnectTimeout : IOException("Libre2 auto-connect timed out after 3 minutes (stage=WAITING)")
 
     fun setAutoRecovery(enabled: Boolean) {
         watchdog.enabled = enabled
         if (stage == Stage.STREAMING) armStreamDeadline()
+        if (stage == Stage.WAITING) {
+            handler.removeCallbacks(deadline)
+            if (enabled) checkDeadline()
+        }
     }
 
     /** Re-evaluate elapsed silence when the host wakes; a Handler delay alone excludes deep sleep. */
     fun checkSilence() {
-        if (!stopped && stage == Stage.STREAMING) checkDeadline()
+        if (!stopped && stage in listOf(Stage.STREAMING, Stage.WAITING)) checkDeadline()
     }
 
     private fun checkDeadline() {
-        if (stopped || stage == Stage.WAITING) return
-        if (stage == Stage.STREAMING) {
+        if (stopped) return
+        if (stage == Stage.WAITING) {
+            if (!watchdog.enabled) return
+            val remaining = (waitingUntil - SystemClock.elapsedRealtime()).coerceAtLeast(0)
+            if (remaining == 0L) fail(AutoConnectTimeout()) else arm(remaining)
+        } else if (stage == Stage.STREAMING) {
             val remaining = watchdog.remainingMillis() ?: return
             if (remaining == 0L) fail(IOException("Libre2 watchdog: no complete BLE packet for 3 minutes"))
             else armStreamDeadline()
         } else fail(IOException("Libre2 Bluetooth handshake timed out (stage=${stage.name})"))
+    }
+
+    private fun awaitConnection() {
+        // Repeated disconnect callbacks must not extend an already running wait.
+        if (stage != Stage.WAITING) waitingUntil = SystemClock.elapsedRealtime() + AUTO_CONNECT_WAIT_MS
+        stage = Stage.WAITING
+        if (watchdog.enabled) arm((waitingUntil - SystemClock.elapsedRealtime()).coerceAtLeast(1))
     }
 
     private fun armStreamDeadline() {
@@ -108,7 +126,7 @@ internal class Libre2Bluetooth(
         val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
             ?: throw IOException("Bluetooth is unavailable")
         if (!adapter.isEnabled) throw IOException("Bluetooth is switched off")
-        if (autoConnect) stage = Stage.WAITING else { stage = Stage.CONNECTING; arm() }
+        if (autoConnect) awaitConnection() else { stage = Stage.CONNECTING; arm() }
         gatt = adapter.getRemoteDevice(pairing.address)
             .connectGatt(context, autoConnect, callback, BluetoothDevice.TRANSPORT_LE)
             ?: throw IOException("Cannot open Libre2 GATT connection")
@@ -214,9 +232,9 @@ internal class Libre2Bluetooth(
             onStage(stage.name, status)
             if (newState == BluetoothProfile.STATE_DISCONNECTED && autoConnect && watchdog.enabled &&
                 status in listOf(BluetoothGatt.GATT_SUCCESS, 8, 19, 22)) {
-                // Keep this GATT registered: Android will reconnect when the sensor advertises.
+                // Give Android time to reconnect, then let the service try an active connection.
                 resetLink()
-                stage = Stage.WAITING
+                awaitConnection()
                 onWaiting()
                 return@dispatch
             }
@@ -318,6 +336,7 @@ internal class Libre2Bluetooth(
     }
 
     companion object {
+        private const val AUTO_CONNECT_WAIT_MS = 180_000L
         private val SERVICE = UUID.fromString("0000fde3-0000-1000-8000-00805f9b34fb")
         private val LOGIN = UUID.fromString("0000f001-0000-1000-8000-00805f9b34fb")
         private val RAW = UUID.fromString("0000f002-0000-1000-8000-00805f9b34fb")
