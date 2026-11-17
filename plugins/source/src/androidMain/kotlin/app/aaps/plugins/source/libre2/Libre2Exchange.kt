@@ -22,6 +22,16 @@ internal class Libre2Exchange(private val context: Context) {
         schedule(context, libreView)
     }
 
+    fun saveXdrip(enabled: Boolean) {
+        store.update { old -> old.copy(xdrip = enabled) }
+    }
+
+    fun saveLibreView(enabled: Boolean, email: String, password: String) {
+        require(!enabled || email.isNotBlank() && password.isNotEmpty())
+        store.update { old -> old.withUserSettings(old.xdrip, enabled, email, password, System.currentTimeMillis()) }
+        schedule(context, enabled)
+    }
+
     fun onReading(reading: Libre2Reading) {
         val s = store.settings()
         var failure: Exception? = null

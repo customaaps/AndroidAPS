@@ -22,7 +22,7 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-internal fun Libre2ExchangeContent(context: Context) {
+internal fun Libre2ExchangeContent(context: Context, libreViewOnly: Boolean = false) {
     val exchange = remember(context) { Libre2Exchange(context.applicationContext) }
     val scope = rememberCoroutineScope()
     var show by remember { mutableStateOf(false) }
@@ -35,7 +35,7 @@ internal fun Libre2ExchangeContent(context: Context) {
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { error = true }
         }
-    }) { Text(stringResource(R.string.libre2_exchange)) }
+    }) { Text(stringResource(if (libreViewOnly) R.string.libre2_libreview_export else R.string.libre2_exchange)) }
     if (error) Text(stringResource(R.string.libre2_exchange_storage_error))
     if (show && settings != null) {
         val initial = requireNotNull(settings)
@@ -56,49 +56,55 @@ internal fun Libre2ExchangeContent(context: Context) {
         }
         AlertDialog(
             onDismissRequest = { if (!saving) show = false },
-            title = { Text(stringResource(R.string.libre2_exchange)) },
+            title = { Text(stringResource(if (libreViewOnly) R.string.libre2_libreview_export else R.string.libre2_exchange)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.libre2_xdrip_export), modifier = Modifier.weight(1f))
-                        Switch(checked = xdrip, onCheckedChange = { xdrip = it }, enabled = !saving)
+                    if (!libreViewOnly) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.libre2_xdrip_export), modifier = Modifier.weight(1f))
+                            Switch(checked = xdrip, onCheckedChange = { xdrip = it }, enabled = !saving)
+                        }
+                        Text(stringResource(R.string.libre2_xdrip_instructions))
                     }
-                    Text(stringResource(R.string.libre2_xdrip_instructions))
-                    HorizontalDivider()
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.libre2_libreview_export), modifier = Modifier.weight(1f))
-                        Switch(checked = libreView, onCheckedChange = { libreView = it }, enabled = !saving)
+                    if (libreViewOnly) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.libre2_libreview_export), modifier = Modifier.weight(1f))
+                            Switch(checked = libreView, onCheckedChange = { libreView = it }, enabled = !saving)
+                        }
+                        Text(stringResource(R.string.libre2_libreview_region))
+                        OutlinedTextField(value = email, onValueChange = { email = it }, enabled = !saving,
+                            label = { Text(stringResource(R.string.libre2_libreview_email)) }, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+                        OutlinedTextField(value = password, onValueChange = { password = it }, enabled = !saving,
+                            label = { Text(stringResource(R.string.libre2_libreview_password)) }, singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+                        Text(stringResource(R.string.libre2_libreview_credentials_note))
+                        if (status.accountId.isNotEmpty()) Text(stringResource(R.string.libre2_libreview_account, status.accountId))
+                        val statusText = when (status.status) {
+                            "authenticated" -> R.string.libre2_libreview_authenticated
+                            "uploaded" -> R.string.libre2_libreview_uploaded
+                            "auth" -> R.string.libre2_libreview_auth_error
+                            "rate_limited" -> R.string.libre2_libreview_rate_limit
+                            "" -> R.string.libre2_libreview_not_checked
+                            else -> R.string.libre2_libreview_network_error
+                        }
+                        Text(stringResource(statusText))
+                        if (status.lastUpload > 0) Text(DateFormat.getDateTimeInstance().format(Date(status.lastUpload)))
                     }
-                    Text(stringResource(R.string.libre2_libreview_region))
-                    OutlinedTextField(value = email, onValueChange = { email = it }, enabled = !saving,
-                        label = { Text(stringResource(R.string.libre2_libreview_email)) }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
-                    OutlinedTextField(value = password, onValueChange = { password = it }, enabled = !saving,
-                        label = { Text(stringResource(R.string.libre2_libreview_password)) }, singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
-                    Text(stringResource(R.string.libre2_libreview_credentials_note))
-                    if (status.accountId.isNotEmpty()) Text(stringResource(R.string.libre2_libreview_account, status.accountId))
-                    val statusText = when (status.status) {
-                        "authenticated" -> R.string.libre2_libreview_authenticated
-                        "uploaded" -> R.string.libre2_libreview_uploaded
-                        "auth" -> R.string.libre2_libreview_auth_error
-                        "rate_limited" -> R.string.libre2_libreview_rate_limit
-                        "" -> R.string.libre2_libreview_not_checked
-                        else -> R.string.libre2_libreview_network_error
-                    }
-                    Text(stringResource(statusText))
-                    if (status.lastUpload > 0) Text(DateFormat.getDateTimeInstance().format(Date(status.lastUpload)))
                     if (error) Text(stringResource(R.string.libre2_exchange_storage_error))
                 }
             },
             confirmButton = {
-                TextButton(enabled = !saving && (!libreView || email.isNotBlank() && password.isNotEmpty()), onClick = {
+                TextButton(enabled = !saving && (!libreViewOnly || !libreView || email.isNotBlank() && password.isNotEmpty()), onClick = {
                     saving = true
                     error = false
                     scope.launch {
                         try {
-                            withContext(Dispatchers.IO) { exchange.save(xdrip, libreView, email, password) }
+                            withContext(Dispatchers.IO) {
+                                if (libreViewOnly) exchange.saveLibreView(libreView, email, password)
+                                else exchange.saveXdrip(xdrip)
+                            }
                             status = withContext(Dispatchers.IO) { exchange.settings() }
                         } catch (cancelled: CancellationException) { throw cancelled }
                         catch (_: Exception) { error = true }
