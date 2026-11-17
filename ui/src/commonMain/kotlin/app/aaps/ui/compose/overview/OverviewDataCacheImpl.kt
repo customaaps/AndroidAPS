@@ -1,7 +1,6 @@
 package app.aaps.ui.compose.overview
 
 import app.aaps.core.data.configuration.Constants
-import app.aaps.core.data.iob.InMemoryGlucoseValue
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.CA
 import app.aaps.core.data.model.CAL
@@ -92,7 +91,6 @@ import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.extensions.apsAdjustedTargetMgdl
 import app.aaps.core.objects.extensions.convertedToAbsolute
-import app.aaps.core.objects.extensions.fromGv
 import app.aaps.core.objects.extensions.target
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.CoreUiStrings
@@ -577,12 +575,8 @@ class OverviewDataCacheImpl(
 
         // Prefer the newest actual sensor record so the circle follows every incoming GV.
         // Use bucketed data only while the database has no reading yet.
-        val latestReading = persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
-        val lastGv = if (latestReading != null && config.initProgressFlow.value.done) {
-            activePlugin.activeCalibration.calibrate(mutableListOf(latestReading)).firstOrNull() ?: latestReading
-        } else {
-            latestReading ?: iobCobCalculator.ads.bucketedData?.firstOrNull()
-        }
+        val lastGv = persistenceLayer.getLatestDisplayGlucose(config, activePlugin)
+            ?: iobCobCalculator.ads.bucketedData?.firstOrNull()
         if (lastGv == null) {
             _bgInfoFlow.value = null
             return

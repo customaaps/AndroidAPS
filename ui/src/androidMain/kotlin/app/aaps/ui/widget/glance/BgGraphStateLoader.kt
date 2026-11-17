@@ -1,7 +1,6 @@
 package app.aaps.ui.widget.glance
 
 import app.aaps.core.data.configuration.Constants
-import app.aaps.core.data.iob.InMemoryGlucoseValue
 import app.aaps.core.data.time.T
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.TrendArrow
@@ -10,6 +9,7 @@ import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.overview.LastBgData
 import app.aaps.core.interfaces.overview.graph.OverviewDataCache
+import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.TextResolver
@@ -20,8 +20,8 @@ import app.aaps.core.keys.IntComposedKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.CoreUiStrings
+import app.aaps.ui.compose.overview.getLatestDisplayGlucose
 import app.aaps.ui.widget.directionToDrawableRes
-import app.aaps.core.objects.extensions.fromGv
 import dev.zacsweers.metro.Inject
 
 data class BgGraphRenderState(
@@ -54,7 +54,8 @@ class BgGraphStateLoader(
     private val dateUtil: DateUtil,
     private val rh: TextResolver,
     private val preferences: Preferences,
-    private val config: Config
+    private val config: Config,
+    private val activePlugin: ActivePlugin
 ) {
 
     suspend fun loadState(appWidgetId: Int): BgGraphRenderState {
@@ -90,7 +91,7 @@ class BgGraphStateLoader(
 
         // The graph keeps its historical buckets; the prominent BG value must
         // follow the most recent sensor arrival, independently of the APS cycle.
-        val lastBg = persistenceLayer.getLastGlucoseValue()?.let { InMemoryGlucoseValue.fromGv(it) }
+        val lastBg = persistenceLayer.getLatestDisplayGlucose(config, activePlugin)
             ?: lastBgData.lastBg()
         val bgText = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.recalculated) }
             ?: rh.gs(CoreUiStrings.value_unavailable_short)

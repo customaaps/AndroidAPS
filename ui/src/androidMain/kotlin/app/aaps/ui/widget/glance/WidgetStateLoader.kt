@@ -16,6 +16,7 @@ import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.overview.IsfStep
 import app.aaps.core.interfaces.overview.SensitivityOverview
+import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.TextResolver
@@ -37,6 +38,7 @@ import app.aaps.core.ui.extensions.directionToDescription
 import app.aaps.core.ui.extensions.displayText
 import app.aaps.ui.R
 import app.aaps.ui.UiStrings
+import app.aaps.ui.compose.overview.getLatestDisplayGlucose
 import app.aaps.ui.widget.directionToDrawableRes
 import dev.zacsweers.metro.Inject
 import kotlin.math.abs
@@ -52,6 +54,7 @@ class WidgetStateLoader(
     private val iobCobCalculator: IobCobCalculator,
     private val loop: Loop,
     private val config: Config,
+    private val activePlugin: ActivePlugin,
     private val preferences: Preferences,
     private val decimalFormatter: DecimalFormatter,
     private val persistenceLayer: PersistenceLayer,
@@ -69,10 +72,10 @@ class WidgetStateLoader(
         // rather than holding the older bucket until the next APS cycle.
         // Never fall back to the APS calculation bucket: it may be several minutes
         // older than the most recent CGM reading and is not a live display source.
-        val lastBg = persistenceLayer.getLastGlucoseValue()
-        val bgText = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.value) }
+        val lastBg = persistenceLayer.getLatestDisplayGlucose(config, activePlugin)
+        val bgText = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.recalculated) }
             ?: rh.gs(CoreUiStrings.value_unavailable_short)
-        val bgInUnits = lastBg?.let { profileUtil.fromMgdlToUnits(it.value) }
+        val bgInUnits = lastBg?.let { profileUtil.fromMgdlToUnits(it.recalculated) }
         val bgColor = when {
             bgInUnits != null && bgInUnits < preferences.get(UnitDoubleKey.OverviewLowMark) ->
                 BgGraphColors.WIDGET.low
