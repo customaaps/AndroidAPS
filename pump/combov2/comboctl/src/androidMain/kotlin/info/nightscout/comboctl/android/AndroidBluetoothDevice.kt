@@ -200,23 +200,20 @@ class AndroidBluetoothDevice(
     }
 
     override fun blockingSend(dataToSend: List<Byte>) {
-        // Handle corner case when disconnect() is called in a different coroutine
-        // shortly before this function is run.
-        if (!canDoIO) {
-            logger(LogLevel.DEBUG) { "We are disconnecting; ignoring attempt at sending data" }
-            return
+        val stream = synchronized(socketLock) {
+            if (!canDoIO) return
+            checkNotNull(outputStream) { "Device is not connected - cannot send data" }
         }
 
-        check(outputStream != null) { "Device is not connected - cannot send data" }
-
+        // Do not hold socketLock while writing: disconnect must be able to close this stream.
         try {
-            outputStream!!.write(dataToSend.toByteArray())
+            stream.write(dataToSend.toByteArray())
         } catch (e: IOException) {
             // If we are disconnecting, don't bother re-throwing the exception;
             // one is always thrown when the stream is closed while write() blocks,
             // and this essentially just means "write() call aborted because the
             // stream got closed". That's not an error.
-            if (canDoIO)
+            if (synchronized(socketLock) { canDoIO && outputStream === stream })
                 throw ComboIOException("Could not write data to device with address $address", e)
             else
                 logger(LogLevel.DEBUG) { "Aborted write call because we are disconnecting" }
@@ -224,25 +221,26 @@ class AndroidBluetoothDevice(
     }
 
     override fun blockingReceive(): List<Byte> {
-        // Handle corner case when disconnect() is called in a different coroutine
-        // shortly before this function is run.
-        if (!canDoIO) {
-            logger(LogLevel.DEBUG) { "We are disconnecting; ignoring attempt at receiving data" }
-            return listOf()
+        val stream = synchronized(socketLock) {
+            if (!canDoIO) return emptyList()
+            checkNotNull(inputStream) { "Device is not connected - cannot receive data" }
         }
 
-        check(inputStream != null) { "Device is not connected - cannot receive data" }
-
+        // Keep a stable reference, but allow disconnect to interrupt the blocking read.
         try {
             val buffer = ByteArray(512)
-            val numReadBytes = inputStream!!.read(buffer)
-            return if (numReadBytes > 0) buffer.toList().subList(0, numReadBytes) else listOf()
+            val numReadBytes = stream.read(buffer)
+            return synchronized(socketLock) {
+                if (canDoIO && inputStream === stream && numReadBytes > 0)
+                    buffer.toList().subList(0, numReadBytes)
+                else emptyList()
+            }
         } catch (e: IOException) {
             // If we are disconnecting, don't bother re-throwing the exception;
             // one is always thrown when the stream is closed while read() blocks,
             // and this essentially just means "read() call aborted because the
             // stream got closed". That's not an error.
-            if (canDoIO)
+            if (synchronized(socketLock) { canDoIO && inputStream === stream })
                 throw ComboIOException("Could not read data from device with address $address", e)
             else {
                 logger(LogLevel.DEBUG) { "Aborted read call because we are disconnecting" }

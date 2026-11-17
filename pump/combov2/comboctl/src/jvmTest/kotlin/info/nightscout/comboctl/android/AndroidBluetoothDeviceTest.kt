@@ -8,6 +8,13 @@ import info.nightscout.comboctl.base.toBluetoothAddress
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import info.nightscout.comboctl.base.ComboIOException
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.*
 import org.mockito.kotlin.any
@@ -22,6 +29,73 @@ class AndroidBluetoothDeviceTest {
     private fun socket(): BluetoothSocket = mock(BluetoothSocket::class.java).also {
         whenever(it.inputStream).thenReturn(ByteArrayInputStream(byteArrayOf()))
         whenever(it.outputStream).thenReturn(ByteArrayOutputStream())
+    }
+
+    @Test
+    fun `disconnect interrupts a blocking read without holding the socket lock`() = checkConcurrentDisconnect(read = true)
+
+    @Test
+    fun `disconnect interrupts a blocking write without holding the socket lock`() = checkConcurrentDisconnect(read = false)
+
+    private fun checkConcurrentDisconnect(read: Boolean) {
+        prepare()
+        val created = socket()
+        val input = mock(InputStream::class.java)
+        val output = mock(OutputStream::class.java)
+        whenever(created.inputStream).thenReturn(input)
+        whenever(created.outputStream).thenReturn(output)
+        whenever(remote.createInsecureRfcommSocketToServiceRecord(any())).thenReturn(created)
+        val entered = CountDownLatch(1)
+        val closed = CountDownLatch(1)
+        val blockedIo = org.mockito.stubbing.Answer<Any> {
+            entered.countDown()
+            check(closed.await(3, TimeUnit.SECONDS)) { "Disconnect could not close the stream" }
+            throw IOException("stream closed by disconnect")
+        }
+        if (read) doAnswer(blockedIo).whenever(input).read(any<ByteArray>())
+        else doAnswer(blockedIo).whenever(output).write(any<ByteArray>())
+        doAnswer { closed.countDown(); null }.whenever(input).close()
+        doAnswer { closed.countDown(); null }.whenever(output).close()
+        sut.connect()
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val io = executor.submit<List<Byte>> {
+                if (read) sut.blockingReceive() else { sut.blockingSend(listOf(1)); emptyList() }
+            }
+            assertTrue(entered.await(2, TimeUnit.SECONDS))
+            sut.disconnect()
+            assertEquals(emptyList<Byte>(), io.get(2, TimeUnit.SECONDS))
+            verify(input).close()
+            verify(output).close()
+            verify(created).close()
+            // Already-disconnected calls are harmless too.
+            assertEquals(emptyList<Byte>(), sut.blockingReceive())
+            sut.blockingSend(listOf(2))
+        } finally {
+            closed.countDown()
+            sut.disconnect()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `genuine input and output errors on an active connection are propagated`() {
+        prepare()
+        val created = socket()
+        val input = mock(InputStream::class.java)
+        val output = mock(OutputStream::class.java)
+        whenever(created.inputStream).thenReturn(input)
+        whenever(created.outputStream).thenReturn(output)
+        whenever(remote.createInsecureRfcommSocketToServiceRecord(any())).thenReturn(created)
+        doThrow(IOException("read failed")).whenever(input).read(any<ByteArray>())
+        doThrow(IOException("write failed")).whenever(output).write(any<ByteArray>())
+        sut.connect()
+        try {
+            assertThrows(ComboIOException::class.java) { sut.blockingReceive() }
+            assertThrows(ComboIOException::class.java) { sut.blockingSend(listOf(1)) }
+        } finally {
+            sut.disconnect()
+        }
     }
 
     private fun prepare() {
