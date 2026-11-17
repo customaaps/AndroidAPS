@@ -40,7 +40,6 @@ internal fun Libre2ExchangeContent(context: Context, libreViewOnly: Boolean = fa
     if (show && settings != null) {
         val initial = requireNotNull(settings)
         var xdrip by remember { mutableStateOf(initial.xdrip) }
-        var libreView by remember { mutableStateOf(initial.libreView) }
         var email by remember { mutableStateOf(initial.email) }
         // Credentials are intentionally not rememberSaveable (never written into saved instance state).
         var password by remember { mutableStateOf(initial.password) }
@@ -67,10 +66,7 @@ internal fun Libre2ExchangeContent(context: Context, libreViewOnly: Boolean = fa
                         Text(stringResource(R.string.libre2_xdrip_instructions))
                     }
                     if (libreViewOnly) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(stringResource(R.string.libre2_libreview_export), modifier = Modifier.weight(1f))
-                            Switch(checked = libreView, onCheckedChange = { libreView = it }, enabled = !saving)
-                        }
+                        Text(stringResource(R.string.libre2_libreview_config_toggle))
                         Text(stringResource(R.string.libre2_libreview_region))
                         OutlinedTextField(value = email, onValueChange = { email = it }, enabled = !saving,
                             label = { Text(stringResource(R.string.libre2_libreview_email)) }, singleLine = true,
@@ -82,6 +78,9 @@ internal fun Libre2ExchangeContent(context: Context, libreViewOnly: Boolean = fa
                         Text(stringResource(R.string.libre2_libreview_credentials_note))
                         if (status.accountId.isNotEmpty()) Text(stringResource(R.string.libre2_libreview_account, status.accountId))
                         val statusText = when (status.status) {
+                            "waiting_sensor" -> R.string.libre2_libreview_waiting_sensor
+                            "waiting_readings" -> R.string.libre2_libreview_waiting_readings
+                            "credentials" -> R.string.libre2_libreview_credentials_required
                             "authenticated" -> R.string.libre2_libreview_authenticated
                             "uploaded" -> R.string.libre2_libreview_uploaded
                             "auth" -> R.string.libre2_libreview_auth_error
@@ -96,13 +95,13 @@ internal fun Libre2ExchangeContent(context: Context, libreViewOnly: Boolean = fa
                 }
             },
             confirmButton = {
-                TextButton(enabled = !saving && (!libreViewOnly || !libreView || email.isNotBlank() && password.isNotEmpty()), onClick = {
+                TextButton(enabled = !saving && (!libreViewOnly || email.isNotBlank() && password.isNotEmpty()), onClick = {
                     saving = true
                     error = false
                     scope.launch {
                         try {
                             withContext(Dispatchers.IO) {
-                                if (libreViewOnly) exchange.saveLibreView(libreView, email, password)
+                                if (libreViewOnly) exchange.saveLibreViewCredentials(email, password)
                                 else exchange.saveXdrip(xdrip)
                             }
                             status = withContext(Dispatchers.IO) { exchange.settings() }

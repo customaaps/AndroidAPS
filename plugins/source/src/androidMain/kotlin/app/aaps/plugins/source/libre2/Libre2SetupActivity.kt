@@ -96,6 +96,7 @@ class Libre2SetupActivity : ComponentActivity() {
                         }
                         val existingSelected = (armed || busy) && !activate && !repairPairing
                         val startSelected = (armed || busy) && activate
+                        val repairSelected = (armed || busy) && repairPairing
                         val canScan = permitted && !busy && decoder != null && nfc?.isEnabled == true
                         OutlinedButton(
                             onClick = { arm(false) },
@@ -116,7 +117,8 @@ class Libre2SetupActivity : ComponentActivity() {
                         OutlinedButton(
                             onClick = { arm(false, repair = true) },
                             enabled = canScan,
-                            modifier = Modifier.semantics { selected = (armed || busy) && repairPairing }
+                            modifier = Modifier.semantics { selected = repairSelected },
+                            colors = if (repairSelected) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors()
                         ) {
                             Text(stringResource(R.string.libre2_repair_pairing))
                         }

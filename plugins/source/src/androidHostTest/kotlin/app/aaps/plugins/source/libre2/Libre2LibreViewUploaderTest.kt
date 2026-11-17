@@ -48,6 +48,41 @@ class Libre2LibreViewUploaderTest {
         }
     }
 
+    @Test fun `authenticated account without queued data reports waiting instead of uploaded`() = runBlocking<Unit> {
+        val store = Store()
+        store.value = store.value.copy(status = "authenticated")
+        val api = Libre2LibreViewApi { _, _, _ -> fail("Unexpected upload"); JSONObject() }
+        assertEquals(Libre2LibreViewUploader.Outcome.SUCCESS, Libre2LibreViewUploader(store, api) { now }.run())
+        assertEquals("waiting_readings", store.value.status)
+        assertEquals(0L, store.value.lastUpload)
+    }
+
+    @Test fun `external Libre2 reading reaches server measurements and is acknowledged`() = runBlocking<Unit> {
+        val start = now - 86_400_000
+        val value = app.aaps.core.data.model.GV(timestamp = now, value = 123.0, raw = null, noise = null,
+            trendArrow = app.aaps.core.data.model.TrendArrow.FLAT, sourceSensor = app.aaps.core.data.model.SourceSensor.LIBRE_2)
+        val pairing = Libre2Pairing(sensor.chunked(2).map { it.toInt(16).toByte() }.toByteArray(),
+            ByteArray(6), "00:11:22:33:44:55", byteArrayOf(), start / 1000, false,
+            Libre2DecoderState(sensorStartSeconds = start / 1000))
+        val external = requireNotNull(externalLibre2Reading(value, start, pairing, now))
+        val store = Store()
+        store.queue.add(external, now)
+        var uploads = 0
+        val api = Libre2LibreViewApi { path, method, body ->
+            assertEquals("POST", method)
+            assertTrue(path.endsWith("/api/measurements"))
+            val currents = requireNotNull(body).getJSONObject("DeviceData").getJSONObject("measurementLog")
+                .getJSONArray("currentGlucoseEntries")
+            assertEquals(123, currents.getJSONObject(0).getInt("valueInMgPerDl"))
+            uploads++
+            JSONObject().put("status", 0)
+        }
+        assertEquals(Libre2LibreViewUploader.Outcome.SUCCESS, Libre2LibreViewUploader(store, api) { now }.run())
+        assertEquals(1, uploads)
+        assertEquals("uploaded", store.value.status)
+        assertEquals(now, store.value.lastUpload)
+    }
+
     @Test fun `disabled or blocked exports never contact the server`() = runBlocking<Unit> {
         val store = Store()
         val api = Libre2LibreViewApi { _, _, _ -> fail("Unexpected HTTP request"); JSONObject() }

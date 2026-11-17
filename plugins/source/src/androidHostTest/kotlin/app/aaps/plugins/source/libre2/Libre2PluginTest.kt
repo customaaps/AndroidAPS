@@ -9,6 +9,13 @@ import org.mockito.kotlin.mock
 
 class Libre2PluginTest : TestBaseWithProfile() {
     @Test
+    fun `LibreView selection can be switched off in configuration`() {
+        val libreView = LibreViewPlugin(context, preferences, rh, aapsLogger, mock())
+        assertThat(libreView.getType()).isEqualTo(app.aaps.core.data.plugin.PluginType.SYNC)
+        assertThat(libreView.enforcedState()).isNull()
+    }
+
+    @Test
     fun `Libre2 exposes the same sensor registration preference as xDrip`() {
         val libre2 = Libre2Plugin(context, rh, aapsLogger, preferences, mock(), mock())
         val xdrip = XdripSourcePlugin(rh, aapsLogger, preferences, config, mock())

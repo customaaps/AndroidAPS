@@ -19,4 +19,8 @@
     <string name="libre2_exchange_save">Save</string>
     <string name="libre2_exchange_close">Close</string>
     <string name="libre2_recent_readings">Last readings saved in APS (time):</string>
+    <string name="libre2_libreview_config_toggle">Enable or disable uploads in Configuration → Connectivity.</string>
+    <string name="libre2_libreview_waiting_sensor">No matching NFC sensor identity. Scan the running Libre 2 sensor in AAPS, then return to your external data source.</string>
+    <string name="libre2_libreview_waiting_readings">Signed in. Waiting for new Libre 2 readings.</string>
+    <string name="libre2_libreview_credentials_required">Enter and save your LibreView email and password.</string>
 </resources>

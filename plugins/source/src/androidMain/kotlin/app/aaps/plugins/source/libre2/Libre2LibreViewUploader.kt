@@ -30,6 +30,11 @@ internal class Libre2LibreViewUploader(
             var s = store.settings()
             revision = s.revision
             if (!s.libreView || s.authBlocked) return Outcome.SUCCESS
+            if (s.email.isBlank() || s.password.isEmpty()) {
+                store.update { current -> if (current.revision == revision && current.libreView)
+                    current.copy(status = "credentials") else current }
+                return Outcome.SUCCESS
+            }
             if (s.retryAfter > now()) return Outcome.RETRY
             if (s.token.isEmpty()) {
                 s = active(revision) ?: return Outcome.SUCCESS
@@ -48,7 +53,12 @@ internal class Libre2LibreViewUploader(
             repeat(MAX_BATCHES) {
                 s = active(revision) ?: return Outcome.SUCCESS
                 val batch = store.batch(now())
-                if (batch.isEmpty()) return Outcome.SUCCESS
+                if (batch.isEmpty()) {
+                    store.update { current -> if (current.revision == revision && current.libreView &&
+                        current.status in listOf("", "authenticated", "credentials"))
+                        current.copy(status = "waiting_readings") else current }
+                    return Outcome.SUCCESS
+                }
                 val sensorId = batch.first().reading.sensorId
                 if (s.registeredSensor != sensorId) {
                     s = active(revision) ?: return Outcome.SUCCESS

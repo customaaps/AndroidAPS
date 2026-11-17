@@ -11,7 +11,10 @@ import androidx.compose.ui.unit.dp
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.notifications.NotificationManager
-import app.aaps.core.interfaces.plugin.EnforcedState
+import app.aaps.core.keys.BooleanComposedKey
+import app.aaps.core.keys.interfaces.Preferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -28,21 +31,40 @@ import dev.zacsweers.metro.*
 @SingleIn(AppScope::class)
 @Inject
 class LibreViewPlugin(
-    context: Context,
+    private val context: Context,
+    preferences: Preferences,
     rh: ResourceHelper,
     aapsLogger: AAPSLogger,
     notificationManager: NotificationManager,
 ) : PluginBase(
     PluginDescription()
         .mainType(PluginType.SYNC)
-        // Upload is controlled by the existing encrypted setting inside this screen.
-        .enforce(EnforcedState.Enabled)
         .composeContent { LibreViewContent(context) }
         .icon(IcGenericCgm)
         .pluginName(TextRef.AndroidRes(R.string.libre2_libreview_export))
         .description(TextRef.AndroidRes(R.string.libre2_libreview_region)),
     aapsLogger, rh, notificationManager
-)
+) {
+    init {
+        // The old entry was enforced and had no ConfigBuilder selection. Preserve its upload consent once.
+        val key = "SYNC_LibreViewPlugin"
+        if (preferences.getIfExists(BooleanComposedKey.ConfigBuilderEnabled, key) == null) {
+            val enabled = runCatching { Libre2Exchange(context).settings().libreView }.getOrElse {
+                aapsLogger.error("Could not migrate LibreView upload selection")
+                false
+            }
+            preferences.put(BooleanComposedKey.ConfigBuilderEnabled, key, value = enabled)
+        }
+    }
+
+    override suspend fun onStart() {
+        withContext(Dispatchers.IO) { Libre2Exchange(context).setLibreViewEnabled(true) }
+    }
+
+    override suspend fun onStop() {
+        withContext(Dispatchers.IO) { Libre2Exchange(context).setLibreViewEnabled(false) }
+    }
+}
 
 private class LibreViewContent(private val context: Context) : ComposablePluginContent {
     @Composable

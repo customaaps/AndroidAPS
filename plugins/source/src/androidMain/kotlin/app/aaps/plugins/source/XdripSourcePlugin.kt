@@ -191,6 +191,12 @@ class XdripSourcePlugin(
                 aapsLogger.warn(LTag.BGSOURCE, "Skipping xDrip bundle: missing glucoseValue")
                 return
             }
+            // Export only after persistence, and never let an optional upload break BG delivery.
+            try {
+                app.aaps.plugins.source.libre2.Libre2Exchange(applicationContext).onExternalReading(
+                    glucoseValues[0], bundle.getLong(Intents.EXTRA_SENSOR_STARTED_AT, 0))
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { aapsLogger.error(LTag.BGSOURCE, "LibreView external reading export failed") }
             xdripSourcePlugin.sensorBatteryLevel = bundle.getInt(Intents.EXTRA_SENSOR_BATTERY, -1)
         }
     }

@@ -52,6 +52,9 @@ internal data class Libre2ExchangeSettings(
             })
     }
 
+    fun withUploadEnabled(enabled: Boolean): Libre2ExchangeSettings =
+        if (libreView == enabled) this else copy(libreView = enabled, revision = UUID.randomUUID().toString())
+
     // Deliberately no generated toString containing credentials.
     override fun toString() = "Libre2ExchangeSettings(redacted)"
 }

@@ -32,6 +32,29 @@ internal class Libre2Exchange(private val context: Context) {
         schedule(context, enabled)
     }
 
+    fun setLibreViewEnabled(enabled: Boolean) {
+        store.update { it.withUploadEnabled(enabled) }
+        schedule(context, enabled)
+    }
+
+    fun saveLibreViewCredentials(email: String, password: String) {
+        val updated = store.update { old ->
+            old.withUserSettings(old.xdrip, old.libreView, email, password, System.currentTimeMillis())
+        }
+        schedule(context, updated.libreView)
+    }
+
+    fun onExternalReading(value: app.aaps.core.data.model.GV, sensorStart: Long) {
+        if (!store.settings().libreView || value.sourceSensor != app.aaps.core.data.model.SourceSensor.LIBRE_2) return
+        val reading = externalLibre2Reading(value, sensorStart, Libre2PairingStore(context).load(), System.currentTimeMillis())
+        if (reading == null) {
+            store.update { old -> if (old.libreView) old.copy(status = "waiting_sensor") else old }
+            return
+        }
+        store.enqueue(reading, System.currentTimeMillis())
+        enqueue(context)
+    }
+
     fun onReading(reading: Libre2Reading) {
         val s = store.settings()
         var failure: Exception? = null
