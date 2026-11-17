@@ -73,9 +73,9 @@ Decoded collect(Call& call, intptr_t status, const DecoderState& previous,
         decoded.sampleId = glucose.getId();
         decoded.trend = glucose.trend();
         decoded.rateMgdlPerMinute = glucose.rate();
-        // Keep genuine low values. Invalid quality and removed sensors never publish glucose.
-        if (!decoded.removed && decoded.quality == 0 && glucose.getValue() > 0 && glucose.getValue() <= 1000)
-            decoded.glucoseMgdl = glucose.getValue();
+        // Preserve the vendor result for diagnostics. Publication checks quality, removal and range
+        // in Libre2DecodeResult; replacing rejected results with zero hides the actual failure.
+        decoded.glucoseMgdl = glucose.getValue();
     }
     return decoded;
 }
@@ -130,13 +130,7 @@ Decoded decodeNfc(const Bytes& uid, const Bytes& info, const Bytes& fram,
             sensorStart > 94694400 ? (sensorStart - 94694400) / 86400 : 0,
             sensorStart, mess, lib.token());
         auto activatedBytes = call.bytes(activated);
-        if (!activatedBytes.empty()) {
-            decoded.state.arrays[2] = std::move(activatedBytes);
-            decoded.state.arrays[0].clear();
-            decoded.state.arrays[1].clear();
-        }
-        // Initializing algorithm state does not constitute a fresh glucose sample.
-        decoded.glucoseMgdl = 0;
+        finishSensorInitialization(decoded, activatedBytes);
     }
     return decoded;
 }
@@ -167,9 +161,7 @@ Decoded decodeBluetooth(const Bytes& uid, const Bytes& info, const Bytes& packet
     else throw std::runtime_error("Bluetooth decoder ABI is unavailable");
     auto decoded = collect(call, reinterpret_cast<intptr_t>(response), previous,
                            start, end, removed, comp, atten, measurement, result);
-    // As in Juggluco, live BLE readings use packet reception time. Sample IDs are deduplicated
-    // separately; the vendor end-time output is not a live glucose timestamp.
-    if (decoded.status == 0) decoded.state.algorithmEndSeconds = now;
+    finishBluetoothDecode(decoded, previous, now);
     return decoded;
 }
 }

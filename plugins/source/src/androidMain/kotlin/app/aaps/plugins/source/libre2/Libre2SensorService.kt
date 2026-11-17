@@ -347,13 +347,15 @@ class Libre2SensorService : Service() {
             saved.state.metadata(), saved.state.arrays
         ))
         recordDecode(result)
-        Log.d("Libre2", "Decoded BLE sample: status=${result.status}, quality=${result.quality}, sampleId=${result.sampleId}, previousId=${saved.lastSampleId}, publishable=${result.canPublish}")
+        Log.d("Libre2", "Decoded BLE sample: ${result.diagnosticSummary()}, previousId=${saved.lastSampleId}")
         if (result.status != 0) {
             report(Libre2StatusCode.ERROR, "Libre2 decoder status: ${result.status}")
             return
         }
         if (!active.get()) return
         commitDecoded(saved.copy(state = result.state), result)
+        if (!result.canPublish)
+            report(Libre2StatusCode.ERROR, "Libre2 reading rejected: ${result.publicationRejection} (glucoseMgdl=${result.glucoseMgdl})")
         if (result.removed) {
             sensorEnded = true
             bluetooth?.close()
@@ -370,7 +372,8 @@ class Libre2SensorService : Service() {
         diagnostics = diagnostics.copy(
             lastDecoded = if (result.canPublish) System.currentTimeMillis() else diagnostics.lastDecoded,
             decoded = diagnostics.decoded + if (result.canPublish) 1 else 0,
-            decoderStatus = result.status, quality = result.quality, sampleId = result.sampleId)
+            decoderStatus = result.status, quality = result.quality, sampleId = result.sampleId,
+            decodeDetail = result.diagnosticSummary())
         sendStatus()
     }
 

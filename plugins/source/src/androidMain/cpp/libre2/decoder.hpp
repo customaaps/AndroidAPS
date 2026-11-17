@@ -26,6 +26,22 @@ struct Decoded {
     float rateMgdlPerMinute = 0;
     bool removed = false;
 };
+// Stream outputs must not replace the NFC-established start of an existing sensor.
+constexpr void finishBluetoothDecode(Decoded& decoded, const DecoderState& previous, int64_t now) {
+    if (decoded.status == 0) {
+        decoded.state.sensorStartSeconds = previous.sensorStartSeconds;
+        decoded.state.algorithmEndSeconds = now;
+    }
+}
+
+// A newly initialized sensor retains MESS only, even without an activation replacement.
+constexpr void finishSensorInitialization(Decoded& decoded, const Bytes& activated) {
+    if (!activated.empty()) decoded.state.arrays[2] = activated;
+    decoded.state.arrays[0].clear();
+    decoded.state.arrays[1].clear();
+    decoded.glucoseMgdl = 0; // Initialization is not a fresh reading.
+}
+
 // Input must already have passed the generation-specific NFC authentication/decryption.
 Decoded decodeNfc(const Bytes& uid, const Bytes& patchInfo, const Bytes& fram,
                   int64_t unixSeconds, const DecoderState& previous);

@@ -5,6 +5,35 @@
 #include "inout.hpp"
 #include "jnisub.hpp"
 #include "jnisubin.hpp"
+#include "decoder.hpp"
+
+namespace {
+// Compile-time regressions run for both supported ABIs, without a sensor or vendor library.
+constexpr bool decoderStateRules() {
+    libre2::Decoded decoded;
+    decoded.status = 0;
+    decoded.glucoseMgdl = 110;
+    decoded.state.arrays = {libre2::Bytes{1}, libre2::Bytes{2}, libre2::Bytes{3}};
+    libre2::finishSensorInitialization(decoded, {});
+    if (!decoded.state.arrays[0].empty() || !decoded.state.arrays[1].empty() ||
+        decoded.state.arrays[2] != libre2::Bytes{3} || decoded.glucoseMgdl != 0) return false;
+    libre2::finishSensorInitialization(decoded, libre2::Bytes{4, 5});
+    if (decoded.state.arrays[2] != libre2::Bytes{4, 5}) return false;
+
+    libre2::DecoderState previous;
+    previous.sensorStartSeconds = 1'700'000'000;
+    decoded.state.sensorStartSeconds = 1'900'000'000; // Inconsistent vendor stream output.
+    decoded.state.algorithmEndSeconds = 0;
+    decoded.glucoseMgdl = 35;
+    libre2::finishBluetoothDecode(decoded, previous, 1'700'000'060);
+    if (decoded.state.sensorStartSeconds != previous.sensorStartSeconds ||
+        decoded.state.algorithmEndSeconds != 1'700'000'060 || decoded.glucoseMgdl != 35) return false;
+    decoded.status = 1;
+    libre2::finishBluetoothDecode(decoded, previous, 1'800'000'000);
+    return decoded.state.algorithmEndSeconds == 1'700'000'060;
+}
+static_assert(decoderStateRules());
+}
 
 // Vendor RegisterNatives is collected in the isolated class registry.
 // No dependency on Juggluco Application, activities or sensor database.

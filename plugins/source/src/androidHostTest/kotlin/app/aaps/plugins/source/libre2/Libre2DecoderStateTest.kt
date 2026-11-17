@@ -29,6 +29,40 @@ class Libre2DecoderStateTest {
     }
 
     @Test
+    fun `rejected results retain the vendor glucose and identify the failed check`() {
+        val cases = listOf(
+            reply(status = 1) to "vendor_status",
+            reply(quality = 1) to "quality",
+            reply(removed = 1) to "sensor_removed",
+            reply(glucose = 0) to "glucose_range",
+            reply(glucose = 1001) to "glucose_range",
+        )
+        cases.forEach { (native, reason) ->
+            val result = Libre2DecodeResult.fromNative(native)
+            assertFalse(result.canPublish)
+            assertEquals(reason, result.publicationRejection)
+            assertEquals((native[0] as LongArray)[6].toInt(), result.glucoseMgdl)
+            assertTrue(result.diagnosticSummary().contains("rejection=$reason"))
+        }
+        val valid = Libre2DecodeResult.fromNative(reply(glucose = 35))
+        assertTrue(valid.canPublish)
+        assertNull(valid.publicationRejection)
+        assertTrue(valid.diagnosticSummary().contains("glucoseMgdl=35"))
+    }
+
+    @Test
+    fun `invalid sensor times are distinguishable from an invalid glucose result`() {
+        val result = Libre2DecodeResult.fromNative(reply())
+        val noStart = result.copy(state = result.state.copy(sensorStartSeconds = 0))
+        assertEquals("sensor_start", noStart.publicationRejection)
+        val futureStart = result.copy(state = result.state.copy(sensorStartSeconds = 1_900_000_000))
+        assertEquals("algorithm_time", futureStart.publicationRejection)
+        assertFalse(futureStart.canPublish)
+        assertTrue(futureStart.diagnosticSummary().contains("sensorStartSeconds=1900000000"))
+        assertTrue(futureStart.diagnosticSummary().contains("algorithmEndSeconds=1700000060"))
+    }
+
+    @Test
     fun `truncated corrupted and newer snapshots are rejected`() {
         val encoded = Libre2DecodeResult.fromNative(reply()).state.encode()
         assertThrows(Exception::class.java) { Libre2DecoderState.decode(encoded.copyOf(20)) }

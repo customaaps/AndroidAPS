@@ -70,9 +70,23 @@ internal data class Libre2DecodeResult(
     val removed: Boolean,
     val rateMgdlPerMinute: Float,
 ) {
-    val canPublish: Boolean
-        get() = status == 0 && !removed && quality == 0 && glucoseMgdl in 1..1000 &&
-            state.sensorStartSeconds > 0 && state.algorithmEndSeconds >= state.sensorStartSeconds
+    val publicationRejection: String?
+        get() = when {
+            status != 0 -> "vendor_status"
+            removed -> "sensor_removed"
+            quality != 0 -> "quality"
+            glucoseMgdl !in 1..1000 -> "glucose_range"
+            state.sensorStartSeconds <= 0 -> "sensor_start"
+            state.algorithmEndSeconds < state.sensorStartSeconds -> "algorithm_time"
+            else -> null
+        }
+
+    val canPublish: Boolean get() = publicationRejection == null
+
+    fun diagnosticSummary(): String =
+        "status=$status, quality=$quality, sampleId=$sampleId, glucoseMgdl=$glucoseMgdl, removed=$removed, " +
+            "sensorStartSeconds=${state.sensorStartSeconds}, algorithmEndSeconds=${state.algorithmEndSeconds}, " +
+            "rejection=${publicationRejection ?: "none"}"
 
     companion object {
         fun fromNative(reply: Array<Any>): Libre2DecodeResult {
