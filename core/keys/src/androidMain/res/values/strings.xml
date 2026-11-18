@@ -234,6 +234,8 @@
     <string name="pref_title_iob_threshold_percent">IOB threshold percent</string>
     <string name="openapsama_iob_threshold_percent_summary" formatted="false">Percentage of maxIOB above which SMBs are disabled.\nDefault value: 100%\nWith 100% this feature is effectively disabled.</string>
     <string name="pref_title_dynisf_adjustment_factor">DynamicISF adjustment factor</string>
+    <string name="pref_title_dynisf_velocity">DynamicISF Velocity</string>
+    <string name="pref_summary_dynisf_velocity" formatted="false">How strongly glucose changes the profile-based ISF. At 0% the curve uses the profile ISF. The default is 80%.</string>
     <string name="dyn_isf_adjust_summary" formatted="false">Adjustment factor for DynamicISF. Set more than 100% for more aggressive correction doses, and less than 100% for less aggressive corrections.</string>
     <string name="pref_title_autosens_period">Autosens period</string>
     <string name="openapsama_autosens_period_summary">Amount of hours in the past for sensitivity detection (carbs absorption time is excluded)</string>

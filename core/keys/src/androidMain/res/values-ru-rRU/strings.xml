@@ -285,6 +285,8 @@
     <string name="pref_title_half_basal_exercise_target">Цель для снижения базальной подачи вдвое</string>
     <string name="pref_title_iob_threshold_percent">Порог IOB в процентах</string>
     <string name="pref_title_dynisf_adjustment_factor">Коэффициент корректировки DynamicISF</string>
+    <string name="pref_title_dynisf_velocity">Velocity для DynamicISF</string>
+    <string name="pref_summary_dynisf_velocity" formatted="false">Определяет, насколько текущая глюкоза меняет ISF в режиме по профилю. При 0% кривая использует ISF профиля. По умолчанию 80%.</string>
     <string name="pref_title_autosens_period">Период расчёта Autosens</string>
     <string name="pref_title_logs_amount">Количество отправляемых файлов журнала</string>
     <string name="pref_title_stale_data_threshold">Порог устаревания данных</string>

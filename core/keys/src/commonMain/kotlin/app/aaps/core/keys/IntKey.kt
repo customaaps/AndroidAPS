@@ -393,6 +393,18 @@ enum class IntKey(
         unitType = UnitType.PERCENT,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
+    ApsDynIsfVelocity(
+        key = "DynISFVelocity",
+        defaultValue = 80,
+        min = 0,
+        max = 100,
+        title = KeysStrings.pref_title_dynisf_velocity,
+        summary = KeysStrings.pref_summary_dynisf_velocity,
+        dependency = BooleanKey.ApsDynIsfUseProfileSens,
+        visibility = ElementVisibility { it.preferences.get(BooleanKey.ApsUseDynamicSensitivity) },
+        unitType = UnitType.PERCENT,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
     AutosensPeriod(
         key = "openapsama_autosens_period",
         defaultValue = 24,

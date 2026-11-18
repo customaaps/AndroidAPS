@@ -288,10 +288,11 @@ open class OpenAPSSMBPlugin(
 
         if (glucoseStatus != null) {
             if (useProfileSensitivity) {
-                // Keep the 3.4.2.6 DynamicISF profile-based curve, using its default velocity (80%).
+                // Use the profile-based DynamicISF curve from 3.4.2.6.
                 val normalTarget = 100.0
                 val profileSensitivity = profile.getProfileIsfMgdl()
-                val velocity = 0.8
+                val velocityKey = IntKey.ApsDynIsfVelocity
+                val velocity = preferences.get(velocityKey).coerceIn(velocityKey.min, velocityKey.max) / 100.0
                 val glucoseLog = ln((glucoseStatus.glucose / dynIsfResult.insulinDivisor) + 1)
                 val targetLog = ln((normalTarget / dynIsfResult.insulinDivisor) + 1)
                 val ratio = 1 - (1 - targetLog / glucoseLog) * velocity
@@ -648,6 +649,7 @@ open class OpenAPSSMBPlugin(
             DoubleKey.ApsSmbMaxIob,
             BooleanKey.ApsUseDynamicSensitivity,
             BooleanKey.ApsDynIsfUseProfileSens,
+            IntKey.ApsDynIsfVelocity,
             BooleanKey.ApsUseAutosens,
             IntKey.ApsDynIsfAdjustmentFactor,
             UnitDoubleKey.ApsLgsThreshold,
