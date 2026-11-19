@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 
 /** Optional exports never participate in the sensor's Bluetooth or decoder state machine. */
 internal class Libre2Exchange(private val context: Context) {
@@ -55,11 +56,12 @@ internal class Libre2Exchange(private val context: Context) {
         enqueue(context)
     }
 
-    fun onReading(reading: Libre2Reading) {
+    suspend fun onReading(reading: Libre2Reading, calibratedMgdl: suspend () -> Double?) {
         val s = store.settings()
         var failure: Exception? = null
         if (s.xdrip) {
-            try { context.sendBroadcast(reading.xdripIntent()) }
+            val corrected = calibratedMgdl()
+            try { context.sendBroadcast(reading.xdripIntent(corrected)) }
             catch (error: Exception) { failure = error }
         }
         if (s.libreView) {
@@ -94,13 +96,14 @@ internal class Libre2Exchange(private val context: Context) {
 }
 
 /** Same local Sync Follower protocol as JugglucoNG's XdripFollowerSend. */
-internal fun Libre2Reading.xdripIntent(): Intent {
+internal fun Libre2Reading.xdripIntent(calibratedMgdl: Double? = null): Intent {
+    val exportMgdl = calibratedMgdl?.takeIf { it.isFinite() && it >= 1.0 }?.roundToInt() ?: mgdl
     val direction = when (trend) {
         1 -> "DoubleDown"; 2 -> "SingleDown"; 3 -> "Flat"; 4 -> "SingleUp"; 5 -> "DoubleUp"; else -> "NOT_COMPUTABLE"
     }
     return Intent("info.nightscout.client.NEW_SGV").setPackage("com.eveningoutpost.dexdrip")
         .addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-        .putExtra("sgv", JSONObject().put("mills", timestamp).put("mgdl", mgdl).put("direction", direction).toString())
+        .putExtra("sgv", JSONObject().put("mills", timestamp).put("mgdl", exportMgdl).put("direction", direction).toString())
 }
 
 /** Uses WorkManager's default constructor; no dependency on the decoder process or a pump. */

@@ -81,7 +81,7 @@ class Libre2ClientDeliveryTest {
         }
         val preferences: Preferences = mock()
         whenever(preferences.get(BooleanKey.BgSourceCreateSensorChange)).thenReturn(true)
-        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences)
+        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences, { mock() })
         try {
             client.start()
             assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))
@@ -109,7 +109,7 @@ class Libre2ClientDeliveryTest {
         val file = java.io.File(sensor.applicationContext.noBackupFilesDir, "libre2-exchange/settings.enc")
         file.parentFile!!.mkdirs()
         file.writeBytes(byteArrayOf(1, 2, 3))
-        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), mock<Preferences>())
+        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), mock<Preferences>(), { mock() })
         try {
             client.start()
             assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))
@@ -131,7 +131,7 @@ class Libre2ClientDeliveryTest {
         val sensor = SensorContext()
         val settings = sensor.applicationContext.getSharedPreferences("libre2_connection", Context.MODE_PRIVATE)
         settings.edit().clear().commit()
-        val client = Libre2Client(sensor, mock<PersistenceLayer>(), mock<RxBus>(), AAPSLoggerTest(), mock<Preferences>())
+        val client = Libre2Client(sensor, mock<PersistenceLayer>(), mock<RxBus>(), AAPSLoggerTest(), mock<Preferences>(), { mock() })
         try {
             client.start()
             assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))
@@ -164,7 +164,7 @@ class Libre2ClientDeliveryTest {
         val preferences: Preferences = mock()
         whenever(preferences.get(BooleanKey.BgSourceCreateSensorChange)).thenReturn(enabled)
         whenever(database.insertCgmSourceData(any(), any(), any(), anyOrNull())).thenReturn(PersistenceLayer.TransactionResult<GV>())
-        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences)
+        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences, { mock() })
         try {
             client.start()
             assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))
@@ -202,7 +202,7 @@ class Libre2ClientDeliveryTest {
         }
         val preferences: Preferences = mock()
         whenever(preferences.get(BooleanKey.BgSourceCreateSensorChange)).thenReturn(true)
-        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences)
+        val client = Libre2Client(sensor, database, mock<RxBus>(), AAPSLoggerTest(), preferences, { mock() })
         try {
             client.start()
             assertTrue(sensor.registered.await(5, TimeUnit.SECONDS))

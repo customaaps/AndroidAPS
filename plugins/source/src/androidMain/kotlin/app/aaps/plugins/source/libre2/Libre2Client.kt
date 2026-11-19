@@ -2,18 +2,22 @@ package app.aaps.plugins.source.libre2
 
 import android.content.*
 import android.os.*
+import app.aaps.core.data.iob.InMemoryGlucoseValue
 import app.aaps.core.data.model.GV
 import app.aaps.core.data.model.SourceSensor
 import app.aaps.core.data.model.TE
 import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.data.ue.Sources
+import app.aaps.core.interfaces.calibration.CalibrationContext
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.objects.extensions.fromGv
 import dev.zacsweers.metro.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +34,7 @@ class Libre2Client(
     private val rxBus: RxBus,
     private val logger: AAPSLogger,
     private val preferences: Preferences,
+    private val activePlugin: () -> ActivePlugin,
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -205,15 +210,21 @@ class Libre2Client(
                         val previous = persistenceLayer.getLastTherapyRecordUpToNow(TE.Type.SENSOR_CHANGE)?.timestamp
                         Libre2ReadingPolicy.sensorInsertionTime(reading.sensorStart, previous, System.currentTimeMillis())
                     } else null
-                    persistenceLayer.insertCgmSourceData(Sources.BG, listOf(GV(
+                    val glucose = GV(
                         timestamp = reading.timestamp, value = reading.mgdl.toDouble(), raw = null, noise = null,
                         trendArrow = Libre2ReadingPolicy.trend(reading.trend), sourceSensor = SourceSensor.LIBRE_2
-                    )), emptyList(), sensorInsertion)
+                    )
+                    persistenceLayer.insertCgmSourceData(Sources.BG, listOf(glucose), emptyList(), sensorInsertion)
                     val committedAt = System.currentTimeMillis()
                     logger.debug(LTag.BGSOURCE, "Libre2 APS write succeeded: sampleId=${reading.sampleId}, sampleTime=${reading.timestamp}, committedAt=$committedAt")
                     // Export failures must never block ACK/CGM delivery or cause a pump reconnect.
-                    try { exchange.onReading(reading) }
-                    catch (_: Exception) { logger.error("Libre2 optional export failed") }
+                    try {
+                        exchange.onReading(reading) { calibratedForXdrip(glucose, reading.sensorStart) }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        logger.error("Libre2 optional export failed")
+                    }
                     withContext(Dispatchers.Main.immediate) {
                         if (enabled && connection === session) {
                             mutableLastStored.value = committedAt
@@ -236,6 +247,22 @@ class Libre2Client(
                     withContext(Dispatchers.Main.immediate) { session.inFlight.remove(reading.token) }
                 }
             }
+        }
+    }
+    private suspend fun calibratedForXdrip(glucose: GV, sensorStart: Long): Double? {
+        return try {
+            val calibration = activePlugin().activeCalibration
+            val recordedStart = persistenceLayer.getLastTherapyRecordUpToNow(TE.Type.SENSOR_CHANGE)?.timestamp
+            val sessionStart = maxOf(sensorStart, recordedStart ?: 0L).takeIf { it > 0L }
+            calibration.calibrate(
+                mutableListOf(InMemoryGlucoseValue.fromGv(glucose)),
+                CalibrationContext(sensorSessionStart = sessionStart, checkForSensorGaps = false)
+            ).firstOrNull()?.calibrated
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            logger.error("Libre2 xDrip export calibration failed", error)
+            null
         }
     }
 }

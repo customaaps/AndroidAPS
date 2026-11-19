@@ -199,6 +199,13 @@ class Libre2ExchangeTest {
         assertEquals("DoubleDown", sgv.getString("direction"))
     }
 
+    @Test fun `local follower broadcast uses the available calibrated value`() {
+        val reading = reading(8).copy(mgdl = 65)
+        val intent = reading.xdripIntent(calibratedMgdl = 73.6)
+        val sgv = JSONObject(requireNotNull(intent.getStringExtra("sgv")))
+        assertEquals(74, sgv.getInt("mgdl"))
+    }
+
     @Test fun `expired upload token requests a bounded reauthentication`() {
         val settings = Libre2ExchangeSettings(baseUrl = "https://api.libreview.ru", token = "expired")
         val api = Libre2LibreViewApi { _, _, _ -> JSONObject().put("status", 20).put("reason", "wrongDeviceInToken") }
