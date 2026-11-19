@@ -1,7 +1,9 @@
 package app.aaps.plugins.automation.services
 
+import android.app.ForegroundServiceStartNotAllowedException
 import android.content.Context
 import app.aaps.core.interfaces.notifications.NotificationHolder
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.shared.tests.TestBase
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -26,12 +28,13 @@ class LocationServiceControllerImplTest : TestBase() {
 
     @Mock lateinit var context: Context
     @Mock lateinit var notificationHolder: NotificationHolder
+    @Mock lateinit var fabricPrivacy: FabricPrivacy
 
     private lateinit var sut: LocationServiceControllerImpl
 
     @BeforeEach
     fun prepare() {
-        sut = LocationServiceControllerImpl(context, notificationHolder)
+        sut = LocationServiceControllerImpl(context, notificationHolder, aapsLogger, fabricPrivacy)
     }
 
     @Test
@@ -55,6 +58,19 @@ class LocationServiceControllerImplTest : TestBase() {
 
         assertThat(issued).isTrue()
         verify(context).startForegroundService(anyOrNull())
+    }
+
+    /** Android refused the background start. It must be caught and reported, not end the app (issue nightscout#5303). */
+    @Test
+    fun refusedForegroundStartInTheFallbackIsCaughtAndReported() {
+        whenever(context.bindService(anyOrNull(), any<android.content.ServiceConnection>(), any<Int>())).thenThrow(RuntimeException("cannot bind"))
+        whenever(context.startForegroundService(anyOrNull())).thenThrow(ForegroundServiceStartNotAllowedException("refused"))
+
+        val issued = sut.startService()
+
+        assertThat(issued).isTrue()
+        verify(fabricPrivacy).logException(any())
+        verify(fabricPrivacy).logCustom("LocationForegroundServiceRefused")
     }
 
     @Test

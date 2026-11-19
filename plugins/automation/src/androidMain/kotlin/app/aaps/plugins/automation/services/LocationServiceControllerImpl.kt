@@ -1,6 +1,7 @@
 package app.aaps.plugins.automation.services
 
 import android.Manifest
+import android.app.ForegroundServiceStartNotAllowedException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -11,7 +12,10 @@ import androidx.core.app.ActivityCompat
 import app.aaps.core.interfaces.concurrent.AapsLock
 import app.aaps.core.interfaces.concurrent.withLock
 import app.aaps.core.interfaces.location.LocationServiceController
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationHolder
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.utils.DeferredForegroundStart
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -32,7 +36,9 @@ import dev.zacsweers.metro.SingleIn
 @Inject
 class LocationServiceControllerImpl(
     private val context: Context,
-    private val notificationHolder: NotificationHolder
+    private val notificationHolder: NotificationHolder,
+    private val aapsLogger: AAPSLogger,
+    private val fabricPrivacy: FabricPrivacy
 ) : LocationServiceController {
 
     private val deferredStart = DeferredForegroundStart()
@@ -66,6 +72,11 @@ class LocationServiceControllerImpl(
     /**
      * @return true if the service start was issued; false if it was skipped because the location
      *   permission isn't granted yet, so [running] stays false and the next enable retries.
+     *
+     * Android refuses a start from the background with [ForegroundServiceStartNotAllowedException],
+     * and on Android 14+ can refuse the location foreground with [SecurityException]. Both would end
+     * the app as an uncaught throw on the main thread, so they are caught and reported here (the same
+     * guard `DummyServiceHelper` has). A refusal resets [running], so the next enable retries.
      */
     internal fun startService(): Boolean {
         if (!hasLocationPermission(context)) return false
@@ -76,14 +87,20 @@ class LocationServiceControllerImpl(
 
                 val locationService: LocationService = binder.getService()
 
-                context.startForegroundService(Intent(context, LocationService::class.java))
+                try {
+                    context.startForegroundService(Intent(context, LocationService::class.java))
 
-                // This is the key: Without waiting Android Framework to call this method
-                // inside Service.onCreate(), immediately call here to post the notification.
-                locationService.startForeground(notificationHolder.notificationID, notificationHolder.notification)
-
-                // Release the connection to prevent leaks.
-                context.unbindService(this)
+                    // This is the key: Without waiting Android Framework to call this method
+                    // inside Service.onCreate(), immediately call here to post the notification.
+                    locationService.startForeground(notificationHolder.notificationID, notificationHolder.notification)
+                } catch (e: ForegroundServiceStartNotAllowedException) {
+                    notAllowed(e)
+                } catch (e: SecurityException) {
+                    notAllowed(e)
+                } finally {
+                    // Release the connection to prevent leaks.
+                    context.unbindService(this)
+                }
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
@@ -97,9 +114,21 @@ class LocationServiceControllerImpl(
             // Just call startForegroundService instead since we cannot bind a service to a
             // broadcast receiver context. The service also have to call startForeground in
             // this case.
-            context.startForegroundService(Intent(context, LocationService::class.java))
+            try {
+                context.startForegroundService(Intent(context, LocationService::class.java))
+            } catch (e: ForegroundServiceStartNotAllowedException) {
+                notAllowed(e)
+            }
         }
         return true
+    }
+
+    /** Logs the refusal and resets [running], so the next enable retries instead of doing nothing. */
+    private fun notAllowed(e: Exception) {
+        aapsLogger.warn(LTag.CORE, "Android does not allow LocationService into the foreground now: ${e.message}")
+        fabricPrivacy.logException(e)
+        fabricPrivacy.logCustom("LocationForegroundServiceRefused")
+        lock.withLock { running = false }
     }
 
     internal fun stopService() {
