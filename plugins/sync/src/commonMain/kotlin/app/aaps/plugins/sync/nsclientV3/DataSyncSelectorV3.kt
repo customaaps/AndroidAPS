@@ -1,6 +1,9 @@
 package app.aaps.plugins.sync.nsclientV3
 
 import androidx.annotation.OpenForTesting
+import app.aaps.core.data.iob.InMemoryGlucoseValue
+import app.aaps.core.data.model.GV
+import app.aaps.core.interfaces.calibration.CalibrationContext
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -16,6 +19,7 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.LongNonKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.objects.extensions.fromGv
 import app.aaps.plugins.sync.nsclientV3.extensions.onlyNsIdAdded
 import app.aaps.plugins.sync.nsclientV3.keys.NsclientBooleanKey
 import app.aaps.plugins.sync.nsclientV3.keys.NsclientLongKey
@@ -478,12 +482,12 @@ class DataSyncSelectorV3(
                         }
                         // without nsId = create new
                         gv.first.ids.nightscoutId == null                                -> {
-                            cont = nsClientV3Plugin().nsAdd("entries", DataSyncSelector.PairGlucoseValue(gv.first, gv.second.id), "$startId/$lastDbId") == true
+                            cont = nsClientV3Plugin().nsAdd("entries", glucoseForUpload(gv.first, gv.second.id), "$startId/$lastDbId") == true
                             if (cont) added++
                         }
 
                         else                                                             -> {  //  gv.first.interfaceIDs.nightscoutId != null
-                            cont = nsClientV3Plugin().nsUpdate("entries", DataSyncSelector.PairGlucoseValue(gv.first, gv.second.id), "$startId/$lastDbId") == true
+                            cont = nsClientV3Plugin().nsUpdate("entries", glucoseForUpload(gv.first, gv.second.id), "$startId/$lastDbId") == true
                             if (cont) updated++
                         }
                     }
@@ -495,6 +499,16 @@ class DataSyncSelectorV3(
         }
         if (ignored + added + updated > 0)
             aapsLogger.info(LTag.NSCLIENT, "GlucoseValue: from=$firstId to=$lastId ignored=$ignored added=$added updated=$updated")
+    }
+
+    private suspend fun glucoseForUpload(value: GV, queueId: Long): DataSyncSelector.PairGlucoseValue {
+        val corrected = if (value.isValid && config.appInitialized) {
+            val reading = InMemoryGlucoseValue.fromGv(value)
+            activePlugin.activeCalibration
+                .calibrate(mutableListOf(reading), CalibrationContext(checkForSensorGaps = false))
+                .firstOrNull()?.calibrated
+        } else null
+        return DataSyncSelector.PairGlucoseValue(value, queueId, calibratedSgv = corrected)
     }
 
     fun confirmLastCalibrationEntryIdIfGreater(lastSynced: Long) {

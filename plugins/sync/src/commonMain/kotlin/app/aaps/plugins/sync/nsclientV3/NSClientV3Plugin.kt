@@ -909,7 +909,7 @@ class NSClientV3Plugin(
             Operation.UPDATE -> nsAndroidClient?.let { return@let it::updateSvg }
         }
         try {
-            val data = dataPair.value.toNSSvgV3()
+            val data = dataPair.value.toNSSvgV3(dataPair.calibratedSgv)
             val id = dataPair.value.ids.nightscoutId
             nsClientRepository.addLog(
                 when (operation) {

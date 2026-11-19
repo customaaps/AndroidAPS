@@ -26,7 +26,12 @@ interface DataSyncSelector {
     }
 
     data class PairTemporaryTarget(override val value: TT, override val id: Long, override var confirmed: Boolean = false) : DataPair
-    data class PairGlucoseValue(override val value: GV, override val id: Long, override var confirmed: Boolean = false) : DataPair
+    data class PairGlucoseValue(
+        override val value: GV,
+        override val id: Long,
+        override var confirmed: Boolean = false,
+        val calibratedSgv: Double? = null
+    ) : DataPair
     data class PairCalibrationEntry(override val value: CAL, override val id: Long, override var confirmed: Boolean = false) : DataPair
     data class PairTherapyEvent(override val value: TE, override val id: Long, override var confirmed: Boolean = false) : DataPair
     data class PairFood(override val value: FD, override val id: Long, override var confirmed: Boolean = false) : DataPair
