@@ -2,7 +2,7 @@ package app.aaps.core.interfaces.periodcalendar
 
 interface PeriodCalendar {
 
-    /** Returns the formatted cycle day string (e.g. "01ME", "15", "--") or empty if plugin not set up. */
+    /** Returns the formatted cycle day string (e.g. "01", "15") or "--" if plugin not set up. */
     fun getCycleDayText(): String = "--"
 
     /** Returns the current cycle day (1..99) or 0 when the cycle is not started. */

@@ -50,7 +50,12 @@ class CycleCounterService
 
         var cycleHistory: List<CycleStartRecord>
             get() {
-                val jsonStr = sp.getString(spKeyCycleHistory, "")
+                val jsonStr = try {
+                    sp.getString(spKeyCycleHistory, "")
+                } catch (e: Exception) {
+                    aapsLogger.error(LTag.CORE, "Failed to read cycle history", e)
+                    ""
+                }
                 return if (jsonStr.isEmpty()) {
                     emptyList()
                 } else {
@@ -74,7 +79,12 @@ class CycleCounterService
 
         var phases: List<CyclePhase>
             get() {
-                val jsonStr = sp.getString(spKeyPhases, "")
+                val jsonStr = try {
+                    sp.getString(spKeyPhases, "")
+                } catch (e: Exception) {
+                    aapsLogger.error(LTag.CORE, "Failed to read cycle phases", e)
+                    ""
+                }
                 return if (jsonStr.isEmpty()) {
                     CyclePhase.defaultPhases()
                 } else {
@@ -113,12 +123,7 @@ class CycleCounterService
         fun getFormattedDisplay(): String {
             val day = getCurrentCycleDay()
             if (day == 0) return "--"
-            val phase = getCurrentPhase()
-            return if (phase != null) {
-                String.format("%02d%s", day, phase.label)
-            } else {
-                String.format("%02d", day)
-            }
+            return String.format("%02d", day)
         }
 
         fun resetCycle() {

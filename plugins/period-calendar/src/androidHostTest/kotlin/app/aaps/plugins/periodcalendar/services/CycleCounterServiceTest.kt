@@ -1,6 +1,7 @@
 package app.aaps.plugins.periodcalendar.services
 
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.plugins.periodcalendar.model.CyclePhase
 import app.aaps.plugins.periodcalendar.model.CycleStartRecord
 import app.aaps.shared.tests.TestBase
 import com.google.common.truth.Truth.assertThat
@@ -137,6 +138,27 @@ class CycleCounterServiceTest : TestBase() {
 
         assertThat(intervals).hasSize(1)
         assertThat(intervals[0].lengthDays).isEqualTo(1)
+    }
+
+    @Test
+    fun phases_fallBackToDefaultsWhenStoredValueHasWrongType() {
+        whenever(sp.getString("period_calendar_phases", "")).thenThrow(ClassCastException("wrong type"))
+
+        assertThat(sut.phases).isEqualTo(CyclePhase.defaultPhases())
+    }
+
+    @Test
+    fun cycleHistory_isEmptyWhenStoredValueHasWrongType() {
+        whenever(sp.getString("period_calendar_cycle_history", "")).thenThrow(ClassCastException("wrong type"))
+
+        assertThat(sut.cycleHistory).isEmpty()
+    }
+
+    @Test
+    fun getFormattedDisplay_containsDayWithoutPhaseLabel() {
+        sut.cycleStartTimestamp = midnightOf(System.currentTimeMillis())
+
+        assertThat(sut.getFormattedDisplay()).isEqualTo("01")
     }
 
     private fun midnightOf(timestamp: Long): Long {

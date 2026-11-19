@@ -10,6 +10,7 @@ import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.plugins.periodcalendar.compose.PeriodCalendarComposeContent
 import app.aaps.plugins.periodcalendar.services.CycleCounterService
+import app.aaps.plugins.periodcalendar.services.CycleNotificationService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.ContributesIntoMap
@@ -30,6 +31,7 @@ class PeriodCalendarPlugin
         aapsLogger: AAPSLogger,
         rh: TextResolver,
         private val cycleCounterService: CycleCounterService,
+        private val cycleNotificationService: CycleNotificationService,
         notificationManager: NotificationManager,
     ) : PluginBase(
             PluginDescription()
@@ -43,6 +45,14 @@ class PeriodCalendarPlugin
             notificationManager,
         ),
         PeriodCalendar {
+
+    override suspend fun onStart() {
+        cycleNotificationService.start()
+    }
+
+    override suspend fun onStop() {
+        cycleNotificationService.stop()
+    }
 
     override fun getCycleDayText(): String = cycleCounterService.getFormattedDisplay()
 

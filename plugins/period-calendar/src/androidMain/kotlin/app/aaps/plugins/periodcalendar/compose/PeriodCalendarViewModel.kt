@@ -55,11 +55,13 @@ class PeriodCalendarViewModel @Inject constructor(
 
     fun resetCycle() {
         cycleCounterService.resetCycle()
+        cycleNotificationService.checkAndNotify()
         loadState()
     }
 
     fun setCycleDay(day: Int) {
         cycleCounterService.setCycleDay(day)
+        cycleNotificationService.checkAndNotify()
         loadState()
     }
 

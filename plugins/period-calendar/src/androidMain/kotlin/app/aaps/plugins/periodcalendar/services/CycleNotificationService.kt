@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.sharedPreferences.SP
@@ -13,6 +14,18 @@ import app.aaps.plugins.periodcalendar.R
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.time.Duration
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @SingleIn(AppScope::class)
 class CycleNotificationService
@@ -41,8 +54,36 @@ class CycleNotificationService
             get() = sp.getBoolean(KEY_NOTIFY_PHASE_CHANGE, true)
             set(value) = sp.putBoolean(KEY_NOTIFY_PHASE_CHANGE, value)
 
+        private var schedulerScope: CoroutineScope? = null
+        private var schedulerJob: Job? = null
+
+        fun start() {
+            stop()
+            try {
+                createNotificationChannel()
+            } catch (e: Exception) {
+                aapsLogger.error(LTag.CORE, "Failed to create period calendar notification channel", e)
+            }
+            val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+            schedulerScope = scope
+            schedulerJob = scope.launch {
+                checkSafely()
+                while (isActive) {
+                    delay(millisUntilNextMidnight())
+                    checkSafely()
+                }
+            }
+        }
+
+        fun stop() {
+            schedulerJob?.cancel()
+            schedulerScope?.cancel()
+            schedulerJob = null
+            schedulerScope = null
+        }
+
         fun createNotificationChannel() {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager = context.getSystemService(NotificationManager::class.java) ?: return
             val channel =
                 NotificationChannel(
                     CHANNEL_ID,
@@ -53,24 +94,35 @@ class CycleNotificationService
             notificationManager.createNotificationChannel(channel)
         }
 
-        fun checkAndNotify(pluginEnabled: Boolean) {
-            if (!pluginEnabled) {
-                aapsLogger.debug(LTag.CORE, "Period calendar plugin disabled, skipping notifications")
-                return
-            }
+        fun checkAndNotify() {
             if (!cycleCounterService.isCycleStarted()) return
 
             checkCycleStartNotification()
             checkPhaseChangeNotification()
         }
 
+        private fun checkSafely() {
+            try {
+                checkAndNotify()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                aapsLogger.error(LTag.CORE, "Period calendar notification check failed", e)
+            }
+        }
+
         private fun checkCycleStartNotification() {
             if (!notifyCycleStart) return
 
             val currentStart = cycleCounterService.cycleStartTimestamp
+            if (currentStart <= 0L) return
             val lastNotified = sp.getLong(KEY_LAST_NOTIFIED_CYCLE_START, 0L)
 
-            if (currentStart != lastNotified && currentStart > 0L) {
+            if (lastNotified == 0L) {
+                sp.putLong(KEY_LAST_NOTIFIED_CYCLE_START, currentStart)
+                return
+            }
+            if (currentStart != lastNotified) {
                 aapsLogger.debug(LTag.CORE, "Sending new cycle notification")
                 sendNotification(
                     NOTIFICATION_ID_CYCLE_START,
@@ -85,9 +137,18 @@ class CycleNotificationService
             if (!notifyPhaseChange) return
 
             val currentPhase = cycleCounterService.getCurrentPhase()
-            val lastNotifiedPhase = sp.getString(KEY_LAST_NOTIFIED_PHASE, "")
+            val lastNotifiedPhase = try {
+                sp.getString(KEY_LAST_NOTIFIED_PHASE, "")
+            } catch (e: Exception) {
+                aapsLogger.error(LTag.CORE, "Failed to read last notified phase", e)
+                ""
+            }
 
             if (currentPhase != null && currentPhase.label != lastNotifiedPhase) {
+                if (lastNotifiedPhase.isEmpty()) {
+                    sp.putString(KEY_LAST_NOTIFIED_PHASE, currentPhase.label)
+                    return
+                }
                 aapsLogger.debug(LTag.CORE, "Sending phase change notification: ${currentPhase.label}")
                 sendNotification(
                     NOTIFICATION_ID_PHASE_CHANGE,
@@ -103,20 +164,21 @@ class CycleNotificationService
             title: String,
             content: String,
         ) {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-            val intent =
-                Intent().apply {
-                    setClassName(context, "app.aaps.activities.MainActivity")
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                }
+            val notificationManager = NotificationManagerCompat.from(context)
+            if (!notificationManager.areNotificationsEnabled()) {
+                aapsLogger.debug(LTag.CORE, "Notifications disabled, skipping period calendar notification")
+                return
+            }
             val pendingIntent =
-                PendingIntent.getActivity(
-                    context,
-                    id,
-                    intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                )
+                context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { intent ->
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    PendingIntent.getActivity(
+                        context,
+                        id,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+                }
 
             val notification =
                 NotificationCompat
@@ -126,10 +188,21 @@ class CycleNotificationService
                     .setContentText(content)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(content))
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setContentIntent(pendingIntent)
                     .setAutoCancel(true)
+                    .apply { pendingIntent?.let { setContentIntent(it) } }
                     .build()
 
-            notificationManager.notify(id, notification)
+            try {
+                notificationManager.notify(id, notification)
+            } catch (e: Exception) {
+                aapsLogger.error(LTag.CORE, "Failed to post period calendar notification", e)
+            }
+        }
+
+        private fun millisUntilNextMidnight(): Long {
+            val zone = ZoneId.systemDefault()
+            val now = ZonedDateTime.now(zone)
+            val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(zone)
+            return Duration.between(now, nextMidnight).toMillis().coerceAtLeast(60_000L)
         }
     }
