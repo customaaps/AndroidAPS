@@ -340,8 +340,10 @@ class XdripPlugin(
 
     private fun sendEntries(dataPairs: List<DataSyncSelector.DataPair>, progress: String) {
         val array = JSONArray()
-        for (dataPair in dataPairs)
-            (dataPair as DataSyncSelector.PairGlucoseValue?)?.value?.toXdripJson()?.also { gv -> array.put(gv) }
+        for (dataPair in dataPairs) {
+            val glucose = dataPair as? DataSyncSelector.PairGlucoseValue ?: continue
+            array.put(glucose.value.toXdripJson(glucose.calibratedSgv))
+        }
         addLog("SENDING", "Sent ${array.length()} BGs ($progress)")
         broadcast(
             Intent(Intents.ACTION_NEW_SGV)

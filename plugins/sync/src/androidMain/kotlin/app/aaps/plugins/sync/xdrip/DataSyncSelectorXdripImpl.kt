@@ -1,6 +1,10 @@
 package app.aaps.plugins.sync.xdrip
 
+import app.aaps.core.data.iob.InMemoryGlucoseValue
+import app.aaps.core.data.model.GV
 import app.aaps.core.data.time.T
+import app.aaps.core.interfaces.calibration.CalibrationContext
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -13,12 +17,14 @@ import app.aaps.core.interfaces.sync.XDripBroadcast
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.LongNonKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.objects.extensions.fromGv
 import app.aaps.plugins.sync.xdrip.compose.XdripMvvmRepository
 import app.aaps.plugins.sync.xdrip.keys.XdripLongKey
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
 
 @Suppress("unused")
 @ContributesBinding(AppScope::class)
@@ -33,6 +39,7 @@ class DataSyncSelectorXdripImpl(
     private val xdripBroadcast: () -> XDripBroadcast,
     private val persistenceLayer: PersistenceLayer,
     private val preferences: Preferences,
+    private val config: Config,
     private val xdripMvvmRepository: XdripMvvmRepository
 ) : DataSyncSelectorXdrip {
 
@@ -162,7 +169,7 @@ class DataSyncSelectorXdripImpl(
                 aapsLogger.debug(LTag.XDRIP_SYNC, "Loading GlucoseValue data Start: $startId ${gv.first} forID: ${gv.second.id}")
                 lastId = gv.second.id
                 if (!isOld(gv.first.timestamp)) {
-                    preparedEntries.add(DataSyncSelector.PairGlucoseValue(gv.first, gv.second.id))
+                    preparedEntries.add(DataSyncSelector.PairGlucoseValue(gv.first, gv.second.id, calibratedSgv = calibratedSgv(gv.first)))
                     sent++
                 } else skipped++
                 sendEntries(force = false, progress)
@@ -172,6 +179,21 @@ class DataSyncSelectorXdripImpl(
         sendEntries(force = true, progress)
         if (sent + skipped > 0)
             aapsLogger.info(LTag.XDRIP, "GlucoseValue: from=$firstId to=$lastId sent=$sent skipped=$skipped")
+    }
+
+    private suspend fun calibratedSgv(value: GV): Double? {
+        if (!value.isValid || !config.appInitialized) return null
+        return try {
+            activePlugin.activeCalibration.calibrate(
+                mutableListOf(InMemoryGlucoseValue.fromGv(value)),
+                CalibrationContext(checkForSensorGaps = false)
+            ).firstOrNull()?.calibrated
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            aapsLogger.error("xDrip export calibration failed", error)
+            null
+        }
     }
 
     private fun sendEntries(force: Boolean, progress: String) {

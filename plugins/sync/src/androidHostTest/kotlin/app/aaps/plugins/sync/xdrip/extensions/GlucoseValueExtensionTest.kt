@@ -23,6 +23,8 @@ class GlucoseValueExtensionTest : TestBase() {
         assertThat(json.getLong("mills")).isEqualTo(1000L)
         assertThat(json.getBoolean("isValid")).isTrue()
         assertThat(json.getDouble("mgdl")).isEqualTo(120.0)
+        assertThat(gv.toXdripJson(127.5).getDouble("mgdl")).isEqualTo(127.5)
+        assertThat(gv.toXdripJson(Double.NaN).getDouble("mgdl")).isEqualTo(120.0)
         assertThat(json.getString("direction")).isEqualTo(TrendArrow.FLAT.text)
     }
 }
