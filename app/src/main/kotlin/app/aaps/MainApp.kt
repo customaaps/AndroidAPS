@@ -256,6 +256,7 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
 
                 // Register and initialize plugins
                 config.updateInitProgress(getString(R.string.initializing_plugins))
+                fabricPrivacy.logMessage("Registering plugins")
                 pluginStore.plugins = plugins
                 // Wait for the plugins to actually start, not just to be marked enabled. initialize()
                 // only schedules onStart, and everything below reads plugin state - the reconciler asks
@@ -264,6 +265,7 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
                 val started = configBuilder.initialize()
                 if (withTimeoutOrNull(PLUGIN_START_WAIT) { started.joinAll() } == null)
                     aapsLogger.warn(LTag.CORE, "Plugins did not finish starting within $PLUGIN_START_WAIT")
+                fabricPrivacy.logMessage("Plugins initialized")
 
                 // Running-mode reconciler + expiry scheduler. Start after plugins are registered:
                 // the reconciler's startup-drift check reads the active pump, which requires
@@ -288,7 +290,8 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
                 doInit()
             } catch (e: Exception) {
                 aapsLogger.error(LTag.CORE, "Fatal initialization error", e)
-                config.initFailed(e.message ?: "Unknown error")
+                fabricPrivacy.logException(e)
+                config.initFailed("${e::class.simpleName}: ${e.message ?: "no details"}")
             }
         }
     }
